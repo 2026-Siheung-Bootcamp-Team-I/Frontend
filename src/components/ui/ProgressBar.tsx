@@ -8,6 +8,8 @@ type ProgressBarProps = {
   /** fill opacity for accent shades */
   opacity?: number
   muted?: boolean
+  /** run the grow animation, off for static report bars */
+  animate?: boolean
 }
 
 function ProgressBar({
@@ -17,6 +19,7 @@ function ProgressBar({
   color = 'var(--accent)',
   opacity = 1,
   muted = false,
+  animate = true,
 }: ProgressBarProps) {
   return (
     <div className="flex flex-col gap-[7px]">
@@ -33,7 +36,9 @@ function ProgressBar({
             width: `${percent}%`,
             background: color,
             opacity,
-            animation: `edrBarGrow ${duration}s cubic-bezier(.2,.7,.2,1) both`,
+            animation: animate
+              ? `edrBarGrow ${duration}s cubic-bezier(.2,.7,.2,1) both`
+              : undefined,
           }}
         />
       </div>

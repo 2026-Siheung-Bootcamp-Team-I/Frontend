@@ -116,6 +116,24 @@ a:hover {
     box-shadow: 0 0 9px 1px var(--crit);
   }
 }
+@keyframes edrFloatA {
+  0%,
+  100% {
+    transform: rotateY(-15deg) rotateX(7deg) translateY(0);
+  }
+  50% {
+    transform: rotateY(-12.5deg) rotateX(7deg) translateY(-9px);
+  }
+}
+@keyframes edrCtaGlow {
+  0%,
+  100% {
+    box-shadow: 0 6px 18px var(--accent-wash);
+  }
+  50% {
+    box-shadow: 0 12px 32px var(--accent-wash);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

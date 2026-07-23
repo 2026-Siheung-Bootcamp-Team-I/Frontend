@@ -3,7 +3,8 @@ import AppLayout from '@/components/layout/AppLayout'
 import Dashboard from '@/pages/Dashboard'
 import Threats from '@/pages/Threats'
 import Endpoints from '@/pages/Endpoints'
-import Placeholder from '@/pages/Placeholder'
+import Sequence from '@/pages/Sequence'
+import Report from '@/pages/Report'
 
 function App() {
   return (
@@ -13,19 +14,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/threats" element={<Threats />} />
         <Route path="/endpoints" element={<Endpoints />} />
-        <Route
-          path="/sequence"
-          element={
-            <Placeholder
-              title="시퀀스 분석"
-              description="개별 행동을 시간순으로 이어 공격 경로로 재구성합니다."
-            />
-          }
-        />
-        <Route
-          path="/report"
-          element={<Placeholder title="요약 보기" description="분석 결과를 요약해 제공합니다." />}
-        />
+        <Route path="/sequence" element={<Sequence />} />
+        <Route path="/report" element={<Report />} />
       </Route>
     </Routes>
   )

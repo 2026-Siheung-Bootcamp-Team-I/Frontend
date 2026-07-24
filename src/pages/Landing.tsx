@@ -185,12 +185,12 @@ function Landing() {
       <div className="sticky top-0 z-50 border-b border-line-2 bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] backdrop-blur-[12px]">
         <div className={`${container} flex items-center justify-between h-[66px]`}>
           <div className="flex items-center lg:gap-[44px]">
-            <div className="flex items-center gap-[11px]">
+            <Link to="/" className="flex items-center gap-[11px]">
               <div className="w-[30px] h-[30px] rounded-[9px] bg-accent flex items-center justify-center">
                 <div className="w-[11px] h-[11px] bg-white rotate-45 rounded-[2px]" />
               </div>
               <span className="text-[19px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
-            </div>
+            </Link>
             <div className="hidden lg:flex gap-[28px]">
               <a href="#how" className="text-[14px] font-medium !text-ink-2">
                 동작 방식

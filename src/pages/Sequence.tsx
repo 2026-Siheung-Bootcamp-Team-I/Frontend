@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
-import type { Alert } from '@/api/types'
+import type { Alert, ExecuteStatus, Lineage } from '@/api/types'
 import Card from '@/components/ui/Card'
 import AttackPath from '@/components/ui/AttackPath'
 import AsyncState from '@/components/ui/AsyncState'
 import TriageActions from '@/components/ui/TriageActions'
 import { useApi } from '@/hooks/useApi'
 import { clockTime, severityColors, severityLabel, severityTone } from '@/lib/format'
-import { toAttackSteps } from '@/lib/lineagePath'
+import { killTarget, toAttackSteps } from '@/lib/lineagePath'
 import { useAlertsStore } from '@/store/alerts'
+import { useAuthStore } from '@/store/auth'
 
 const labelColor = {
   crit: 'text-crit',
@@ -118,7 +119,123 @@ function SequenceDetail({ alert }: { alert: Alert }) {
         <AttackPath host={alert.host} label={`${alert.threatName} 시퀀스`} steps={steps} />
       </AsyncState>
       <TriageActions alert={alert} />
+      {/* 권고 대응이 kill 인 알림만 실제 조치(프로세스 종료)를 실행할 수 있다. */}
+      {alert.action === 'kill' && <RealAction alert={alert} lineage={data} />}
     </>
+  )
+}
+
+/** responder 실행 결과 status 별 안내 문구와 색. */
+const execResult: Record<ExecuteStatus, { text: string; tone: 'good' | 'high' | 'crit' | 'mid' }> = {
+  KILLED: { text: '프로세스를 종료했습니다.', tone: 'good' },
+  NO_MATCH: { text: '대상 프로세스를 찾지 못했습니다.', tone: 'mid' },
+  TIMEOUT: { text: '응답 시간이 초과됐습니다.', tone: 'high' },
+  FAILED: { text: '실행에 실패했습니다.', tone: 'crit' },
+  COOLDOWN: { text: '쿨다운 중입니다. 잠시 후 다시 시도하세요.', tone: 'mid' },
+  DISABLED: { text: '서버에서 실제 조치가 꺼져 있습니다.', tone: 'mid' },
+}
+
+const toneClass = {
+  good: 'text-good',
+  high: 'text-high',
+  crit: 'text-crit',
+  mid: 'text-mid',
+}
+
+/** 실제 조치(kill) 실행. 확인 단계를 거친 뒤 responder-service 를 호출한다. */
+function RealAction({ alert, lineage }: { alert: Alert; lineage: Lineage | null }) {
+  const isDemo = useAuthStore((s) => s.token) === null
+  const target = lineage ? killTarget(lineage) : null
+  const [phase, setPhase] = useState<'idle' | 'confirm' | 'pending'>('idle')
+  const [result, setResult] = useState<ExecuteStatus | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  function ask() {
+    setResult(null)
+    setError(null)
+    setPhase('confirm')
+  }
+
+  async function run() {
+    if (!target) return
+    setPhase('pending')
+    setError(null)
+    try {
+      const res = await api.executeKill(alert.host, target)
+      setResult(res.status)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setPhase('idle')
+    }
+  }
+
+  return (
+    <div className="mt-[12px] px-[14px] py-[14px] sm:px-[18px] sm:py-[16px] bg-panel-2 border border-line-2 rounded-[12px] border-l-[3px] border-l-high">
+      <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center sm:gap-[16px]">
+        <div className="flex-1">
+          <div className="text-[12px] text-faint mb-1">실제 조치 (프로세스 종료)</div>
+          <div className="text-[13.5px] leading-[1.5] text-ink">
+            {target ? (
+              <>
+                <span className="font-mono text-ink-2">{alert.host}</span> 에서{' '}
+                <span className="font-mono text-ink-2">{target}</span> 프로세스를 종료합니다.
+              </>
+            ) : (
+              '종료할 프로세스를 찾지 못했습니다.'
+            )}
+          </div>
+          {phase === 'confirm' && (
+            <div className="mt-[6px] text-[12.5px] font-semibold text-high">
+              되돌릴 수 없습니다. 확인하겠습니까?
+            </div>
+          )}
+          {result && (
+            <div
+              className={`mt-[6px] text-[12.5px] font-semibold ${toneClass[execResult[result].tone]}`}
+            >
+              결과: {execResult[result].text}
+            </div>
+          )}
+          {isDemo && (
+            <div className="mt-[6px] text-[12px] text-faint">
+              데모에서는 실제 조치가 실행되지 않습니다. 로그인 후 이용하세요.
+            </div>
+          )}
+          {error && <div className="mt-[6px] text-[12px] text-crit">{error}</div>}
+        </div>
+
+        <div className="flex gap-[10px]">
+          {phase === 'confirm' ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setPhase('idle')}
+                className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-ink-2 border border-line px-[16px] py-[10px] rounded-[10px] cursor-pointer font-sans"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={run}
+                className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-crit px-[18px] py-[10px] rounded-[10px] cursor-pointer font-sans"
+              >
+                확인
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={ask}
+              disabled={isDemo || !target || phase === 'pending'}
+              className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-high px-[18px] py-[10px] rounded-[10px] cursor-pointer font-sans disabled:opacity-60 disabled:cursor-default"
+            >
+              {phase === 'pending' ? '실행 중' : '실제 조치 실행'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 

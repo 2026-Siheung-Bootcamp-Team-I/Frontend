@@ -185,22 +185,37 @@ function Sidebar({ open, onClose }: SidebarProps) {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto flex items-center gap-[10px] px-[12px] py-[10px] border-t border-line-2">
-          <div className="w-[30px] h-[30px] rounded-full bg-panel flex items-center justify-center text-[12px] font-semibold text-ink-2">
-            보안
+        {/* 대시보드는 로그인 없이도 열리므로 비로그인 상태를 함께 다룬다. */}
+        {user ? (
+          <div className="mt-auto flex items-center gap-[10px] px-[12px] py-[10px] border-t border-line-2">
+            <div className="w-[30px] h-[30px] rounded-full bg-panel flex items-center justify-center text-[12px] font-semibold text-ink-2">
+              보안
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[12.5px] font-semibold text-ink">보안운영팀</span>
+              <span className="text-[11px] text-faint truncate">{user.email}</span>
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="ml-auto text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer font-sans"
+            >
+              로그아웃
+            </button>
           </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-[12.5px] font-semibold text-ink">보안운영팀</span>
-            <span className="text-[11px] text-faint truncate">{user?.email ?? ''}</span>
+        ) : (
+          <div className="mt-auto flex flex-col gap-[8px] px-[12px] py-[12px] border-t border-line-2">
+            <span className="text-[11.5px] text-faint leading-[1.5]">
+              데모를 보고 있습니다. 로그인하면 실제 데이터가 보입니다.
+            </span>
+            <NavLink
+              to="/login"
+              className="text-center text-[12.5px] font-semibold !text-white bg-accent py-[9px] rounded-[9px]"
+            >
+              로그인
+            </NavLink>
           </div>
-          <button
-            type="button"
-            onClick={logout}
-            className="ml-auto text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer font-sans"
-          >
-            로그아웃
-          </button>
-        </div>
+        )}
       </aside>
     </>
   )

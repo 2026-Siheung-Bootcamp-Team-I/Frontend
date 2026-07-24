@@ -1,4 +1,6 @@
 import { queryString, request } from './client'
+import { demoApi } from './demo'
+import { useAuthStore } from '@/store/auth'
 import type {
   Alert,
   AlertStatus,
@@ -22,6 +24,14 @@ type AlertFilter = {
 
 type Period = { from?: number; to?: number }
 
+/**
+ * 로그인 전에는 서버를 부르지 않고 데모 데이터를 돌려준다.
+ * 토큰이 없으면 어차피 401 이고, 랜딩에서 넘어온 방문자에게는 빈 화면보다 데모가 낫다.
+ */
+function isDemo(): boolean {
+  return useAuthStore.getState().token === null
+}
+
 export const api = {
   signup: (email: string, password: string, orgName?: string) =>
     request<AuthResponse>('/auth/signup', {
@@ -39,20 +49,28 @@ export const api = {
 
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
 
-  alerts: (filter: AlertFilter = {}) => request<Alert[]>(`/alerts${queryString(filter)}`),
+  alerts: (filter: AlertFilter = {}) =>
+    isDemo() ? demoApi.alerts(filter) : request<Alert[]>(`/alerts${queryString(filter)}`),
 
   alertSummary: (period: Period = {}) =>
-    request<AlertSummary>(`/alerts/summary${queryString(period)}`),
+    isDemo()
+      ? demoApi.alertSummary(period)
+      : request<AlertSummary>(`/alerts/summary${queryString(period)}`),
 
-  lineage: (id: string) => request<Lineage>(`/alerts/${encodeURIComponent(id)}/lineage`),
+  lineage: (id: string) =>
+    isDemo() ? demoApi.lineage(id) : request<Lineage>(`/alerts/${encodeURIComponent(id)}/lineage`),
 
   triage: (id: string, status: Extract<AlertStatus, 'confirmed' | 'false_positive'>) =>
-    request<Alert>(`/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
+    isDemo()
+      ? demoApi.triage(id, status)
+      : request<Alert>(`/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
 
-  hosts: () => request<Host[]>('/hosts'),
+  hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 
-  hostSummary: () => request<HostSummary>('/hosts/summary'),
+  hostSummary: () => (isDemo() ? demoApi.hostSummary() : request<HostSummary>('/hosts/summary')),
 
   eventSummary: (period: Period = {}) =>
-    request<EventSummary>(`/events/summary${queryString(period)}`),
+    isDemo()
+      ? demoApi.eventSummary()
+      : request<EventSummary>(`/events/summary${queryString(period)}`),
 }

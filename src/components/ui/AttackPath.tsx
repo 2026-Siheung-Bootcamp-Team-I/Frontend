@@ -3,7 +3,8 @@ import type { CSSProperties, ReactNode } from 'react'
 export type AttackStep = {
   icon: ReactNode
   title: string
-  time: string
+  /** 단계 아래 작게 붙는 부가 설명(노드 종류·시각 등) */
+  caption: string
   color: string
   wash: string
   strong: boolean
@@ -69,7 +70,7 @@ function AttackPath({ host, label, steps }: AttackPathProps) {
             >
               {step.title}
             </span>
-            <span className="font-mono text-[10.5px] text-faint">{step.time}</span>
+            <span className="font-mono text-[10.5px] text-faint">{step.caption}</span>
             {step.connector && (
               <Connector color={step.connector === 'crit' ? 'var(--crit)' : 'var(--line)'} />
             )}

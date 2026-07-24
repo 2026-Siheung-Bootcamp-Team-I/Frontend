@@ -1,16 +1,8 @@
-import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
-import { useThemeStore } from '@/store/theme'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 
 function AppLayout() {
-  const theme = useThemeStore((s) => s.theme)
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-  }, [theme])
-
   return (
     <div className="flex min-h-screen bg-bg font-sans text-ink transition-colors">
       <Sidebar />

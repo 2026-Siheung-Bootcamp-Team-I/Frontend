@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '@/api'
 import type { Alert } from '@/api/types'
 import { statusLabel } from '@/lib/format'
@@ -11,8 +12,14 @@ const actionText: Record<string, string> = {
   notify: '의 활동을 확인하세요.',
 }
 
+type TriageActionsProps = {
+  alert: Alert
+  /** 넘기면 "자세히" 링크가 붙는다. 이미 상세 화면이면 생략한다. */
+  detailTo?: string
+}
+
 /** 권고 대응 문구와 트리아지(확정·오탐) 버튼. 이미 판단된 알림은 결과만 보여준다. */
-function TriageActions({ alert }: { alert: Alert }) {
+function TriageActions({ alert, detailTo }: TriageActionsProps) {
   const [pending, setPending] = useState<'confirmed' | 'false_positive' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const bump = useAlertsStore((s) => s.bump)
@@ -41,6 +48,15 @@ function TriageActions({ alert }: { alert: Alert }) {
         </div>
         {error && <div className="mt-[6px] text-[12px] text-crit">{error}</div>}
       </div>
+
+      {detailTo && (
+        <Link
+          to={detailTo}
+          className="whitespace-nowrap text-[13px] font-semibold !text-ink-2 border border-line px-[16px] py-[10px] rounded-[10px]"
+        >
+          자세히
+        </Link>
+      )}
 
       {alert.status === 'open' ? (
         <>

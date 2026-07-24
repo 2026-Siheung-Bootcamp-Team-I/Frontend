@@ -1,4 +1,11 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type MouseEvent,
+} from 'react'
 import { Link } from 'react-router-dom'
 import { useThemeStore } from '@/store/theme'
 
@@ -10,11 +17,126 @@ const featureCard = `${cardBase} p-[30px] transition-[box-shadow,transform] dura
 const iconTile =
   'w-[40px] h-[40px] rounded-[11px] bg-[var(--accent-wash)] flex items-center justify-center'
 
+function DemoRequestModal({ onClose }: { onClose: () => void }) {
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [])
+
+  const handleOverlayClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose()
+  }
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setSubmitted(true)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center px-[20px] bg-[rgba(0,0,0,0.5)] backdrop-blur-[2px]"
+      onClick={handleOverlayClick}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="demo-request-title"
+        className="w-full max-w-[420px] bg-surface border border-line rounded-[16px] shadow-[var(--shadow-2)] p-[32px]"
+      >
+        {submitted ? (
+          <>
+            <h2
+              id="demo-request-title"
+              className="text-[22px] font-[730] tracking-[-0.02em] text-ink"
+            >
+              요청이 접수되었습니다
+            </h2>
+            <p className="mt-[8px] text-[14px] leading-[1.6] text-mid">
+              입력하신 이메일로 담당자가 1영업일 안에 연락드립니다.
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full mt-[24px] h-[44px] rounded-[10px] bg-accent text-white font-sans text-[14.5px] font-semibold cursor-pointer"
+            >
+              확인
+            </button>
+          </>
+        ) : (
+          <>
+            <h2
+              id="demo-request-title"
+              className="text-[22px] font-[730] tracking-[-0.02em] text-ink"
+            >
+              데모 요청
+            </h2>
+            <p className="mt-[8px] text-[14px] leading-[1.6] text-mid">
+              30분 데모로 현재 엔드포인트 상태를 함께 확인해 드립니다.
+            </p>
+            <form onSubmit={handleSubmit} className="mt-[24px] flex flex-col gap-[16px]">
+              <label className="block">
+                <span className="text-[12.5px] font-semibold text-ink-2">이름</span>
+                <input
+                  type="text"
+                  required
+                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-[10px] border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[12.5px] font-semibold text-ink-2">이메일</span>
+                <input
+                  type="email"
+                  required
+                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-[10px] border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[12.5px] font-semibold text-ink-2">회사명</span>
+                <input
+                  type="text"
+                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-[10px] border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
+                />
+              </label>
+              <button
+                type="submit"
+                className="w-full mt-[8px] h-[44px] rounded-[10px] bg-accent text-white font-sans text-[14.5px] font-semibold cursor-pointer"
+              >
+                데모 요청 보내기
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full h-[42px] rounded-[10px] border border-line bg-surface !text-ink-2 font-sans text-[14px] font-semibold cursor-pointer"
+              >
+                닫기
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function Landing() {
   const theme = useThemeStore((s) => s.theme)
   const toggle = useThemeStore((s) => s.toggle)
   const themeLabel = theme === 'dark' ? '라이트' : '다크'
   const rootRef = useRef<HTMLDivElement>(null)
+  const [demoOpen, setDemoOpen] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -119,10 +241,16 @@ function Landing() {
               </span>
               <span>{themeLabel}</span>
             </button>
-            <span className="text-[14px] font-medium text-mid cursor-pointer">로그인</span>
-            <span className="text-[13px] font-semibold text-white bg-accent px-[18px] py-[9px] rounded-[10px] cursor-pointer">
+            <Link to="/login" className="text-[14px] font-medium !text-mid cursor-pointer">
+              로그인
+            </Link>
+            <button
+              type="button"
+              onClick={() => setDemoOpen(true)}
+              className="font-sans text-[13px] font-semibold text-white bg-accent px-[18px] py-[9px] rounded-[10px] cursor-pointer"
+            >
               데모 요청
-            </span>
+            </button>
           </div>
         </div>
       </div>
@@ -170,12 +298,14 @@ function Landing() {
               알려드립니다.
             </p>
             <div className="flex gap-[12px] mt-[32px]">
-              <span
-                className="inline-flex items-center gap-[9px] text-[15px] font-semibold text-white bg-accent px-[22px] py-[13px] rounded-[10px] cursor-pointer"
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
+                className="inline-flex items-center gap-[9px] font-sans text-[15px] font-semibold text-white bg-accent px-[22px] py-[13px] rounded-[10px] cursor-pointer"
                 style={{ animation: 'edrCtaGlow 3.6s ease-in-out infinite' }}
               >
                 데모 요청<span className="text-[16px]">→</span>
-              </span>
+              </button>
               <Link
                 to="/dashboard"
                 className="inline-flex items-center gap-[9px] text-[15px] font-semibold !text-ink-2 bg-surface border border-line px-[20px] py-[13px] rounded-[10px]"
@@ -841,12 +971,14 @@ function Landing() {
               30분 데모로 우리 조직의 엔드포인트가 지금 어떤 상태인지 함께 확인해 보세요.
             </p>
             <div className="flex gap-[12px] mt-[6px]">
-              <span
-                className="inline-flex items-center gap-[9px] text-[15px] font-semibold text-white bg-accent px-[24px] py-[14px] rounded-[10px] cursor-pointer"
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
+                className="inline-flex items-center gap-[9px] font-sans text-[15px] font-semibold text-white bg-accent px-[24px] py-[14px] rounded-[10px] cursor-pointer"
                 style={{ animation: 'edrCtaGlow 3.6s ease-in-out infinite' }}
               >
                 데모 요청<span className="text-[16px]">→</span>
-              </span>
+              </button>
               <Link
                 to="/dashboard"
                 className="inline-flex items-center gap-[9px] text-[15px] font-semibold !text-ink-2 bg-transparent border border-line px-[22px] py-[14px] rounded-[10px]"
@@ -885,6 +1017,8 @@ function Landing() {
           </div>
         </div>
       </div>
+
+      {demoOpen && <DemoRequestModal onClose={() => setDemoOpen(false)} />}
     </div>
   )
 }

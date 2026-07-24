@@ -147,8 +147,12 @@ function Sidebar({ open, onClose }: SidebarProps) {
       {open && (
         <div className="fixed inset-0 z-30 bg-[rgba(0,0,0,0.5)] lg:hidden" onClick={onClose} />
       )}
+      {/*
+        높이는 100vh 가 아니라 dvh. 모바일 브라우저에서 100vh 는 주소창을 포함한 높이라
+        하단의 사용자 정보와 로그아웃이 주소창에 가려진다.
+      */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[224px] flex-shrink-0 border-r border-line-2 bg-surface h-screen flex flex-col px-[14px] py-[18px] transition-transform lg:inset-auto lg:z-auto lg:sticky lg:top-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 h-dvh w-[224px] flex-shrink-0 border-r border-line-2 bg-surface flex flex-col px-[14px] py-[18px] transition-transform overflow-y-auto lg:inset-auto lg:z-auto lg:sticky lg:top-0 lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

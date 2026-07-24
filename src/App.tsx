@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import AppLayout from '@/components/layout/AppLayout'
-import RequireAuth from '@/components/RequireAuth'
 import { useThemeStore } from '@/store/theme'
 import Landing from '@/pages/Landing'
 import Login from '@/pages/Login'
@@ -47,12 +46,11 @@ function App() {
             </Suspense>
           }
         />
-        <Route element={<RequireAuth />}>
-          <Route path="/threats" element={<Threats />} />
-          <Route path="/endpoints" element={<Endpoints />} />
-          <Route path="/sequence" element={<Sequence />} />
-          <Route path="/report" element={<Report />} />
-        </Route>
+        {/* 데이터 조회 탭은 모두 로그인 없이 데모(예시)로 열린다. 토큰이 있으면 실데이터. */}
+        <Route path="/threats" element={<Threats />} />
+        <Route path="/endpoints" element={<Endpoints />} />
+        <Route path="/sequence" element={<Sequence />} />
+        <Route path="/report" element={<Report />} />
       </Route>
     </Routes>
   )

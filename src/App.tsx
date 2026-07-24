@@ -10,6 +10,7 @@ import Threats from '@/pages/Threats'
 import Endpoints from '@/pages/Endpoints'
 import Sequence from '@/pages/Sequence'
 import Report from '@/pages/Report'
+import ThreatMap from '@/pages/ThreatMap'
 
 function App() {
   const theme = useThemeStore((s) => s.theme)
@@ -26,6 +27,8 @@ function App() {
       {/* 대시보드는 로그인 없이도 열린다. 토큰이 없으면 데모 데이터를 그린다(src/api/demo.ts). */}
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        {/* 위협 지도도 데모(비로그인)에서 보여야 하므로 인증 밖에 둔다. */}
+        <Route path="/map" element={<ThreatMap />} />
         <Route element={<RequireAuth />}>
           <Route path="/threats" element={<Threats />} />
           <Route path="/endpoints" element={<Endpoints />} />

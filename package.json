@@ -11,9 +11,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -21,6 +25,7 @@
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@types/topojson-client": "^3.1.5",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
     "prettier": "^3.9.6",

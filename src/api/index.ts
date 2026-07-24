@@ -1,4 +1,4 @@
-import { queryString, request, responderRequest } from './client'
+import { queryString, request } from './client'
 import { demoApi } from './demo'
 import { useAuthStore } from '@/store/auth'
 import type {
@@ -72,11 +72,16 @@ export const api = {
 
   geoThreats: () => (isDemo() ? demoApi.geoThreats() : request<GeoThreat[]>('/alerts/geo')),
 
-  /** 실제 조치: responder-service 가 host 에서 target 프로세스를 종료한다. 데모 폴백 없음(비로그인 시 호출 금지). */
-  executeKill: (host: string, target: string) =>
-    responderRequest<ExecuteResult>('/api/responder/kill', {
+  /**
+   * 실제 조치(kill). responder 를 직접 부르지 않고 반드시 api-service 를 경유한다
+   * (api-service 가 Bearer 인증 + tenant 소유 확인 후 responder 로 프록시).
+   * host 는 서버가 알림에서 가져오므로 클라이언트는 종료 대상 프로세스(target)만 보낸다.
+   * 데모 폴백 없음(비로그인 시 호출 금지).
+   */
+  executeKill: (id: string, target: string) =>
+    request<ExecuteResult>(`/alerts/${encodeURIComponent(id)}/respond`, {
       method: 'POST',
-      body: { host, target },
+      body: { target },
     }),
 
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),

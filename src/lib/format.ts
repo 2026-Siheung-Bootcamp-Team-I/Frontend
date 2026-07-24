@@ -101,3 +101,15 @@ export const severityColors: Record<Tone, string> = {
 export function percentOf(value: number, total: number): number {
   return total > 0 ? Math.round((value / total) * 100) : 0
 }
+
+/**
+ * 실제 조치(kill)의 대상 프로세스명. 백엔드 alert.matched 의
+ * "process <name> (parent <parent>)" 항목에서 뽑는다. 실행 체인의 마지막(말단) 프로세스가
+ * 종료 대상이다. 해당 항목이 없으면 null.
+ */
+export function killTarget(matched: string[]): string | null {
+  const procs = matched
+    .map((m) => /^process\s+(\S+)/.exec(m)?.[1])
+    .filter((name): name is string => Boolean(name))
+  return procs.length ? procs[procs.length - 1] : null
+}

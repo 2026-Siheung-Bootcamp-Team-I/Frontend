@@ -50,7 +50,7 @@ const alerts: DemoAlert[] = [
     action: 'kill',
     ts: now - 48 * MINUTE,
     status: 'open',
-    matched: ['rundll32.exe 가 lsass.exe 핸들 요청', '덤프 파일 생성'],
+    matched: ['process rundll32.exe (parent cmd.exe)', 'lsass.exe 핸들 요청 및 덤프 파일 생성'],
     category: '권한 상승',
   },
   {
@@ -63,7 +63,7 @@ const alerts: DemoAlert[] = [
     action: 'kill',
     ts: now - 2 * HOUR,
     status: 'open',
-    matched: ['powershell.exe -enc 실행', '부모 프로세스가 winword.exe'],
+    matched: ['process powershell.exe (parent winword.exe)', '-enc 인코딩 명령 실행'],
     category: '악성코드',
   },
   {

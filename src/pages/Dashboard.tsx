@@ -180,7 +180,7 @@ function FeaturedPath({ alert }: { alert: Alert }) {
       >
         <AttackPath host={alert.host} label={`${alert.threatName} 시퀀스`} steps={steps} />
       </AsyncState>
-      <TriageActions alert={alert} />
+      <TriageActions alert={alert} detailTo={`/sequence?alert=${encodeURIComponent(alert.id)}`} />
     </>
   )
 }

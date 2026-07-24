@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '@/api'
 import type { HostStatus } from '@/api/types'
 import Card from '@/components/ui/Card'
@@ -13,6 +14,7 @@ const rowGrid = 'grid grid-cols-[1fr_110px_140px_70px] gap-[12px]'
 
 function Endpoints() {
   const [filter, setFilter] = useState<Filter>('all')
+  const navigate = useNavigate()
   const { data, loading, error, refetch } = useApi(() => api.hosts())
 
   const hosts = useMemo(() => data ?? [], [data])
@@ -74,34 +76,53 @@ function Endpoints() {
             <span>마지막 활동</span>
             <span className="text-right">위협</span>
           </div>
-          {rows.map((row, i) => (
-            <div
-              key={row.host}
-              className={`${rowGrid} items-center py-[13px] ${
-                i === rows.length - 1 ? '' : 'border-b border-line-2'
-              }`}
-            >
-              <span className="font-mono text-[13px] text-ink">{row.host}</span>
-              <span
-                className="inline-flex items-center gap-[7px] text-[12.5px] font-semibold"
-                style={{ color: hostStatusColor(row.status) }}
+          {rows.map((row, i) => {
+            const clickable = row.threats > 0
+            const goToThreats = () => navigate('/threats?host=' + encodeURIComponent(row.host))
+            return (
+              <div
+                key={row.host}
+                className={`${rowGrid} items-center py-[13px] ${
+                  i === rows.length - 1 ? '' : 'border-b border-line-2'
+                } ${clickable ? 'cursor-pointer hover:bg-panel' : ''}`}
+                role={clickable ? 'button' : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onClick={clickable ? goToThreats : undefined}
+                onKeyDown={
+                  clickable
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          if (e.key === ' ') e.preventDefault()
+                          goToThreats()
+                        }
+                      }
+                    : undefined
+                }
               >
+                <span className="font-mono text-[13px] text-ink">{row.host}</span>
                 <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: hostStatusColor(row.status) }}
-                />
-                {hostStatusLabel(row.status)}
-              </span>
-              <span className="font-mono text-[12px] text-faint">{relativeTime(row.lastSeen)}</span>
-              <span
-                className={`font-mono text-[12.5px] text-right ${
-                  row.threats > 0 ? 'text-crit' : 'text-faint'
-                }`}
-              >
-                {row.threats}
-              </span>
-            </div>
-          ))}
+                  className="inline-flex items-center gap-[7px] text-[12.5px] font-semibold"
+                  style={{ color: hostStatusColor(row.status) }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: hostStatusColor(row.status) }}
+                  />
+                  {hostStatusLabel(row.status)}
+                </span>
+                <span className="font-mono text-[12px] text-faint">
+                  {relativeTime(row.lastSeen)}
+                </span>
+                <span
+                  className={`font-mono text-[12.5px] text-right ${
+                    row.threats > 0 ? 'text-crit' : 'text-faint'
+                  }`}
+                >
+                  {row.threats}
+                </span>
+              </div>
+            )
+          })}
         </AsyncState>
       </Card>
     </div>

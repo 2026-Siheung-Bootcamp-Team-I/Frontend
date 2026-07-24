@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
 import type { Alert } from '@/api/types'
 import Card from '@/components/ui/Card'
@@ -23,9 +24,12 @@ function Sequence() {
   const list = useApi(() => api.alerts({ limit: 100 }), [alertsVersion])
   const alerts = list.data ?? []
 
-  // 고른 알림이 목록에서 사라지면(재조회 등) 자연히 첫 항목으로 되돌아간다.
+  // 대시보드의 "자세히" 가 ?alert= 로 딥링크한다. 목록에서 직접 고르면 그쪽이 우선한다.
+  const [searchParams] = useSearchParams()
   const [pickedId, setPickedId] = useState<string | null>(null)
-  const selected = alerts.find((a) => a.id === pickedId) ?? alerts[0] ?? null
+  const targetId = pickedId ?? searchParams.get('alert')
+  // 고른 알림이 목록에서 사라지면(재조회 등) 자연히 첫 항목으로 되돌아간다.
+  const selected = alerts.find((a) => a.id === targetId) ?? alerts[0] ?? null
   const selectedId = selected?.id ?? null
 
   return (

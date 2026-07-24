@@ -1,5 +1,11 @@
-import { useLocation } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useThemeStore } from '@/store/theme'
+import { useAlertsStore } from '@/store/alerts'
+import { useApi } from '@/hooks/useApi'
+import { api } from '@/api'
+import { searchAll } from '@/lib/search'
+import { severityColors, severityTone, hostStatusColor, hostStatusLabel } from '@/lib/format'
 
 const titles: Record<string, string> = {
   '/dashboard': '대시보드',
@@ -12,8 +18,42 @@ const titles: Record<string, string> = {
 function Topbar() {
   const { theme, toggle } = useThemeStore()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const pageTitle = titles[pathname] ?? 'EDRdog'
   const themeLabel = theme === 'dark' ? '라이트' : '다크'
+
+  const alertsVersion = useAlertsStore((s) => s.version)
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  // 검색은 클라이언트 부분 일치라 전체 목록이 필요하다. 검색창을 열기 전에는 받지 않는다.
+  const alerts = useApi(
+    () => (open ? api.alerts({ limit: 1000 }) : Promise.resolve([])),
+    [alertsVersion, open],
+  )
+  const hosts = useApi(() => (open ? api.hosts() : Promise.resolve([])), [alertsVersion, open])
+
+  useEffect(() => {
+    function onOutsideClick(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onOutsideClick)
+    return () => document.removeEventListener('mousedown', onOutsideClick)
+  }, [])
+
+  const results = searchAll(query, alerts.data ?? [], hosts.data ?? [])
+  const showDropdown = open && query.trim() !== ''
+  const loading = alerts.loading || hosts.loading
+  const hasResults = results.alerts.length > 0 || results.hosts.length > 0
+
+  function goToHost(host: string) {
+    navigate('/threats?host=' + encodeURIComponent(host))
+    setQuery('')
+    setOpen(false)
+  }
 
   return (
     <div className="h-[58px] flex-shrink-0 border-b border-line-2 bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] backdrop-blur-[10px] sticky top-0 z-20 flex items-center justify-between px-[28px]">
@@ -28,7 +68,10 @@ function Topbar() {
         </span>
       </div>
       <div className="flex items-center gap-[12px]">
-        <div className="flex items-center gap-2 h-[34px] px-[12px] rounded-[10px] border border-line bg-surface min-w-[220px]">
+        <div
+          ref={searchRef}
+          className="relative flex items-center gap-2 h-[34px] px-[12px] rounded-[10px] border border-line bg-surface min-w-[220px]"
+        >
           <svg
             width="14"
             height="14"
@@ -42,7 +85,82 @@ function Topbar() {
             <circle cx="11" cy="11" r="7" />
             <path d="M21 21l-4-4" />
           </svg>
-          <span className="text-[13px] text-faint">호스트·위협 검색</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setOpen(false)
+            }}
+            placeholder="호스트·위협 검색"
+            className="flex-1 min-w-0 bg-transparent border-0 outline-none font-sans text-[13px] text-ink placeholder:text-faint"
+          />
+          {showDropdown && (
+            <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-30 bg-surface border border-line rounded-[10px] shadow-[var(--shadow-2)] py-[6px] max-h-[320px] overflow-y-auto">
+              {loading ? (
+                <div className="text-[12.5px] text-faint px-[12px] py-[14px] text-center">
+                  불러오는 중
+                </div>
+              ) : !hasResults ? (
+                <div className="text-[12.5px] text-faint px-[12px] py-[14px] text-center">
+                  검색 결과가 없습니다
+                </div>
+              ) : (
+                <>
+                  {results.alerts.length > 0 && (
+                    <>
+                      <div className="text-[10.5px] text-faint uppercase tracking-[0.04em] px-[12px] py-[5px]">
+                        위협
+                      </div>
+                      {results.alerts.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => goToHost(a.host)}
+                          className="w-full flex items-center gap-2 px-[12px] py-[8px] text-left hover:bg-panel cursor-pointer"
+                        >
+                          <span
+                            className="w-[6px] h-[6px] rounded-full flex-shrink-0"
+                            style={{ background: severityColors[severityTone(a.severity)] }}
+                          />
+                          <span className="text-[13px] text-ink flex-1 truncate">
+                            {a.threatName}
+                          </span>
+                          <span className="font-mono text-[11px] text-faint">{a.host}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {results.hosts.length > 0 && (
+                    <>
+                      <div className="text-[10.5px] text-faint uppercase tracking-[0.04em] px-[12px] py-[5px]">
+                        엔드포인트
+                      </div>
+                      {results.hosts.map((h) => (
+                        <button
+                          key={h.host}
+                          type="button"
+                          onClick={() => goToHost(h.host)}
+                          className="w-full flex items-center gap-2 px-[12px] py-[8px] text-left hover:bg-panel cursor-pointer"
+                        >
+                          <span
+                            className="w-[6px] h-[6px] rounded-full flex-shrink-0"
+                            style={{ background: hostStatusColor(h.status) }}
+                          />
+                          <span className="font-mono text-[13px] text-ink flex-1 truncate">
+                            {h.host}
+                          </span>
+                          <span className="text-[11px] text-faint">
+                            {hostStatusLabel(h.status)}
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
         <button
           onClick={toggle}

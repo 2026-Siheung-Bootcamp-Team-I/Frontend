@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
 import type { Alert } from '@/api/types'
 import Card from '@/components/ui/Card'
@@ -30,9 +31,11 @@ function matches(alert: Alert, filter: Filter): boolean {
 function Threats() {
   const [filter, setFilter] = useState<Filter>('all')
   const alertsVersion = useAlertsStore((s) => s.version)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const host = searchParams.get('host')
   const { data, loading, error, refetch } = useApi(
-    () => api.alerts({ limit: 1000 }),
-    [alertsVersion],
+    () => api.alerts(host ? { host, limit: 1000 } : { limit: 1000 }),
+    [alertsVersion, host],
   )
 
   const alerts = useMemo(() => data ?? [], [data])
@@ -65,12 +68,28 @@ function Threats() {
         <FilterChips chips={chips} />
       </div>
 
+      {host && (
+        <div className="flex items-center gap-2 text-[12.5px]">
+          <span className="text-faint">호스트 필터</span>
+          <span className="inline-flex items-center gap-[10px] font-semibold text-accent bg-[var(--accent-wash)] pl-[13px] pr-[10px] py-[6px] rounded-full">
+            <span className="font-mono">{host}</span>
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              className="font-sans text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer"
+            >
+              해제
+            </button>
+          </span>
+        </div>
+      )}
+
       <Card className="px-[24px] py-[22px]">
         <AsyncState
           loading={loading}
           error={error}
           empty={rows.length === 0}
-          emptyText="탐지된 위협이 없습니다"
+          emptyText={host ? '이 호스트에서 탐지된 위협이 없습니다' : '탐지된 위협이 없습니다'}
           onRetry={refetch}
         >
           <div

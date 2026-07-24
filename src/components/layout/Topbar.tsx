@@ -15,7 +15,11 @@ const titles: Record<string, string> = {
   '/report': '요약 보기',
 }
 
-function Topbar() {
+type TopbarProps = {
+  onMenuOpen: () => void
+}
+
+function Topbar({ onMenuOpen }: TopbarProps) {
   const { theme, toggle } = useThemeStore()
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -56,10 +60,33 @@ function Topbar() {
   }
 
   return (
-    <div className="h-[58px] flex-shrink-0 border-b border-line-2 bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] backdrop-blur-[10px] sticky top-0 z-20 flex items-center justify-between px-[28px]">
-      <div className="flex items-center gap-[10px]">
-        <span className="text-[16px] font-bold text-ink tracking-[-0.01em]">{pageTitle}</span>
-        <span className="inline-flex items-center gap-[6px] text-[12px] text-mid ml-2">
+    <div className="h-[58px] flex-shrink-0 border-b border-line-2 bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] backdrop-blur-[10px] sticky top-0 z-20 flex items-center justify-between px-[16px] lg:px-[28px]">
+      <div className="flex items-center gap-[10px] min-w-0">
+        <button
+          type="button"
+          onClick={onMenuOpen}
+          aria-label="메뉴 열기"
+          className="lg:hidden flex-shrink-0 w-[40px] h-[40px] flex items-center justify-center rounded-[10px] text-ink-2 cursor-pointer"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 6h18" />
+            <path d="M3 12h18" />
+            <path d="M3 18h18" />
+          </svg>
+        </button>
+        <span className="text-[16px] font-bold text-ink tracking-[-0.01em] whitespace-nowrap">
+          {pageTitle}
+        </span>
+        <span className="hidden md:inline-flex items-center gap-[6px] text-[12px] text-mid ml-2">
           <span
             className="w-[6px] h-[6px] rounded-full bg-good"
             style={{ animation: 'edrPulse 2s ease-in-out infinite' }}
@@ -67,10 +94,10 @@ function Topbar() {
           실시간 동기화 중
         </span>
       </div>
-      <div className="flex items-center gap-[12px]">
+      <div className="flex items-center gap-[8px] sm:gap-[12px]">
         <div
           ref={searchRef}
-          className="relative flex items-center gap-2 h-[34px] px-[12px] rounded-[10px] border border-line bg-surface min-w-[220px]"
+          className="relative flex items-center gap-2 h-[34px] px-[12px] rounded-[10px] border border-line bg-surface flex-1 min-w-[120px] max-w-[260px] sm:min-w-[220px]"
         >
           <svg
             width="14"
@@ -164,7 +191,7 @@ function Topbar() {
         </div>
         <button
           onClick={toggle}
-          className="inline-flex items-center gap-[7px] h-[34px] pl-[11px] pr-[14px] rounded-[10px] border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer shadow-[var(--shadow-1)]"
+          className="inline-flex flex-shrink-0 items-center gap-[7px] h-[34px] pl-[11px] pr-[11px] sm:pr-[14px] rounded-[10px] border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer shadow-[var(--shadow-1)]"
         >
           <span data-om-sun className="items-center text-high">
             <svg
@@ -195,7 +222,7 @@ function Topbar() {
               <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
             </svg>
           </span>
-          <span>{themeLabel}</span>
+          <span className="hidden sm:inline">{themeLabel}</span>
         </button>
       </div>
     </div>

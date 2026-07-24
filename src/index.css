@@ -139,6 +139,13 @@ a:hover {
     animation: none !important;
   }
 }
+/* 랜딩 히어로의 3D 패널. 좁은 화면에서는 회전이 폭을 밀어내므로 평면으로 눕힌다. */
+@media (max-width: 1023px) {
+  [data-hero-panel] {
+    transform: none !important;
+    animation: none !important;
+  }
+}
 [data-om-sun],
 [data-om-moon] {
   display: none;

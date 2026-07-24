@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import ScrollArea from '@/components/ui/ScrollArea'
 
 export type AttackStep = {
   icon: ReactNode
@@ -33,7 +34,7 @@ type AttackPathProps = {
 function AttackPath({ host, label, steps }: AttackPathProps) {
   return (
     <>
-      <div className="flex justify-between items-center mb-[24px]">
+      <div className="flex flex-wrap justify-between items-center gap-[10px] mb-[24px]">
         <div className="flex flex-col gap-[3px]">
           <span className="text-[14px] font-bold text-ink">공격 경로 재구성</span>
           <span className="text-[12px] text-faint">
@@ -44,39 +45,41 @@ function AttackPath({ host, label, steps }: AttackPathProps) {
           dry-run · 실행 안 됨
         </span>
       </div>
-      <div
-        className="grid items-start relative"
-        style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}
-      >
-        {steps.map((step) => (
-          <div key={step.title} className="flex flex-col items-center gap-[10px] relative">
-            <div
-              className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center"
-              style={
-                {
-                  border: `1.8px solid ${step.color}`,
-                  background: step.wash,
-                  color: step.color,
-                  boxShadow: step.ring ? `0 0 0 4px ${step.wash}` : undefined,
-                } as CSSProperties
-              }
-            >
-              {step.icon}
+      <ScrollArea label="공격 경로 단계">
+        <div
+          className="grid items-start relative"
+          style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(120px, 1fr))` }}
+        >
+          {steps.map((step) => (
+            <div key={step.title} className="flex flex-col items-center gap-[10px] relative">
+              <div
+                className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center"
+                style={
+                  {
+                    border: `1.8px solid ${step.color}`,
+                    background: step.wash,
+                    color: step.color,
+                    boxShadow: step.ring ? `0 0 0 4px ${step.wash}` : undefined,
+                  } as CSSProperties
+                }
+              >
+                {step.icon}
+              </div>
+              <span
+                className={`text-[12.5px] text-center ${
+                  step.strong ? 'font-bold text-crit' : 'font-semibold text-ink'
+                }`}
+              >
+                {step.title}
+              </span>
+              <span className="font-mono text-[10.5px] text-faint">{step.caption}</span>
+              {step.connector && (
+                <Connector color={step.connector === 'crit' ? 'var(--crit)' : 'var(--line)'} />
+              )}
             </div>
-            <span
-              className={`text-[12.5px] text-center ${
-                step.strong ? 'font-bold text-crit' : 'font-semibold text-ink'
-              }`}
-            >
-              {step.title}
-            </span>
-            <span className="font-mono text-[10.5px] text-faint">{step.caption}</span>
-            {step.connector && (
-              <Connector color={step.connector === 'crit' ? 'var(--crit)' : 'var(--line)'} />
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </ScrollArea>
     </>
   )
 }

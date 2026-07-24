@@ -27,18 +27,18 @@ function Report() {
   return (
     <div className="flex flex-col gap-[20px]">
       <div>
-        <div className="text-[20px] font-bold text-ink tracking-[-0.01em]">요약 보기</div>
+        <div className="text-[18px] sm:text-[20px] font-bold text-ink tracking-[-0.01em]">요약 보기</div>
         <div className="mt-[6px] text-[13px] text-faint">
           에이전트가 관측한 이벤트와 탐지된 위협을 요약합니다.
         </div>
       </div>
 
       {/* stat tiles */}
-      <div className="grid grid-cols-3 gap-[16px]">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-[16px]">
         {stats.map((s) => (
           <Card
             key={s.label}
-            className={`px-[24px] py-[22px] ${s.crit ? 'border-l-[3px] border-l-crit' : ''}`}
+            className={`px-[16px] py-[18px] sm:px-[24px] sm:py-[22px] ${s.crit ? 'border-l-[3px] border-l-crit' : ''}`}
           >
             <div className="text-[12px] text-faint">{s.label}</div>
             <AsyncState loading={s.state.loading} error={s.state.error} onRetry={s.state.refetch}>
@@ -53,8 +53,8 @@ function Report() {
         ))}
       </div>
 
-      <div className="grid grid-cols-[1fr_1fr] gap-[20px] items-start">
-        <Card className="px-[24px] py-[22px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-[20px] items-start">
+        <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
           <div className="text-[14px] font-bold text-ink mb-[18px]">위협 유형 TOP 5</div>
           <AsyncState
             loading={week.loading}
@@ -69,7 +69,7 @@ function Report() {
           </AsyncState>
         </Card>
 
-        <Card className="px-[24px] py-[22px]">
+        <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
           <div className="flex justify-between items-center mb-[18px]">
             <span className="text-[14px] font-bold text-ink">이벤트 유형별 건수</span>
             <span className="text-[11.5px] text-faint">최근 24시간</span>
@@ -98,9 +98,11 @@ function EventCounts({ byType }: { byType: { type: string; cnt: number | string 
     <div className="flex flex-col gap-[15px]">
       {counts.map((row) => (
         <div key={row.type} className="flex flex-col gap-[7px]">
-          <div className="flex justify-between text-[13px]">
-            <span className="text-ink-2">{eventTypeLabels[row.type] ?? row.type}</span>
-            <span className="font-mono tabular-nums text-ink">{row.count.toLocaleString()}</span>
+          <div className="flex justify-between gap-[10px] text-[13px]">
+            <span className="text-ink-2 truncate">{eventTypeLabels[row.type] ?? row.type}</span>
+            <span className="font-mono tabular-nums text-ink flex-shrink-0">
+              {row.count.toLocaleString()}
+            </span>
           </div>
           <div className="h-[7px] rounded-full bg-panel overflow-hidden">
             <div

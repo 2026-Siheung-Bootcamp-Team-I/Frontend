@@ -116,7 +116,12 @@ const items: NavItem[] = [
   },
 ]
 
-function Sidebar() {
+type SidebarProps = {
+  open: boolean
+  onClose: () => void
+}
+
+function Sidebar({ open, onClose }: SidebarProps) {
   const user = useAuthStore((s) => s.user)
   const clear = useAuthStore((s) => s.clear)
   const navigate = useNavigate()
@@ -138,53 +143,65 @@ function Sidebar() {
   }
 
   return (
-    <aside className="w-[224px] flex-shrink-0 border-r border-line-2 bg-surface sticky top-0 h-screen flex flex-col px-[14px] py-[18px]">
-      <NavLink to="/dashboard" className="flex items-center gap-[10px] px-2 pt-[6px] pb-[18px]">
-        <div className="w-[28px] h-[28px] rounded-[8px] bg-accent flex items-center justify-center">
-          <div className="w-[10px] h-[10px] bg-white rotate-45 rounded-[2px]" />
-        </div>
-        <span className="text-[17px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
-      </NavLink>
-      <nav className="flex flex-col gap-[3px] mt-[6px]">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `flex items-center gap-[11px] px-[11px] py-[9px] rounded-[9px] text-[13.5px] font-semibold cursor-pointer transition-colors ${
-                isActive
-                  ? 'bg-[var(--accent-wash)] text-accent'
-                  : 'text-mid hover:text-ink-2 hover:bg-panel'
-              }`
-            }
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-[rgba(0,0,0,0.5)] lg:hidden"
+          onClick={onClose}
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-[224px] flex-shrink-0 border-r border-line-2 bg-surface h-screen flex flex-col px-[14px] py-[18px] transition-transform lg:inset-auto lg:z-auto lg:sticky lg:top-0 lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <NavLink to="/dashboard" className="flex items-center gap-[10px] px-2 pt-[6px] pb-[18px]">
+          <div className="w-[28px] h-[28px] rounded-[8px] bg-accent flex items-center justify-center">
+            <div className="w-[10px] h-[10px] bg-white rotate-45 rounded-[2px]" />
+          </div>
+          <span className="text-[17px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
+        </NavLink>
+        <nav className="flex flex-col gap-[3px] mt-[6px]">
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center gap-[11px] px-[11px] py-[9px] rounded-[9px] text-[13.5px] font-semibold cursor-pointer transition-colors ${
+                  isActive
+                    ? 'bg-[var(--accent-wash)] text-accent'
+                    : 'text-mid hover:text-ink-2 hover:bg-panel'
+                }`
+              }
+            >
+              {item.icon}
+              <span>{item.label}</span>
+              {item.to === '/threats' && openAlerts && openAlerts.length > 0 && (
+                <span className="ml-auto text-[11px] font-semibold text-white bg-crit px-2 py-[1px] rounded-full font-mono">
+                  {openAlerts.length}
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="mt-auto flex items-center gap-[10px] px-[12px] py-[10px] border-t border-line-2">
+          <div className="w-[30px] h-[30px] rounded-full bg-panel flex items-center justify-center text-[12px] font-semibold text-ink-2">
+            보안
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[12.5px] font-semibold text-ink">보안운영팀</span>
+            <span className="text-[11px] text-faint truncate">{user?.email ?? ''}</span>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="ml-auto text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer font-sans"
           >
-            {item.icon}
-            <span>{item.label}</span>
-            {item.to === '/threats' && openAlerts && openAlerts.length > 0 && (
-              <span className="ml-auto text-[11px] font-semibold text-white bg-crit px-2 py-[1px] rounded-full font-mono">
-                {openAlerts.length}
-              </span>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-      <div className="mt-auto flex items-center gap-[10px] px-[12px] py-[10px] border-t border-line-2">
-        <div className="w-[30px] h-[30px] rounded-full bg-panel flex items-center justify-center text-[12px] font-semibold text-ink-2">
-          보안
+            로그아웃
+          </button>
         </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-[12.5px] font-semibold text-ink">보안운영팀</span>
-          <span className="text-[11px] text-faint truncate">{user?.email ?? ''}</span>
-        </div>
-        <button
-          type="button"
-          onClick={logout}
-          className="ml-auto text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer font-sans"
-        >
-          로그아웃
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   )
 }
 

@@ -34,8 +34,8 @@ type Palette = {
 
 const palettes: Record<'dark' | 'light', Palette> = {
   dark: {
-    area: '#141C24',
-    border: '#222C38',
+    area: '#1C2735',
+    border: '#3C4B5E',
     text: '#C4CDD6',
     crit: '#F0645C',
     high: '#F2CB45',
@@ -43,8 +43,8 @@ const palettes: Record<'dark' | 'light', Palette> = {
     accent: '#5B78FF',
   },
   light: {
-    area: '#EEF1F6',
-    border: '#E4E8EE',
+    area: '#E7ECF3',
+    border: '#B9C4D2',
     text: '#35404C',
     crit: '#E5484D',
     high: '#EAB308',
@@ -86,7 +86,7 @@ function buildOption(threats: GeoThreat[], p: Palette): echarts.EChartsOption {
       itemStyle: {
         areaColor: p.area,
         borderColor: p.border,
-        borderWidth: 0.6,
+        borderWidth: 1,
       },
       emphasis: { disabled: true },
       label: { show: false },
@@ -103,15 +103,15 @@ function buildOption(threats: GeoThreat[], p: Palette): echarts.EChartsOption {
           symbol: 'arrow',
           symbolSize: 8,
         },
-        lineStyle: { width: 1.6, opacity: 0.9, curveness: 0.35 },
+        lineStyle: { width: 2.2, opacity: 0.95, curveness: 0.35 },
         data: lines,
       },
       {
         type: 'effectScatter',
         coordinateSystem: 'geo',
         zlevel: 2,
-        rippleEffect: { brushType: 'stroke', scale: 3 },
-        symbolSize: 8,
+        rippleEffect: { brushType: 'stroke', scale: 4 },
+        symbolSize: 11,
         data: scatter,
         tooltip: {
           formatter: (params: { name?: string; value?: unknown }) => {
@@ -125,7 +125,7 @@ function buildOption(threats: GeoThreat[], p: Palette): echarts.EChartsOption {
         type: 'scatter',
         coordinateSystem: 'geo',
         zlevel: 2,
-        symbolSize: 7,
+        symbolSize: 10,
         itemStyle: { color: p.accent },
         data: [{ name: '서울 (감시 조직)', value: ORIGIN }],
       },

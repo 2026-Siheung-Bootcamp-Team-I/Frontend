@@ -93,8 +93,7 @@ export const api = {
 
   myHosts: () => request<MyHosts>('/me/hosts'),
 
-  registerHost: (host: string) =>
-    request<MyHosts>('/me/hosts', { method: 'POST', body: { host } }),
+  registerHost: (host: string) => request<MyHosts>('/me/hosts', { method: 'POST', body: { host } }),
 
   unregisterHost: (host: string) =>
     request<void>(`/me/hosts/${encodeURIComponent(host)}`, { method: 'DELETE' }),

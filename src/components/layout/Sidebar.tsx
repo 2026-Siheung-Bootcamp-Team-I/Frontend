@@ -134,6 +134,26 @@ const items: NavItem[] = [
       </svg>
     ),
   },
+  {
+    to: '/onboarding',
+    label: '수집 알림 연동',
+    icon: (
+      <svg
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 3v10" />
+        <path d="M8 9l4 4 4-4" />
+        <rect x="4" y="16" width="16" height="5" rx="1.5" />
+      </svg>
+    ),
+  },
 ]
 
 type SidebarProps = {

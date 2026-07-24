@@ -6,6 +6,7 @@ import { useThemeStore } from '@/store/theme'
 import Landing from '@/pages/Landing'
 import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
+import Onboarding from '@/pages/Onboarding'
 import Threats from '@/pages/Threats'
 import Endpoints from '@/pages/Endpoints'
 import Sequence from '@/pages/Sequence'
@@ -35,6 +36,8 @@ function App() {
       {/* 대시보드는 로그인 없이도 열린다. 토큰이 없으면 데모 데이터를 그린다(src/api/demo.ts). */}
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        {/* 온보딩 안내는 로그인 없이도 열려야 하므로 인증 밖에 둔다. */}
+        <Route path="/onboarding" element={<Onboarding />} />
         {/* 위협 지도도 데모(비로그인)에서 보여야 하므로 인증 밖에 둔다. */}
         <Route
           path="/map"

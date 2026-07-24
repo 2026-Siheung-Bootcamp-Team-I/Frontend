@@ -3,6 +3,13 @@ import { useAuthStore } from '@/store/auth'
 /** 기본값은 Vite dev proxy(`/api` -> api-service:8084). 배포 시엔 VITE_API_BASE_URL 로 절대 주소를 준다. */
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
+/**
+ * 백엔드 ApiKeyFilter 가 요구하는 프론트 공용 키. /api/tenant/** 등 비면제 경로에 필요하다.
+ * (/api/me·/api/hosts·/api/alerts 는 면제라 없어도 되지만, 인증 요청에 일괄로 붙인다.)
+ * dev 기본값은 백엔드 EDRDOG_API_KEY 기본값과 맞춘다. 배포 시 VITE_API_KEY 로 주입.
+ */
+const API_KEY = import.meta.env.VITE_API_KEY ?? 'dev-api-key'
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -13,7 +20,7 @@ export class ApiError extends Error {
 }
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PATCH'
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   body?: unknown
   /** false 면 Authorization 헤더를 붙이지 않는다(로그인/회원가입). */
   auth?: boolean
@@ -28,6 +35,7 @@ export async function request<T>(
   if (auth) {
     const { token } = useAuthStore.getState()
     if (token) headers.Authorization = `Bearer ${token}`
+    headers['X-API-Key'] = API_KEY
   }
 
   let res: Response

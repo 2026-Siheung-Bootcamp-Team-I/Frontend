@@ -11,6 +11,9 @@ import type {
   Host,
   HostSummary,
   Lineage,
+  UserWebhook,
+  EnrollSecret,
+  MyHosts,
 } from './types'
 
 type AlertFilter = {
@@ -76,4 +79,23 @@ export const api = {
     isDemo()
       ? demoApi.eventSummary()
       : request<EventSummary>(`/events/summary${queryString(period)}`),
+
+  // 아래는 로그인 유저 개인(tenant) 설정이라 데모 폴백이 없다. 비로그인 시 호출하지 않는다.
+
+  getWebhook: () => request<UserWebhook>('/me/webhook'),
+
+  setWebhook: (webhookUrl: string) =>
+    request<UserWebhook>('/me/webhook', { method: 'PUT', body: { webhookUrl } }),
+
+  getEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret'),
+
+  rotateEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret', { method: 'POST' }),
+
+  myHosts: () => request<MyHosts>('/me/hosts'),
+
+  registerHost: (host: string) =>
+    request<MyHosts>('/me/hosts', { method: 'POST', body: { host } }),
+
+  unregisterHost: (host: string) =>
+    request<void>(`/me/hosts/${encodeURIComponent(host)}`, { method: 'DELETE' }),
 }

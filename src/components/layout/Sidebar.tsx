@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { api } from '@/api'
 import { useApi } from '@/hooks/useApi'
+import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
 
 type NavItem = {
@@ -120,7 +121,11 @@ function Sidebar() {
   const clear = useAuthStore((s) => s.clear)
   const navigate = useNavigate()
   // 사이드바 배지는 미판단 위협 수. 개수만 필요하므로 목록을 받아 길이를 쓴다.
-  const { data: openAlerts } = useApi(() => api.alerts({ status: 'open', limit: 1000 }))
+  const alertsVersion = useAlertsStore((s) => s.version)
+  const { data: openAlerts } = useApi(
+    () => api.alerts({ status: 'open', limit: 1000 }),
+    [alertsVersion],
+  )
 
   async function logout() {
     try {

@@ -14,6 +14,7 @@ import {
   statusLabel,
   statusTone,
 } from '@/lib/format'
+import { useAlertsStore } from '@/store/alerts'
 
 type Filter = 'all' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'handled'
 
@@ -28,7 +29,11 @@ function matches(alert: Alert, filter: Filter): boolean {
 
 function Threats() {
   const [filter, setFilter] = useState<Filter>('all')
-  const { data, loading, error, refetch } = useApi(() => api.alerts({ limit: 1000 }))
+  const alertsVersion = useAlertsStore((s) => s.version)
+  const { data, loading, error, refetch } = useApi(
+    () => api.alerts({ limit: 1000 }),
+    [alertsVersion],
+  )
 
   const alerts = useMemo(() => data ?? [], [data])
   const rows = alerts.filter((a) => matches(a, filter))

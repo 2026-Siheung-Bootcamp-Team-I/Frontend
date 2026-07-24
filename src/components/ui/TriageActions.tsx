@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '@/api'
 import type { Alert } from '@/api/types'
 import { statusLabel } from '@/lib/format'
+import { useAlertsStore } from '@/store/alerts'
 
 /** detector 가 severity 로 정하는 권고 대응(notify|kill|isolate). dry-run 이라 실행하지 않고 표시만 한다. */
 const actionText: Record<string, string> = {
@@ -10,23 +11,18 @@ const actionText: Record<string, string> = {
   notify: '의 활동을 확인하세요.',
 }
 
-type TriageActionsProps = {
-  alert: Alert
-  /** 트리아지 성공 후 목록을 다시 불러오기 위한 콜백 */
-  onTriaged: () => void
-}
-
 /** 권고 대응 문구와 트리아지(확정·오탐) 버튼. 이미 판단된 알림은 결과만 보여준다. */
-function TriageActions({ alert, onTriaged }: TriageActionsProps) {
+function TriageActions({ alert }: { alert: Alert }) {
   const [pending, setPending] = useState<'confirmed' | 'false_positive' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const bump = useAlertsStore((s) => s.bump)
 
   async function triage(status: 'confirmed' | 'false_positive') {
     setPending(status)
     setError(null)
     try {
       await api.triage(alert.id, status)
-      onTriaged()
+      bump()
     } catch (e) {
       setError((e as Error).message)
     } finally {

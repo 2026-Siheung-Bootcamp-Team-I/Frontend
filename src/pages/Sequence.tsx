@@ -8,6 +8,7 @@ import TriageActions from '@/components/ui/TriageActions'
 import { useApi } from '@/hooks/useApi'
 import { clockTime, severityColors, severityLabel, severityTone } from '@/lib/format'
 import { toAttackSteps } from '@/lib/lineagePath'
+import { useAlertsStore } from '@/store/alerts'
 
 const labelColor = {
   crit: 'text-crit',
@@ -18,7 +19,8 @@ const labelColor = {
 }
 
 function Sequence() {
-  const list = useApi(() => api.alerts({ limit: 100 }))
+  const alertsVersion = useAlertsStore((s) => s.version)
+  const list = useApi(() => api.alerts({ limit: 100 }), [alertsVersion])
   const alerts = list.data ?? []
 
   // 고른 알림이 목록에서 사라지면(재조회 등) 자연히 첫 항목으로 되돌아간다.
@@ -78,7 +80,7 @@ function Sequence() {
 
         <Card className="px-[24px] py-[22px]">
           {selected ? (
-            <SequenceDetail alert={selected} onTriaged={list.refetch} />
+            <SequenceDetail alert={selected} />
           ) : (
             <AsyncState loading={list.loading} error={null} empty emptyText="시퀀스를 선택하세요">
               {null}
@@ -90,7 +92,7 @@ function Sequence() {
   )
 }
 
-function SequenceDetail({ alert, onTriaged }: { alert: Alert; onTriaged: () => void }) {
+function SequenceDetail({ alert }: { alert: Alert }) {
   const { data, loading, error, refetch } = useApi(() => api.lineage(alert.id), [alert.id])
   const steps = data ? toAttackSteps(data) : []
 
@@ -105,7 +107,7 @@ function SequenceDetail({ alert, onTriaged }: { alert: Alert; onTriaged: () => v
       >
         <AttackPath host={alert.host} label={`${alert.threatName} 시퀀스`} steps={steps} />
       </AsyncState>
-      <TriageActions alert={alert} onTriaged={onTriaged} />
+      <TriageActions alert={alert} />
     </>
   )
 }

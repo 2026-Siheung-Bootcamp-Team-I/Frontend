@@ -22,12 +22,47 @@ function tone(index: number, length: number) {
 }
 
 /**
- * lineage 그래프를 공격 경로 단계로 편다. 백엔드가 노드를 이벤트 시간순으로 dedup 해서 주므로
- * 그 순서를 그대로 한 줄 경로로 쓴다(분기는 표현하지 않는다).
+ * 노드를 인과 순서(부모 -> 자식)로 편다.
+ *
+ * 백엔드 nodes 는 이벤트 시간순 dedup 이라 첫 이벤트가 `process=winword, parent=explorer` 면
+ * winword 가 explorer 보다 앞에 온다. 화면은 공격이 퍼진 순서를 보여야 하므로
+ * edges 를 따라 부모 없는 노드부터 체인을 이어 붙인다. edges 로 닿지 않는 노드는 원래 순서로 뒤에 남긴다.
+ */
+function inCausalOrder(lineage: Lineage): LineageNode[] {
+  const byId = new Map(lineage.nodes.map((n) => [n.id, n]))
+  const child = new Map<string, string>()
+  const hasParent = new Set<string>()
+  for (const edge of lineage.edges) {
+    if (!child.has(edge.from)) child.set(edge.from, edge.to)
+    hasParent.add(edge.to)
+  }
+
+  const ordered: LineageNode[] = []
+  const seen = new Set<string>()
+  const push = (id: string) => {
+    // 사이클이 있어도 seen 검사로 멈춘다.
+    for (let cur: string | undefined = id; cur && !seen.has(cur); cur = child.get(cur)) {
+      seen.add(cur)
+      const node = byId.get(cur)
+      if (node) ordered.push(node)
+    }
+  }
+
+  for (const node of lineage.nodes) {
+    if (!hasParent.has(node.id)) push(node.id)
+  }
+  for (const node of lineage.nodes) {
+    if (!seen.has(node.id)) ordered.push(node)
+  }
+  return ordered
+}
+
+/**
+ * lineage 그래프를 공격 경로 단계로 편다. 분기는 표현하지 않고 한 줄 경로로 잇는다.
  * 단계가 많으면 앞부분을 잘라 마지막 maxSteps 개만 보여준다.
  */
 export function toAttackSteps(lineage: Lineage, maxSteps = 5): AttackStep[] {
-  const nodes: LineageNode[] = lineage.nodes.slice(-maxSteps)
+  const nodes: LineageNode[] = inCausalOrder(lineage).slice(-maxSteps)
 
   return nodes.map((node, i) => {
     const { color, wash, strong } = tone(i, nodes.length)

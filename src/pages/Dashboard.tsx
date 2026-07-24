@@ -11,12 +11,15 @@ import TriageActions from '@/components/ui/TriageActions'
 import { useApi } from '@/hooks/useApi'
 import { daysAgo, relativeTime, severityColors, severityLabel, severityTone } from '@/lib/format'
 import { toAttackSteps } from '@/lib/lineagePath'
+import { useAlertsStore } from '@/store/alerts'
 
 const rowGrid = 'grid grid-cols-[14px_1fr_130px_88px_64px] gap-[12px]'
 
 function Dashboard() {
-  const open = useApi(() => api.alerts({ status: 'open', limit: 1000 }))
-  const recent = useApi(() => api.alerts({ limit: 4 }))
+  // 트리아지가 일어나면 알림 관련 조회를 다시 돈다.
+  const alertsVersion = useAlertsStore((s) => s.version)
+  const open = useApi(() => api.alerts({ status: 'open', limit: 1000 }), [alertsVersion])
+  const recent = useApi(() => api.alerts({ limit: 4 }), [alertsVersion])
   const week = useApi(() => api.alertSummary({ from: daysAgo(7) }))
   const prevWeek = useApi(() => api.alertSummary({ from: daysAgo(14), to: daysAgo(7) }))
   const hosts = useApi(() => api.hostSummary())
@@ -25,11 +28,6 @@ function Dashboard() {
   const openCritical = openAlerts.filter((a) => a.severity === 'CRITICAL').length
   // 공격 경로는 가장 최근의 미판단 위협 하나를 대표로 보여준다(목록은 최신순).
   const featured = openAlerts[0] ?? null
-
-  function reloadAlerts() {
-    open.refetch()
-    recent.refetch()
-  }
 
   return (
     <div className="flex flex-col gap-[20px]">
@@ -75,7 +73,7 @@ function Dashboard() {
               emptyText="미판단 위협이 없습니다"
               onRetry={open.refetch}
             >
-              {featured && <FeaturedPath alert={featured} onTriaged={reloadAlerts} />}
+              {featured && <FeaturedPath alert={featured} />}
             </AsyncState>
           </Card>
 
@@ -167,7 +165,7 @@ function WeekDelta({ current, previous }: { current?: number; previous?: number 
   )
 }
 
-function FeaturedPath({ alert, onTriaged }: { alert: Alert; onTriaged: () => void }) {
+function FeaturedPath({ alert }: { alert: Alert }) {
   const { data, loading, error, refetch } = useApi(() => api.lineage(alert.id), [alert.id])
   const steps = data ? toAttackSteps(data) : []
 
@@ -182,7 +180,7 @@ function FeaturedPath({ alert, onTriaged }: { alert: Alert; onTriaged: () => voi
       >
         <AttackPath host={alert.host} label={`${alert.threatName} 시퀀스`} steps={steps} />
       </AsyncState>
-      <TriageActions alert={alert} onTriaged={onTriaged} />
+      <TriageActions alert={alert} />
     </>
   )
 }

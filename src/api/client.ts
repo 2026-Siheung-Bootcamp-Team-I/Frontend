@@ -30,11 +30,17 @@ export async function request<T>(
     if (token) headers.Authorization = `Bearer ${token}`
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  } catch {
+    // 서버가 꺼져 있거나 네트워크가 끊긴 경우. fetch 의 "Failed to fetch" 를 그대로 보여주지 않는다.
+    throw new ApiError(0, UNREACHABLE)
+  }
 
   if (!res.ok) {
     // 토큰 만료/무효면 로그인 상태를 비워 RequireAuth 가 로그인 화면으로 돌린다.
@@ -45,6 +51,8 @@ export async function request<T>(
   return (await res.json()) as T
 }
 
+export const UNREACHABLE = '서버에 연결하지 못했습니다'
+
 /** 백엔드 에러 본문은 {"error": "..."} 형태. 아니면 상태코드로 대체한다. */
 async function errorMessage(res: Response): Promise<string> {
   try {
@@ -53,6 +61,8 @@ async function errorMessage(res: Response): Promise<string> {
   } catch {
     // JSON 본문이 아니면 아래 기본 문구를 쓴다
   }
+  // 5xx 는 서버가 죽었거나 dev 프록시가 대상에 못 붙은 경우라 사용자가 할 일이 다르다.
+  if (res.status >= 500) return UNREACHABLE
   return `요청에 실패했습니다 (${res.status})`
 }
 

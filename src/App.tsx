@@ -23,9 +23,10 @@ function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
-      <Route element={<RequireAuth />}>
-        <Route element={<AppLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+      {/* 대시보드는 로그인 없이도 열린다. 토큰이 없으면 데모 데이터를 그린다(src/api/demo.ts). */}
+      <Route element={<AppLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route element={<RequireAuth />}>
           <Route path="/threats" element={<Threats />} />
           <Route path="/endpoints" element={<Endpoints />} />
           <Route path="/sequence" element={<Sequence />} />

@@ -13,12 +13,15 @@ import { useApi } from '@/hooks/useApi'
 import { daysAgo, relativeTime, severityColors, severityLabel, severityTone } from '@/lib/format'
 import { toAttackSteps } from '@/lib/lineagePath'
 import { useAlertsStore } from '@/store/alerts'
+import { useAuthStore } from '@/store/auth'
 
 const rowGrid = 'grid grid-cols-[14px_1fr_130px_88px_64px] gap-[12px]'
 
 function Dashboard() {
   // 트리아지가 일어나면 알림 관련 조회를 다시 돈다.
   const alertsVersion = useAlertsStore((s) => s.version)
+  // 로그인 전이면 api 가 데모 데이터를 돌려준다(src/api/demo.ts). 배너로 그 사실을 알린다.
+  const demo = useAuthStore((s) => s.token === null)
   const open = useApi(() => api.alerts({ status: 'open', limit: 1000 }), [alertsVersion])
   const recent = useApi(() => api.alerts({ limit: 4 }), [alertsVersion])
   const week = useApi(() => api.alertSummary({ from: daysAgo(7) }))
@@ -30,8 +33,26 @@ function Dashboard() {
   // 공격 경로는 가장 최근의 미판단 위협 하나를 대표로 보여준다(목록은 최신순).
   const featured = openAlerts[0] ?? null
 
+  /*
+    서버는 정상인데 등록된 호스트가 하나도 없으면 아직 에이전트가 아무것도 보내지 않은 상태다.
+    요청 실패와 달리 사용자가 할 일이 "에이전트 설치"로 분명하므로 안내 화면으로 대체한다.
+  */
+  if (!demo && !hosts.loading && !hosts.error && hosts.data?.total === 0) {
+    return (
+      <NotCollected
+        onRetry={() => {
+          hosts.refetch()
+          open.refetch()
+          recent.refetch()
+          week.refetch()
+        }}
+      />
+    )
+  }
+
   return (
     <div className="flex flex-col gap-[20px]">
+      {demo && <DemoBanner />}
       {/* stat tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
         <div className="bg-surface border border-line rounded-[12px] p-[18px] shadow-[var(--shadow-1)] border-l-[3px] border-l-crit">
@@ -163,6 +184,48 @@ function Dashboard() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** 로그인 전에 보이는 화면이 실제 데이터가 아님을 알린다. */
+function DemoBanner() {
+  return (
+    <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center sm:gap-[16px] px-[16px] py-[14px] bg-panel-2 border border-line-2 rounded-[12px] border-l-[3px] border-l-accent">
+      <div className="flex-1">
+        <div className="text-[13.5px] font-semibold text-ink">데모 데이터를 보고 있습니다</div>
+        <div className="text-[12.5px] text-mid mt-[3px] leading-[1.5]">
+          로그인하면 내 조직의 실제 탐지 결과로 바뀝니다.
+        </div>
+      </div>
+      <Link
+        to="/login"
+        className="text-center whitespace-nowrap text-[13px] font-semibold !text-white bg-accent px-[18px] py-[10px] rounded-[10px]"
+      >
+        로그인
+      </Link>
+    </div>
+  )
+}
+
+/** 로그인은 됐지만 에이전트가 아직 아무 데이터도 보내지 않은 상태. */
+function NotCollected({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Card className="px-[20px] py-[40px] sm:px-[32px] sm:py-[56px]">
+      <div className="flex flex-col items-center text-center gap-[10px] max-w-[440px] mx-auto">
+        <span className="text-[15px] font-bold text-ink">아직 수집 전입니다</span>
+        <p className="text-[13.5px] text-mid leading-[1.6]">
+          연결된 엔드포인트가 없습니다. 감시할 장비에 EDRdog 에이전트를 설치하고 실행하면 수집이
+          시작됩니다. 첫 이벤트가 들어오면 이 화면이 채워집니다.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-[8px] text-[13px] font-semibold text-ink-2 border border-line bg-surface px-[18px] py-[10px] rounded-[10px] cursor-pointer font-sans"
+        >
+          다시 확인
+        </button>
+      </div>
+    </Card>
   )
 }
 

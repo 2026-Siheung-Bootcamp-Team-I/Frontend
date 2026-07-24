@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import FilterChips from '@/components/ui/FilterChips'
 import AsyncState from '@/components/ui/AsyncState'
+import ScrollArea from '@/components/ui/ScrollArea'
 import { useApi } from '@/hooks/useApi'
 import {
   relativeTime,
@@ -58,9 +59,11 @@ function Threats() {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <div className="flex justify-between items-end gap-[16px] flex-wrap">
+      <div className="flex flex-col items-start gap-[16px] sm:flex-row sm:justify-between sm:items-end">
         <div>
-          <div className="text-[20px] font-bold text-ink tracking-[-0.01em]">위협</div>
+          <div className="text-[18px] sm:text-[20px] font-bold text-ink tracking-[-0.01em]">
+            위협
+          </div>
           <div className="mt-[6px] text-[13px] text-faint">
             탐지된 위협을 심각도와 상태로 관리합니다.
           </div>
@@ -84,7 +87,7 @@ function Threats() {
         </div>
       )}
 
-      <Card className="px-[24px] py-[22px]">
+      <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
         <AsyncState
           loading={loading}
           error={error}
@@ -92,41 +95,45 @@ function Threats() {
           emptyText={host ? '이 호스트에서 탐지된 위협이 없습니다' : '탐지된 위협이 없습니다'}
           onRetry={refetch}
         >
-          <div
-            className={`${rowGrid} pt-2 pb-2 pl-[12px] border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
-          >
-            <span />
-            <span>위협</span>
-            <span>호스트</span>
-            <span>심각도</span>
-            <span>상태</span>
-            <span className="text-right">탐지</span>
-          </div>
-          {rows.map((row, i) => {
-            const color = severityColors[severityTone(row.severity)]
-            return (
+          <ScrollArea label="위협 목록">
+            <div className="min-w-[660px]">
               <div
-                key={row.id}
-                className={`${rowGrid} items-center py-[12px] pl-[12px] border-l-[3px] ${
-                  i === rows.length - 1 ? '' : 'border-b border-line-2'
-                }`}
-                style={{ borderLeftColor: color }}
+                className={`${rowGrid} pt-2 pb-2 pl-[12px] border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
               >
-                <span className="w-[7px] h-[7px] rounded-full" style={{ background: color }} />
-                <span className="text-[13.5px] text-ink">{row.threatName}</span>
-                <span className="font-mono text-[12px] text-mid">{row.host}</span>
-                <Badge severity={severityTone(row.severity)} className="justify-self-start">
-                  {severityLabel(row.severity)}
-                </Badge>
-                <Badge severity={statusTone(row.status)} className="justify-self-start">
-                  {statusLabel(row.status)}
-                </Badge>
-                <span className="font-mono text-[11px] text-faint text-right">
-                  {relativeTime(row.ts)}
-                </span>
+                <span />
+                <span>위협</span>
+                <span>호스트</span>
+                <span>심각도</span>
+                <span>상태</span>
+                <span className="text-right">탐지</span>
               </div>
-            )
-          })}
+              {rows.map((row, i) => {
+                const color = severityColors[severityTone(row.severity)]
+                return (
+                  <div
+                    key={row.id}
+                    className={`${rowGrid} items-center py-[12px] pl-[12px] border-l-[3px] ${
+                      i === rows.length - 1 ? '' : 'border-b border-line-2'
+                    }`}
+                    style={{ borderLeftColor: color }}
+                  >
+                    <span className="w-[7px] h-[7px] rounded-full" style={{ background: color }} />
+                    <span className="text-[13.5px] text-ink">{row.threatName}</span>
+                    <span className="font-mono text-[12px] text-mid">{row.host}</span>
+                    <Badge severity={severityTone(row.severity)} className="justify-self-start">
+                      {severityLabel(row.severity)}
+                    </Badge>
+                    <Badge severity={statusTone(row.status)} className="justify-self-start">
+                      {statusLabel(row.status)}
+                    </Badge>
+                    <span className="font-mono text-[11px] text-faint text-right">
+                      {relativeTime(row.ts)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </ScrollArea>
         </AsyncState>
       </Card>
     </div>

@@ -40,7 +40,7 @@ function TriageActions({ alert, detailTo }: TriageActionsProps) {
   const suffix = actionText[alert.action ?? ''] ?? '의 활동을 확인하세요.'
 
   return (
-    <div className="flex items-center gap-[16px] mt-[24px] px-[18px] py-[16px] bg-panel-2 border border-line-2 rounded-[12px] border-l-[3px] border-l-crit">
+    <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:gap-[16px] mt-[24px] px-[14px] py-[14px] sm:px-[18px] sm:py-[16px] bg-panel-2 border border-line-2 rounded-[12px] border-l-[3px] border-l-crit">
       <div className="flex-1">
         <div className="text-[12px] text-faint mb-1">권고 대응</div>
         <div className="text-[13.5px] leading-[1.5] text-ink">
@@ -49,39 +49,41 @@ function TriageActions({ alert, detailTo }: TriageActionsProps) {
         {error && <div className="mt-[6px] text-[12px] text-crit">{error}</div>}
       </div>
 
-      {detailTo && (
-        <Link
-          to={detailTo}
-          className="whitespace-nowrap text-[13px] font-semibold !text-ink-2 border border-line px-[16px] py-[10px] rounded-[10px]"
-        >
-          자세히
-        </Link>
-      )}
+      <div className="flex gap-[10px]">
+        {detailTo && (
+          <Link
+            to={detailTo}
+            className="flex-1 sm:flex-none text-center whitespace-nowrap text-[13px] font-semibold !text-ink-2 border border-line px-[16px] py-[10px] rounded-[10px]"
+          >
+            자세히
+          </Link>
+        )}
 
-      {alert.status === 'open' ? (
-        <>
-          <button
-            type="button"
-            onClick={() => triage('false_positive')}
-            disabled={pending !== null}
-            className="whitespace-nowrap text-[13px] font-semibold text-ink-2 border border-line px-[16px] py-[10px] rounded-[10px] cursor-pointer font-sans disabled:opacity-60"
-          >
-            {pending === 'false_positive' ? '처리 중' : '오탐'}
-          </button>
-          <button
-            type="button"
-            onClick={() => triage('confirmed')}
-            disabled={pending !== null}
-            className="whitespace-nowrap text-[13px] font-semibold text-white bg-accent px-[18px] py-[10px] rounded-[10px] cursor-pointer font-sans disabled:opacity-60"
-          >
-            {pending === 'confirmed' ? '처리 중' : '위협 확정'}
-          </button>
-        </>
-      ) : (
-        <span className="whitespace-nowrap text-[13px] font-semibold text-mid border border-line px-[16px] py-[10px] rounded-[10px]">
-          {statusLabel(alert.status)}
-        </span>
-      )}
+        {alert.status === 'open' ? (
+          <>
+            <button
+              type="button"
+              onClick={() => triage('false_positive')}
+              disabled={pending !== null}
+              className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-ink-2 border border-line px-[16px] py-[10px] rounded-[10px] cursor-pointer font-sans disabled:opacity-60"
+            >
+              {pending === 'false_positive' ? '처리 중' : '오탐'}
+            </button>
+            <button
+              type="button"
+              onClick={() => triage('confirmed')}
+              disabled={pending !== null}
+              className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-accent px-[18px] py-[10px] rounded-[10px] cursor-pointer font-sans disabled:opacity-60"
+            >
+              {pending === 'confirmed' ? '처리 중' : '위협 확정'}
+            </button>
+          </>
+        ) : (
+          <span className="flex-1 sm:flex-none text-center whitespace-nowrap text-[13px] font-semibold text-mid border border-line px-[16px] py-[10px] rounded-[10px]">
+            {statusLabel(alert.status)}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

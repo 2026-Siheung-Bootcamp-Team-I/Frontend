@@ -8,12 +8,13 @@ import {
 } from 'react'
 import { Link } from 'react-router-dom'
 import { useThemeStore } from '@/store/theme'
+import ScrollArea from '@/components/ui/ScrollArea'
 
-const container = 'max-w-[1200px] mx-auto px-[40px]'
+const container = 'max-w-[1440px] mx-auto px-[20px] md:px-[40px]'
 const eyebrow =
   'text-[12px] font-semibold tracking-[0.08em] uppercase text-accent border-l-2 border-accent pl-[9px]'
 const cardBase = 'bg-surface border border-line rounded-[14px] shadow-[var(--shadow-1)]'
-const featureCard = `${cardBase} p-[30px] transition-[box-shadow,transform] duration-200 hover:shadow-[var(--shadow-2)] hover:-translate-y-[3px]`
+const featureCard = `${cardBase} p-[22px] md:p-[30px] transition-[box-shadow,transform] duration-200 hover:shadow-[var(--shadow-2)] hover:-translate-y-[3px]`
 const iconTile =
   'w-[40px] h-[40px] rounded-[11px] bg-[var(--accent-wash)] flex items-center justify-center'
 
@@ -54,7 +55,7 @@ function DemoRequestModal({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="demo-request-title"
-        className="w-full max-w-[420px] bg-surface border border-line rounded-[16px] shadow-[var(--shadow-2)] p-[32px]"
+        className="w-full max-w-[420px] bg-surface border border-line rounded-[16px] shadow-[var(--shadow-2)] p-[24px] sm:p-[32px]"
       >
         {submitted ? (
           <>
@@ -183,14 +184,14 @@ function Landing() {
       {/* ===== NAV ===== */}
       <div className="sticky top-0 z-50 border-b border-line-2 bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] backdrop-blur-[12px]">
         <div className={`${container} flex items-center justify-between h-[66px]`}>
-          <div className="flex items-center gap-[44px]">
+          <div className="flex items-center lg:gap-[44px]">
             <div className="flex items-center gap-[11px]">
               <div className="w-[30px] h-[30px] rounded-[9px] bg-accent flex items-center justify-center">
                 <div className="w-[11px] h-[11px] bg-white rotate-45 rounded-[2px]" />
               </div>
               <span className="text-[19px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
             </div>
-            <div className="flex gap-[28px]">
+            <div className="hidden lg:flex gap-[28px]">
               <a href="#how" className="text-[14px] font-medium !text-ink-2">
                 동작 방식
               </a>
@@ -205,10 +206,10 @@ function Landing() {
               </Link>
             </div>
           </div>
-          <div className="flex items-center gap-[14px]">
+          <div className="flex items-center gap-[10px] sm:gap-[14px]">
             <button
               onClick={toggle}
-              className="inline-flex items-center gap-[7px] h-[34px] pl-[11px] pr-[14px] rounded-full border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer shadow-[var(--shadow-1)]"
+              className="inline-flex items-center gap-[7px] h-[34px] pl-[11px] pr-[11px] sm:pr-[14px] rounded-full border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer shadow-[var(--shadow-1)]"
             >
               <span data-om-sun className="items-center text-high">
                 <svg
@@ -239,7 +240,7 @@ function Landing() {
                   <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
                 </svg>
               </span>
-              <span>{themeLabel}</span>
+              <span className="hidden sm:inline">{themeLabel}</span>
             </button>
             <Link to="/login" className="text-[14px] font-medium !text-mid cursor-pointer">
               로그인
@@ -247,7 +248,7 @@ function Landing() {
             <button
               type="button"
               onClick={() => setDemoOpen(true)}
-              className="font-sans text-[13px] font-semibold text-white bg-accent px-[18px] py-[9px] rounded-[10px] cursor-pointer"
+              className="font-sans text-[13px] font-semibold text-white bg-accent px-[13px] sm:px-[18px] py-[9px] rounded-[10px] cursor-pointer"
             >
               데모 요청
             </button>
@@ -255,10 +256,14 @@ function Landing() {
         </div>
       </div>
 
-      {/* ===== HERO ===== */}
+      {/*
+        ===== HERO =====
+        좌측 560px 은 h1 이 의도한 2줄로 들어가는 최소 폭. 더 좁으면 마지막 글자가 3줄로 떨어진다.
+        2열은 xl 부터. lg 에서 나누면 우측 제품 패널이 3D 를 보여주기엔 너무 좁아진다.
+      */}
       <div className={container}>
         <div
-          className="grid grid-cols-[440px_1fr] gap-[56px] pt-[72px] pb-[92px] items-center relative"
+          className="grid grid-cols-1 gap-[40px] pt-[48px] pb-[64px] lg:pt-[72px] lg:pb-[92px] xl:grid-cols-[560px_minmax(0,1fr)] xl:gap-[56px] items-center relative"
           style={{ perspective: '1900px' }}
         >
           <div
@@ -288,16 +293,16 @@ function Landing() {
               />
               엔드포인트 위협 탐지·대응
             </span>
-            <h1 className="mt-[22px] text-[52px] leading-[1.08] font-[750] tracking-[-0.03em] text-ink text-balance">
+            <h1 className="mt-[22px] text-[32px] sm:text-[40px] lg:text-[52px] leading-[1.08] font-[750] tracking-[-0.03em] text-ink text-balance">
               엔드포인트 위협을
               <br />
               탐지하고, 바로 <span className="text-accent">대응</span>합니다
             </h1>
-            <p className="mt-[22px] max-w-[44ch] text-[17px] leading-[1.62] text-mid">
+            <p className="mt-[22px] max-w-[44ch] text-[15px] lg:text-[17px] leading-[1.62] text-mid">
               서버와 PC에서 일어나는 이상 행동을 실시간으로 탐지하고, 어떤 위협부터 처리해야 하는지
               알려드립니다.
             </p>
-            <div className="flex gap-[12px] mt-[32px]">
+            <div className="flex flex-wrap gap-[12px] mt-[32px]">
               <button
                 type="button"
                 onClick={() => setDemoOpen(true)}
@@ -317,6 +322,7 @@ function Landing() {
 
           {/* product panel */}
           <div
+            data-hero-panel
             className="relative z-[1] bg-surface border border-line rounded-[16px] overflow-hidden"
             style={
               {
@@ -337,7 +343,7 @@ function Landing() {
               </div>
               <span className="font-mono text-[11px] text-faint">방금 업데이트됨</span>
             </div>
-            <div className="grid grid-cols-2 gap-[14px] p-[18px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px] p-[18px]">
               <div className="bg-panel-2 border border-line-2 rounded-[12px] p-[16px]">
                 <div className="text-[12px] text-faint mb-[12px]">지금 확인이 필요한 위협</div>
                 <div className="flex items-center gap-[14px]">
@@ -411,7 +417,7 @@ function Landing() {
                   <span>위험 50</span>
                 </div>
               </div>
-              <div className="col-span-2 bg-panel-2 border border-line-2 rounded-[12px] p-[16px]">
+              <div className="sm:col-span-2 bg-panel-2 border border-line-2 rounded-[12px] p-[16px]">
                 <div className="flex justify-between items-center mb-[12px]">
                   <span className="inline-flex items-center gap-2 text-[12px] text-faint">
                     <span className="relative inline-flex w-[13px] h-[13px] items-center justify-center">
@@ -435,9 +441,9 @@ function Landing() {
                   <span className="text-[12px] font-semibold text-accent">전체 보기 →</span>
                 </div>
                 <div className="flex flex-col gap-[2px]">
-                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-crit rounded-[2px]">
+                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center min-w-0 pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-crit rounded-[2px]">
                     <span className="w-[7px] h-[7px] rounded-full bg-crit" />
-                    <span className="text-[13px] text-ink">관리자 권한 상승 시도</span>
+                    <span className="text-[13px] text-ink truncate">관리자 권한 상승 시도</span>
                     <span className="text-[11px] font-semibold text-crit bg-[var(--crit-wash)] px-[9px] py-[3px] rounded-full">
                       심각
                     </span>
@@ -445,9 +451,9 @@ function Landing() {
                       2분 전
                     </span>
                   </div>
-                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-crit rounded-[2px]">
+                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center min-w-0 pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-crit rounded-[2px]">
                     <span className="w-[7px] h-[7px] rounded-full bg-crit" />
-                    <span className="text-[13px] text-ink">자격증명 접근 탐지</span>
+                    <span className="text-[13px] text-ink truncate">자격증명 접근 탐지</span>
                     <span className="text-[11px] font-semibold text-crit bg-[var(--crit-wash)] px-[9px] py-[3px] rounded-full">
                       심각
                     </span>
@@ -455,9 +461,9 @@ function Landing() {
                       5분 전
                     </span>
                   </div>
-                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-high rounded-[2px]">
+                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center min-w-0 pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-high rounded-[2px]">
                     <span className="w-[7px] h-[7px] rounded-full bg-high" />
-                    <span className="text-[13px] text-ink">비정상 외부 연결</span>
+                    <span className="text-[13px] text-ink truncate">비정상 외부 연결</span>
                     <span className="text-[11px] font-semibold text-high bg-[var(--high-wash)] px-[9px] py-[3px] rounded-full">
                       높음
                     </span>
@@ -474,99 +480,101 @@ function Landing() {
 
       {/* ===== CAPABILITY BAND ===== */}
       <div className="border-t border-b border-line-2 bg-surface">
-        <div className={`${container} grid grid-cols-4`}>
-          <div className="px-[26px] py-[30px] border-r border-line-2 flex flex-col gap-[12px]">
-            <span className={iconTile}>
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 12h4l2.5-7 4 14 2.5-7H21" />
-              </svg>
-            </span>
-            <div className="text-[15px] font-[650] text-ink">실시간 모니터링</div>
-            <div className="text-[12.5px] leading-[1.55] text-faint">
-              서버·PC·노트북을 24시간 지켜봅니다.
+        <div className={container}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-line-2">
+            <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
+              <span className={iconTile}>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12h4l2.5-7 4 14 2.5-7H21" />
+                </svg>
+              </span>
+              <div className="text-[15px] font-[650] text-ink">실시간 모니터링</div>
+              <div className="text-[12.5px] leading-[1.55] text-faint">
+                서버·PC·노트북을 24시간 지켜봅니다.
+              </div>
             </div>
-          </div>
-          <div className="px-[26px] py-[30px] border-r border-line-2 flex flex-col gap-[12px]">
-            <span className={iconTile}>
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 15l6-6" />
-                <path d="M10.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-1 1" />
-                <path d="M13.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l1-1" />
-              </svg>
-            </span>
-            <div className="text-[15px] font-[650] text-ink">시퀀스 상관분석</div>
-            <div className="text-[12.5px] leading-[1.55] text-faint">
-              흩어진 신호를 하나의 공격 경로로 잇습니다.
+            <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
+              <span className={iconTile}>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 15l6-6" />
+                  <path d="M10.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-1 1" />
+                  <path d="M13.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l1-1" />
+                </svg>
+              </span>
+              <div className="text-[15px] font-[650] text-ink">시퀀스 상관분석</div>
+              <div className="text-[12.5px] leading-[1.55] text-faint">
+                흩어진 신호를 하나의 공격 경로로 잇습니다.
+              </div>
             </div>
-          </div>
-          <div className="px-[26px] py-[30px] border-r border-line-2 flex flex-col gap-[12px]">
-            <span className={iconTile}>
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 3l7 3v5c0 4.5-3 7-7 8-4-1-7-3.5-7-8V6z" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-            </span>
-            <div className="text-[15px] font-[650] text-ink">자동 대응 권고</div>
-            <div className="text-[12.5px] leading-[1.55] text-faint">
-              다음에 할 행동을 그대로 제안합니다.
+            <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
+              <span className={iconTile}>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3l7 3v5c0 4.5-3 7-7 8-4-1-7-3.5-7-8V6z" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+              </span>
+              <div className="text-[15px] font-[650] text-ink">자동 대응 권고</div>
+              <div className="text-[12.5px] leading-[1.55] text-faint">
+                다음에 할 행동을 그대로 제안합니다.
+              </div>
             </div>
-          </div>
-          <div className="px-[26px] py-[30px] flex flex-col gap-[12px]">
-            <span className={iconTile}>
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </span>
-            <div className="text-[15px] font-[650] text-ink">실행 전 dry-run</div>
-            <div className="text-[12.5px] leading-[1.55] text-faint">
-              격리·차단 전 결과를 미리 확인합니다.
+            <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
+              <span className={iconTile}>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </span>
+              <div className="text-[15px] font-[650] text-ink">실행 전 dry-run</div>
+              <div className="text-[12.5px] leading-[1.55] text-faint">
+                격리·차단 전 결과를 미리 확인합니다.
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* ===== HOW IT WORKS ===== */}
-      <div id="how" className="max-w-[1200px] mx-auto px-[40px] pt-[104px]">
+      <div id="how" className={`${container} pt-[64px] md:pt-[104px]`}>
         <div data-reveal className="flex flex-col items-center text-center gap-[16px]">
           <span className={eyebrow}>How it works</span>
-          <h2 className="text-[36px] leading-[1.14] font-[730] tracking-[-0.02em] text-ink max-w-[20ch] text-balance">
+          <h2 className="text-[26px] md:text-[32px] lg:text-[36px] leading-[1.14] font-[730] tracking-[-0.02em] text-ink max-w-[20ch] text-balance">
             복잡한 로그를 세 단계로 정리합니다
           </h2>
           <p className="max-w-[52ch] text-[16px] leading-[1.62] text-mid">
@@ -574,7 +582,10 @@ function Landing() {
             있습니다.
           </p>
         </div>
-        <div data-reveal className="grid grid-cols-3 gap-[24px] mt-[56px]">
+        <div
+          data-reveal
+          className="grid grid-cols-1 gap-[20px] mt-[36px] md:grid-cols-3 md:gap-[24px] md:mt-[56px]"
+        >
           {[
             {
               num: '01',
@@ -638,7 +649,7 @@ function Landing() {
               ),
             },
           ].map((step) => (
-            <div key={step.num} className={`${cardBase} p-[28px]`}>
+            <div key={step.num} className={`${cardBase} p-[22px] md:p-[28px]`}>
               <div className="flex items-center gap-[12px] mb-[18px]">
                 <span className="w-[34px] h-[34px] rounded-[10px] bg-[var(--accent-wash)] text-accent flex items-center justify-center font-mono text-[14px] font-medium">
                   {step.num}
@@ -655,11 +666,14 @@ function Landing() {
       </div>
 
       {/* ===== FEATURES ===== */}
-      <div id="features" className="max-w-[1200px] mx-auto px-[40px] pt-[104px]">
-        <div data-reveal className="flex justify-between items-end gap-[24px] flex-wrap mb-[44px]">
+      <div id="features" className={`${container} pt-[64px] md:pt-[104px]`}>
+        <div
+          data-reveal
+          className="flex justify-between items-end gap-[24px] flex-wrap mb-[32px] md:mb-[44px]"
+        >
           <div className="flex flex-col gap-[14px] max-w-[34ch]">
             <span className={eyebrow}>Features</span>
-            <h2 className="text-[36px] leading-[1.14] font-[730] tracking-[-0.02em] text-ink text-balance">
+            <h2 className="text-[26px] md:text-[32px] lg:text-[36px] leading-[1.14] font-[730] tracking-[-0.02em] text-ink text-balance">
               판단에 필요한 것만, 명확하게
             </h2>
           </div>
@@ -668,7 +682,7 @@ function Landing() {
             가지에 집중합니다.
           </p>
         </div>
-        <div data-reveal className="grid grid-cols-2 gap-[20px]">
+        <div data-reveal className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
           {[
             {
               title: '실시간 엔드포인트 모니터링',
@@ -761,14 +775,14 @@ function Landing() {
       </div>
 
       {/* ===== ATTACK PATH SHOWCASE ===== */}
-      <div id="path" className="max-w-[1200px] mx-auto px-[40px] pt-[104px]">
+      <div id="path" className={`${container} pt-[64px] md:pt-[104px]`}>
         <div
           data-reveal
-          className="bg-surface border border-line rounded-[20px] p-[48px] shadow-[var(--shadow-1)] grid grid-cols-[400px_1fr] gap-[48px] items-center"
+          className="bg-surface border border-line rounded-[20px] p-[24px] md:p-[36px] lg:p-[48px] shadow-[var(--shadow-1)] grid grid-cols-1 gap-[32px] lg:grid-cols-[400px_1fr] lg:gap-[48px] items-center"
         >
           <div className="flex flex-col">
             <span className={`self-start ${eyebrow}`}>Attack path</span>
-            <h2 className="mt-[20px] text-[32px] leading-[1.16] font-[730] tracking-[-0.02em] text-ink text-balance">
+            <h2 className="mt-[20px] text-[24px] md:text-[28px] lg:text-[32px] leading-[1.16] font-[730] tracking-[-0.02em] text-ink text-balance">
               흩어진 신호를
               <br />
               하나의 공격 경로로
@@ -784,157 +798,165 @@ function Landing() {
               대시보드에서 실제로 보기 →
             </Link>
           </div>
-          <div className="bg-panel-2 border border-line-2 rounded-[16px] pt-[24px] px-[26px] pb-[22px]">
-            <div className="flex justify-between items-center mb-[28px]">
+          <div className="bg-panel-2 border border-line-2 rounded-[16px] pt-[24px] px-[16px] md:px-[26px] pb-[22px]">
+            <div className="flex flex-wrap justify-between items-center gap-[10px] mb-[28px]">
               <span className="text-[13px] font-[650] text-ink">공격 경로 재구성</span>
               <span className="inline-flex items-center gap-[7px] text-[11.5px] font-semibold text-accent bg-[var(--accent-wash)] px-[11px] py-1 rounded-full">
                 dry-run · 실행 안 됨
               </span>
             </div>
-            <div className="grid grid-cols-4 items-start relative">
-              {[
-                {
-                  title: '메일 첨부 실행',
-                  time: '09:14:02',
-                  color: 'var(--accent)',
-                  wash: 'var(--accent-wash)',
-                  strong: false,
-                  ring: false,
-                  connector: 'line' as const,
-                  icon: (
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="5" width="18" height="14" rx="2" />
-                      <path d="M3 7l9 6 9-6" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: '스크립트 실행',
-                  time: '09:14:08',
-                  color: 'var(--high)',
-                  wash: 'var(--high-wash)',
-                  strong: false,
-                  ring: false,
-                  connector: 'line' as const,
-                  icon: (
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="4" width="18" height="16" rx="2" />
-                      <path d="M7 9.5l2.5 2.5L7 14.5" />
-                      <path d="M12.5 15h4" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: '자격증명 접근',
-                  time: '09:14:11',
-                  color: 'var(--crit)',
-                  wash: 'var(--crit-wash)',
-                  strong: true,
-                  ring: true,
-                  connector: 'crit' as const,
-                  icon: (
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="8.5" cy="8.5" r="4.5" />
-                      <path d="M11.8 11.8L20 20" />
-                      <path d="M17 17l2.2-2.2" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: '외부 서버 연결',
-                  time: '09:14:15',
-                  color: 'var(--crit)',
-                  wash: 'var(--crit-wash)',
-                  strong: true,
-                  ring: false,
-                  connector: null,
-                  icon: (
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="4" width="18" height="7" rx="1.6" />
-                      <rect x="3" y="13" width="18" height="7" rx="1.6" />
-                      <path d="M6.5 7.5h.01" />
-                      <path d="M6.5 16.5h.01" />
-                    </svg>
-                  ),
-                },
-              ].map((step) => {
-                const connectorColor = step.connector === 'crit' ? 'var(--crit)' : 'var(--line)'
-                return (
-                  <div key={step.title} className="flex flex-col items-center gap-[10px] relative">
+            <ScrollArea label="공격 경로 단계" fadeFrom="var(--panel-2)">
+              <div
+                className="grid items-start relative"
+                style={{ gridTemplateColumns: 'repeat(4, minmax(120px, 1fr))' }}
+              >
+                {[
+                  {
+                    title: '메일 첨부 실행',
+                    time: '09:14:02',
+                    color: 'var(--accent)',
+                    wash: 'var(--accent-wash)',
+                    strong: false,
+                    ring: false,
+                    connector: 'line' as const,
+                    icon: (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="M3 7l9 6 9-6" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    title: '스크립트 실행',
+                    time: '09:14:08',
+                    color: 'var(--high)',
+                    wash: 'var(--high-wash)',
+                    strong: false,
+                    ring: false,
+                    connector: 'line' as const,
+                    icon: (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="M7 9.5l2.5 2.5L7 14.5" />
+                        <path d="M12.5 15h4" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    title: '자격증명 접근',
+                    time: '09:14:11',
+                    color: 'var(--crit)',
+                    wash: 'var(--crit-wash)',
+                    strong: true,
+                    ring: true,
+                    connector: 'crit' as const,
+                    icon: (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="8.5" cy="8.5" r="4.5" />
+                        <path d="M11.8 11.8L20 20" />
+                        <path d="M17 17l2.2-2.2" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    title: '외부 서버 연결',
+                    time: '09:14:15',
+                    color: 'var(--crit)',
+                    wash: 'var(--crit-wash)',
+                    strong: true,
+                    ring: false,
+                    connector: null,
+                    icon: (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="7" rx="1.6" />
+                        <rect x="3" y="13" width="18" height="7" rx="1.6" />
+                        <path d="M6.5 7.5h.01" />
+                        <path d="M6.5 16.5h.01" />
+                      </svg>
+                    ),
+                  },
+                ].map((step) => {
+                  const connectorColor = step.connector === 'crit' ? 'var(--crit)' : 'var(--line)'
+                  return (
                     <div
-                      className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center"
-                      style={
-                        {
-                          border: `1.8px solid ${step.color}`,
-                          background: step.wash,
-                          color: step.color,
-                          boxShadow: step.ring ? `0 0 0 4px ${step.wash}` : undefined,
-                        } as CSSProperties
-                      }
+                      key={step.title}
+                      className="flex flex-col items-center gap-[10px] relative"
                     >
-                      {step.icon}
-                    </div>
-                    <span
-                      className={`text-[12.5px] text-center ${
-                        step.strong ? 'font-bold text-crit' : 'font-semibold text-ink'
-                      }`}
-                    >
-                      {step.title}
-                    </span>
-                    <span className="font-mono text-[10.5px] text-faint">{step.time}</span>
-                    {step.connector && (
-                      <div className="absolute top-[24px] left-[calc(50%+30px)] w-[calc(100%-60px)] h-[6px] flex items-center">
-                        <div className="flex-1 h-[2px]" style={{ background: connectorColor }} />
-                        <div
-                          className="w-[6px] h-[6px] rotate-45 -ml-1 flex-shrink-0"
-                          style={{
-                            borderTop: `2px solid ${connectorColor}`,
-                            borderRight: `2px solid ${connectorColor}`,
-                          }}
-                        />
+                      <div
+                        className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center"
+                        style={
+                          {
+                            border: `1.8px solid ${step.color}`,
+                            background: step.wash,
+                            color: step.color,
+                            boxShadow: step.ring ? `0 0 0 4px ${step.wash}` : undefined,
+                          } as CSSProperties
+                        }
+                      >
+                        {step.icon}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            <div className="flex items-center gap-[16px] mt-[26px] px-[18px] py-[16px] bg-surface border border-line-2 rounded-[12px] border-l-[3px] border-l-crit">
+                      <span
+                        className={`text-[12.5px] text-center ${
+                          step.strong ? 'font-bold text-crit' : 'font-semibold text-ink'
+                        }`}
+                      >
+                        {step.title}
+                      </span>
+                      <span className="font-mono text-[10.5px] text-faint">{step.time}</span>
+                      {step.connector && (
+                        <div className="absolute top-[24px] left-[calc(50%+30px)] w-[calc(100%-60px)] h-[6px] flex items-center">
+                          <div className="flex-1 h-[2px]" style={{ background: connectorColor }} />
+                          <div
+                            className="w-[6px] h-[6px] rotate-45 -ml-1 flex-shrink-0"
+                            style={{
+                              borderTop: `2px solid ${connectorColor}`,
+                              borderRight: `2px solid ${connectorColor}`,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </ScrollArea>
+            <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:gap-[16px] mt-[26px] px-[18px] py-[16px] bg-surface border border-line-2 rounded-[12px] border-l-[3px] border-l-crit">
               <div className="flex-1">
                 <div className="text-[12px] text-faint mb-1">권고 대응</div>
                 <div className="text-[13.5px] leading-[1.5] text-ink">
@@ -951,10 +973,10 @@ function Landing() {
       </div>
 
       {/* ===== CTA ===== */}
-      <div className="max-w-[1200px] mx-auto px-[40px] pt-[104px] pb-[104px]">
+      <div className={`${container} pt-[64px] pb-[64px] md:pt-[104px] md:pb-[104px]`}>
         <div
           data-reveal
-          className="relative overflow-hidden border border-line rounded-[20px] bg-surface px-[40px] py-[64px] text-center shadow-[var(--shadow-1)]"
+          className="relative overflow-hidden border border-line rounded-[20px] bg-surface px-[24px] py-[48px] md:px-[40px] md:py-[64px] text-center shadow-[var(--shadow-1)]"
         >
           <div
             className="absolute inset-0 pointer-events-none"
@@ -964,13 +986,13 @@ function Landing() {
             }}
           />
           <div className="relative z-[1] flex flex-col items-center gap-[20px]">
-            <h2 className="text-[38px] leading-[1.12] font-[740] tracking-[-0.025em] text-ink max-w-[22ch] text-balance">
+            <h2 className="text-[26px] md:text-[32px] lg:text-[38px] leading-[1.12] font-[740] tracking-[-0.025em] text-ink max-w-[22ch] text-balance">
               지금, 판단이 필요한 것부터 보여드립니다
             </h2>
             <p className="max-w-[48ch] text-[16px] leading-[1.62] text-mid">
               30분 데모로 우리 조직의 엔드포인트가 지금 어떤 상태인지 함께 확인해 보세요.
             </p>
-            <div className="flex gap-[12px] mt-[6px]">
+            <div className="flex flex-wrap justify-center gap-[12px] mt-[6px]">
               <button
                 type="button"
                 onClick={() => setDemoOpen(true)}
@@ -993,9 +1015,9 @@ function Landing() {
       {/* ===== FOOTER ===== */}
       <div className="border-t border-line-2 bg-surface">
         <div
-          className={`${container} py-[40px] flex justify-between items-center gap-[24px] flex-wrap`}
+          className={`${container} py-[32px] md:py-[40px] flex justify-between items-center gap-[24px] flex-wrap`}
         >
-          <div className="flex items-center gap-[12px]">
+          <div className="flex items-center gap-[12px] min-w-0">
             <div className="w-[30px] h-[30px] rounded-[9px] bg-accent flex items-center justify-center">
               <div className="w-[11px] h-[11px] bg-white rotate-45 rounded-[2px]" />
             </div>

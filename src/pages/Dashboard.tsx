@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import AttackPath from '@/components/ui/AttackPath'
 import AsyncState from '@/components/ui/AsyncState'
+import ScrollArea from '@/components/ui/ScrollArea'
 import TopThreats from '@/components/ui/TopThreats'
 import TriageActions from '@/components/ui/TriageActions'
 import { useApi } from '@/hooks/useApi'
@@ -32,7 +33,7 @@ function Dashboard() {
   return (
     <div className="flex flex-col gap-[20px]">
       {/* stat tiles */}
-      <div className="grid grid-cols-2 gap-[16px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
         <div className="bg-surface border border-line rounded-[12px] p-[18px] shadow-[var(--shadow-1)] border-l-[3px] border-l-crit">
           <div className="text-[12px] text-faint">미판단 위협</div>
           <AsyncState loading={open.loading} error={open.error} onRetry={open.refetch}>
@@ -62,10 +63,15 @@ function Dashboard() {
       </div>
 
       {/* main grid */}
-      <div className="grid grid-cols-[1.7fr_1fr] gap-[20px] items-start">
+      {/*
+        2열은 xl 부터. lg(1024) 에서는 사이드바 224px 이 함께 나타나 콘텐츠가 744px 로 줄어드는데,
+        그 폭을 둘로 쪼개면 어느 쪽도 충분하지 않다.
+        fr 은 minmax(auto, fr) 이라 콘텐츠가 트랙을 밀어내므로 minmax(0, fr) 로 고정한다.
+      */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] gap-[20px] items-start">
         {/* LEFT column */}
         <div className="flex flex-col gap-[20px]">
-          <Card className="px-[24px] py-[22px]">
+          <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
             <AsyncState
               loading={open.loading}
               error={open.error}
@@ -77,7 +83,7 @@ function Dashboard() {
             </AsyncState>
           </Card>
 
-          <Card className="px-[24px] py-[22px]">
+          <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
             <div className="flex justify-between items-center mb-[14px]">
               <span className="text-[14px] font-bold text-ink">최근 탐지된 위협</span>
               <Link to="/threats" className="text-[12px] font-semibold !text-accent">
@@ -91,51 +97,58 @@ function Dashboard() {
               emptyText="탐지된 위협이 없습니다"
               onRetry={recent.refetch}
             >
-              <div
-                className={`${rowGrid} py-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
-              >
-                <span />
-                <span>위협</span>
-                <span>호스트</span>
-                <span>심각도</span>
-                <span className="text-right">시간</span>
-              </div>
-              {(recent.data ?? []).map((row, i, all) => {
-                const color = severityColors[severityTone(row.severity)]
-                return (
+              <ScrollArea label="최근 탐지된 위협 목록">
+                <div className="min-w-[560px]">
                   <div
-                    key={row.id}
-                    className={`${rowGrid} items-center py-[12px] pl-[12px] border-l-[3px] ${
-                      i === all.length - 1 ? '' : 'border-b border-line-2'
-                    }`}
-                    style={{ borderLeftColor: color }}
+                    className={`${rowGrid} py-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
                   >
-                    <span className="w-[7px] h-[7px] rounded-full" style={{ background: color }} />
-                    <span className="text-[13.5px] text-ink">{row.threatName}</span>
-                    <span className="font-mono text-[12px] text-mid">{row.host}</span>
-                    <Badge severity={severityTone(row.severity)} className="justify-self-start">
-                      {severityLabel(row.severity)}
-                    </Badge>
-                    <span className="font-mono text-[11px] text-faint text-right">
-                      {relativeTime(row.ts)}
-                    </span>
+                    <span />
+                    <span>위협</span>
+                    <span>호스트</span>
+                    <span>심각도</span>
+                    <span className="text-right">시간</span>
                   </div>
-                )
-              })}
+                  {(recent.data ?? []).map((row, i, all) => {
+                    const color = severityColors[severityTone(row.severity)]
+                    return (
+                      <div
+                        key={row.id}
+                        className={`${rowGrid} items-center py-[12px] pl-[12px] border-l-[3px] ${
+                          i === all.length - 1 ? '' : 'border-b border-line-2'
+                        }`}
+                        style={{ borderLeftColor: color }}
+                      >
+                        <span
+                          className="w-[7px] h-[7px] rounded-full"
+                          style={{ background: color }}
+                        />
+                        <span className="text-[13.5px] text-ink">{row.threatName}</span>
+                        <span className="font-mono text-[12px] text-mid">{row.host}</span>
+                        <Badge severity={severityTone(row.severity)} className="justify-self-start">
+                          {severityLabel(row.severity)}
+                        </Badge>
+                        <span className="font-mono text-[11px] text-faint text-right">
+                          {relativeTime(row.ts)}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </ScrollArea>
             </AsyncState>
           </Card>
         </div>
 
         {/* RIGHT column */}
         <div className="flex flex-col gap-[20px]">
-          <Card className="px-[24px] py-[22px]">
+          <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
             <div className="text-[14px] font-bold text-ink mb-[18px]">엔드포인트 상태</div>
             <AsyncState loading={hosts.loading} error={hosts.error} onRetry={hosts.refetch}>
               {hosts.data && <HostDonut summary={hosts.data} />}
             </AsyncState>
           </Card>
 
-          <Card className="px-[24px] py-[22px]">
+          <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
             <div className="text-[14px] font-bold text-ink mb-[18px]">위협 유형 TOP 5</div>
             <AsyncState
               loading={week.loading}
@@ -197,7 +210,7 @@ function HostDonut({ summary }: { summary: HostSummary }) {
   ]
 
   return (
-    <div className="flex items-center gap-[22px]">
+    <div className="flex items-center gap-[16px] sm:gap-[22px]">
       <div
         className="relative w-[104px] h-[104px] flex-shrink-0 rounded-full"
         style={{
@@ -227,7 +240,7 @@ function HostDonut({ summary }: { summary: HostSummary }) {
           <span className="text-[10px] text-faint mt-[2px]">총 엔드포인트</span>
         </div>
       </div>
-      <div className="flex flex-col gap-[11px] flex-1">
+      <div className="flex flex-col gap-[11px] flex-1 min-w-0">
         {legend.map((item) => (
           <div key={item.label} className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${item.color}`} />

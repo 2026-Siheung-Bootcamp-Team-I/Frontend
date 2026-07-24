@@ -74,6 +74,26 @@ const items: NavItem[] = [
     ),
   },
   {
+    to: '/map',
+    label: '위협 지도',
+    icon: (
+      <svg
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18" />
+        <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z" />
+      </svg>
+    ),
+  },
+  {
     to: '/sequence',
     label: '시퀀스 분석',
     icon: (

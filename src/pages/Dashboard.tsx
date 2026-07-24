@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { lazy, Suspense, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@/api'
 import type { Alert, HostSummary } from '@/api/types'
@@ -16,6 +16,17 @@ import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
 
 const rowGrid = 'grid grid-cols-[14px_1fr_130px_88px_64px] gap-[12px]'
+
+// echarts 를 쓰는 차트는 지연 경계로 두어 별도 청크에서 온디맨드로 로드한다.
+const ThreatTrendChart = lazy(() => import('@/components/ui/ThreatTrendChart'))
+
+const chartFallback = (
+  <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
+    <div className="flex items-center justify-center h-[292px] text-[13px] text-faint">
+      불러오는 중
+    </div>
+  </Card>
+)
 
 function Dashboard() {
   // 트리아지가 일어나면 알림 관련 조회를 다시 돈다.
@@ -183,6 +194,11 @@ function Dashboard() {
           </Card>
         </div>
       </div>
+
+      {/* 위협 탐지 추이 (full-width) */}
+      <Suspense fallback={chartFallback}>
+        <ThreatTrendChart />
+      </Suspense>
     </div>
   )
 }

@@ -10,6 +10,7 @@ import type {
   AlertStatus,
   AlertSummary,
   EventSummary,
+  GeoThreat,
   Host,
   HostSummary,
   Lineage,
@@ -155,6 +156,113 @@ const hosts: Host[] = [
   { host: 'WIN-MKT-01', lastSeen: now - 26 * MINUTE, status: 'healthy', threats: 0 },
 ]
 
+/**
+ * 지도에 찍는 악성 외부 연결(C2) 목적지. 실제 국가 대표 좌표를 쓴다.
+ * host 는 위 데모 alert/host 와 맞춘다.
+ */
+const geoThreats: GeoThreat[] = [
+  {
+    id: 'geo-1',
+    host: 'WIN-FIN-02',
+    remoteIp: '185.220.101.44',
+    country: 'Russia',
+    lat: 55.75,
+    lng: 37.62,
+    severity: 'CRITICAL',
+    ts: now - 8 * MINUTE,
+  },
+  {
+    id: 'geo-2',
+    host: 'WIN-DEV-01',
+    remoteIp: '223.5.5.5',
+    country: 'China',
+    lat: 39.9,
+    lng: 116.4,
+    severity: 'CRITICAL',
+    ts: now - 34 * MINUTE,
+  },
+  {
+    id: 'geo-3',
+    host: 'WIN-HR-03',
+    remoteIp: '104.28.14.9',
+    country: 'United States',
+    lat: 38.9,
+    lng: -77.0,
+    severity: 'HIGH',
+    ts: now - 1 * HOUR,
+  },
+  {
+    id: 'geo-4',
+    host: 'WIN-FIN-02',
+    remoteIp: '45.83.220.17',
+    country: 'Netherlands',
+    lat: 52.37,
+    lng: 4.9,
+    severity: 'HIGH',
+    ts: now - 2 * HOUR,
+  },
+  {
+    id: 'geo-5',
+    host: 'WIN-OPS-01',
+    remoteIp: '191.96.44.201',
+    country: 'Brazil',
+    lat: -23.55,
+    lng: -46.63,
+    severity: 'HIGH',
+    ts: now - 3 * HOUR,
+  },
+  {
+    id: 'geo-6',
+    host: 'WIN-DEV-01',
+    remoteIp: '77.88.55.60',
+    country: 'Germany',
+    lat: 52.52,
+    lng: 13.4,
+    severity: 'MEDIUM',
+    ts: now - 6 * HOUR,
+  },
+  {
+    id: 'geo-7',
+    host: 'WIN-HR-03',
+    remoteIp: '113.161.74.22',
+    country: 'Vietnam',
+    lat: 21.02,
+    lng: 105.85,
+    severity: 'MEDIUM',
+    ts: now - 9 * HOUR,
+  },
+  {
+    id: 'geo-8',
+    host: 'WIN-OPS-02',
+    remoteIp: '188.114.96.3',
+    country: 'Russia',
+    lat: 55.75,
+    lng: 37.62,
+    severity: 'HIGH',
+    ts: now - 14 * HOUR,
+  },
+  {
+    id: 'geo-9',
+    host: 'WIN-FIN-01',
+    remoteIp: '175.45.176.8',
+    country: 'China',
+    lat: 39.9,
+    lng: 116.4,
+    severity: 'MEDIUM',
+    ts: now - 22 * HOUR,
+  },
+  {
+    id: 'geo-10',
+    host: 'WIN-MKT-01',
+    remoteIp: '162.213.199.7',
+    country: 'United States',
+    lat: 38.9,
+    lng: -77.0,
+    severity: 'MEDIUM',
+    ts: now - 2 * DAY,
+  },
+]
+
 /** 대시보드 공격 경로에 쓰는 계보. 알림별로 없으면 첫 알림 것을 돌려준다. */
 const lineages: Record<string, Lineage> = {
   'demo-1': {
@@ -286,6 +394,8 @@ export const demoApi = {
     if (target) target.status = status
     return respond<Alert>(target ?? alerts[0])
   },
+
+  geoThreats: (): Promise<GeoThreat[]> => respond([...geoThreats].sort((a, b) => b.ts - a.ts)),
 
   hosts: () => respond(hosts),
 

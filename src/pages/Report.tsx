@@ -1,9 +1,21 @@
+import { lazy, Suspense } from 'react'
 import { api } from '@/api'
 import Card from '@/components/ui/Card'
 import AsyncState from '@/components/ui/AsyncState'
 import TopThreats from '@/components/ui/TopThreats'
 import { useApi } from '@/hooks/useApi'
 import { daysAgo, percentOf } from '@/lib/format'
+
+// echarts 를 쓰는 차트는 지연 경계로 두어 별도 청크에서 온디맨드로 로드한다.
+const ThreatTrendChart = lazy(() => import('@/components/ui/ThreatTrendChart'))
+
+const chartFallback = (
+  <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
+    <div className="flex items-center justify-center h-[292px] text-[13px] text-faint">
+      불러오는 중
+    </div>
+  </Card>
+)
 
 /** collector 가 붙이는 이벤트 type. 미등록 값은 원문 그대로 보여준다. */
 const eventTypeLabels: Record<string, string> = {
@@ -54,6 +66,10 @@ function Report() {
           </Card>
         ))}
       </div>
+
+      <Suspense fallback={chartFallback}>
+        <ThreatTrendChart />
+      </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-[20px] items-start">
         <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">

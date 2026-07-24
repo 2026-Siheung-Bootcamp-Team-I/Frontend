@@ -69,6 +69,19 @@ export type EventSummary = {
   byType: { type: string; cnt: number | string }[]
 }
 
+/** 악성 외부 연결(C2)의 목적지. 지도 시각화용으로 좌표를 포함한다. */
+export type GeoThreat = {
+  id: string
+  host: string
+  remoteIp: string
+  country: string
+  lat: number
+  lng: number
+  severity: AlertSeverity
+  /** epoch millis */
+  ts: number
+}
+
 export type AuthResponse = {
   token: string
   userId: number

@@ -7,6 +7,7 @@ import type {
   AlertSummary,
   AuthResponse,
   EventSummary,
+  GeoThreat,
   Host,
   HostSummary,
   Lineage,
@@ -64,6 +65,8 @@ export const api = {
     isDemo()
       ? demoApi.triage(id, status)
       : request<Alert>(`/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
+
+  geoThreats: () => (isDemo() ? demoApi.geoThreats() : request<GeoThreat[]>('/alerts/geo')),
 
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 

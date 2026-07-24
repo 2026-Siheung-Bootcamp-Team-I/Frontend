@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { api } from '@/api'
+import { useApi } from '@/hooks/useApi'
+import { useAlertsStore } from '@/store/alerts'
+import { useAuthStore } from '@/store/auth'
 
 type NavItem = {
   to: string
   label: string
   icon: ReactNode
-  badge?: string
 }
 
 const items: NavItem[] = [
@@ -33,7 +36,6 @@ const items: NavItem[] = [
   {
     to: '/threats',
     label: '위협',
-    badge: '9',
     icon: (
       <svg
         width="17"
@@ -115,6 +117,26 @@ const items: NavItem[] = [
 ]
 
 function Sidebar() {
+  const user = useAuthStore((s) => s.user)
+  const clear = useAuthStore((s) => s.clear)
+  const navigate = useNavigate()
+  // 사이드바 배지는 미판단 위협 수. 개수만 필요하므로 목록을 받아 길이를 쓴다.
+  const alertsVersion = useAlertsStore((s) => s.version)
+  const { data: openAlerts } = useApi(
+    () => api.alerts({ status: 'open', limit: 1000 }),
+    [alertsVersion],
+  )
+
+  async function logout() {
+    try {
+      await api.logout()
+    } catch {
+      // 서버 세션 삭제가 실패해도 로컬 토큰은 비워 로그아웃 상태로 만든다
+    }
+    clear()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <aside className="w-[224px] flex-shrink-0 border-r border-line-2 bg-surface sticky top-0 h-screen flex flex-col px-[14px] py-[18px]">
       <NavLink to="/dashboard" className="flex items-center gap-[10px] px-2 pt-[6px] pb-[18px]">
@@ -138,9 +160,9 @@ function Sidebar() {
           >
             {item.icon}
             <span>{item.label}</span>
-            {item.badge && (
+            {item.to === '/threats' && openAlerts && openAlerts.length > 0 && (
               <span className="ml-auto text-[11px] font-semibold text-white bg-crit px-2 py-[1px] rounded-full font-mono">
-                {item.badge}
+                {openAlerts.length}
               </span>
             )}
           </NavLink>
@@ -150,10 +172,17 @@ function Sidebar() {
         <div className="w-[30px] h-[30px] rounded-full bg-panel flex items-center justify-center text-[12px] font-semibold text-ink-2">
           보안
         </div>
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0">
           <span className="text-[12.5px] font-semibold text-ink">보안운영팀</span>
-          <span className="text-[11px] text-faint">soc@edrdog.io</span>
+          <span className="text-[11px] text-faint truncate">{user?.email ?? ''}</span>
         </div>
+        <button
+          type="button"
+          onClick={logout}
+          className="ml-auto text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer font-sans"
+        >
+          로그아웃
+        </button>
       </div>
     </aside>
   )

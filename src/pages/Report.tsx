@@ -1,47 +1,29 @@
+import { api } from '@/api'
 import Card from '@/components/ui/Card'
-import ProgressBar from '@/components/ui/ProgressBar'
+import AsyncState from '@/components/ui/AsyncState'
+import TopThreats from '@/components/ui/TopThreats'
+import { useApi } from '@/hooks/useApi'
+import { daysAgo, percentOf } from '@/lib/format'
 
-type Stat = {
-  label: string
-  value: string
-  crit?: boolean
+/** collector 가 붙이는 이벤트 type. 미등록 값은 원문 그대로 보여준다. */
+const eventTypeLabels: Record<string, string> = {
+  process: '프로세스 실행',
+  network: '네트워크 연결',
+  file: '파일 생성·수정',
+  script: '스크립트 실행',
 }
-
-const stats: Stat[] = [
-  { label: '이번 주 탐지', value: '128' },
-  { label: '미판단', value: '9', crit: true },
-  { label: '심각', value: '2', crit: true },
-]
-
-type ThreatType = {
-  label: string
-  percent: number
-  opacity?: number
-}
-
-const threatTypes: ThreatType[] = [
-  { label: '악성코드', percent: 42 },
-  { label: '권한 상승', percent: 24, opacity: 0.82 },
-  { label: '정보 유출', percent: 18, opacity: 0.64 },
-  { label: '원격 접속', percent: 10, opacity: 0.46 },
-  { label: '기타', percent: 6, opacity: 0.46 },
-]
-
-type EventCount = {
-  label: string
-  value: string
-  percent: number
-}
-
-const eventCounts: EventCount[] = [
-  { label: '프로세스 실행', value: '4,210', percent: 100 },
-  { label: '네트워크 연결', value: '2,980', percent: 71 },
-  { label: '파일 생성·수정', value: '1,640', percent: 39 },
-  { label: '레지스트리 변경', value: '520', percent: 12 },
-  { label: '스크립트 실행', value: '180', percent: 5 },
-]
 
 function Report() {
+  const week = useApi(() => api.alertSummary({ from: daysAgo(7) }))
+  const open = useApi(() => api.alerts({ status: 'open', limit: 1000 }))
+  const events = useApi(() => api.eventSummary({ from: daysAgo(1) }))
+
+  const stats = [
+    { label: '이번 주 탐지', value: week.data?.total, state: week, crit: false },
+    { label: '미판단', value: open.data?.length, state: open, crit: true },
+    { label: '심각', value: week.data?.severity.critical, state: week, crit: true },
+  ]
+
   return (
     <div className="flex flex-col gap-[20px]">
       <div>
@@ -59,54 +41,75 @@ function Report() {
             className={`px-[24px] py-[22px] ${s.crit ? 'border-l-[3px] border-l-crit' : ''}`}
           >
             <div className="text-[12px] text-faint">{s.label}</div>
-            <div className="flex items-baseline gap-[5px] mt-[10px]">
-              <span className="font-mono text-[28px] font-medium text-ink tabular-nums">
-                {s.value}
-              </span>
-              <span className="text-[12px] text-mid">건</span>
-            </div>
+            <AsyncState loading={s.state.loading} error={s.state.error} onRetry={s.state.refetch}>
+              <div className="flex items-baseline gap-[5px] mt-[10px]">
+                <span className="font-mono text-[28px] font-medium text-ink tabular-nums">
+                  {s.value ?? 0}
+                </span>
+                <span className="text-[12px] text-mid">건</span>
+              </div>
+            </AsyncState>
           </Card>
         ))}
       </div>
 
       <div className="grid grid-cols-[1fr_1fr] gap-[20px] items-start">
-        {/* threat types top 5 */}
         <Card className="px-[24px] py-[22px]">
           <div className="text-[14px] font-bold text-ink mb-[18px]">위협 유형 TOP 5</div>
-          <div className="flex flex-col gap-[15px]">
-            {threatTypes.map((t) => (
-              <ProgressBar
-                key={t.label}
-                label={t.label}
-                percent={t.percent}
-                opacity={t.opacity}
-                animate={false}
-              />
-            ))}
-          </div>
+          <AsyncState
+            loading={week.loading}
+            error={week.error}
+            empty={(week.data?.topThreats ?? []).length === 0}
+            emptyText="집계할 위협이 없습니다"
+            onRetry={week.refetch}
+          >
+            {week.data && (
+              <TopThreats threats={week.data.topThreats} total={week.data.total} animate={false} />
+            )}
+          </AsyncState>
         </Card>
 
-        {/* event counts */}
         <Card className="px-[24px] py-[22px]">
           <div className="flex justify-between items-center mb-[18px]">
             <span className="text-[14px] font-bold text-ink">이벤트 유형별 건수</span>
             <span className="text-[11.5px] text-faint">최근 24시간</span>
           </div>
-          <div className="flex flex-col gap-[15px]">
-            {eventCounts.map((e) => (
-              <div key={e.label} className="flex flex-col gap-[7px]">
-                <div className="flex justify-between text-[13px]">
-                  <span className="text-ink-2">{e.label}</span>
-                  <span className="font-mono tabular-nums text-ink">{e.value}</span>
-                </div>
-                <div className="h-[7px] rounded-full bg-panel overflow-hidden">
-                  <div className="h-full rounded-full bg-good" style={{ width: `${e.percent}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <AsyncState
+            loading={events.loading}
+            error={events.error}
+            empty={(events.data?.byType ?? []).length === 0}
+            emptyText="수집된 이벤트가 없습니다"
+            onRetry={events.refetch}
+          >
+            <EventCounts byType={events.data?.byType ?? []} />
+          </AsyncState>
         </Card>
       </div>
+    </div>
+  )
+}
+
+/** 막대 길이는 가장 많은 type 을 100%로 잡은 상대 비율. 백엔드가 cnt 내림차순으로 준다. */
+function EventCounts({ byType }: { byType: { type: string; cnt: number | string }[] }) {
+  const counts = byType.map((row) => ({ type: row.type, count: Number(row.cnt) }))
+  const max = Math.max(...counts.map((c) => c.count))
+
+  return (
+    <div className="flex flex-col gap-[15px]">
+      {counts.map((row) => (
+        <div key={row.type} className="flex flex-col gap-[7px]">
+          <div className="flex justify-between text-[13px]">
+            <span className="text-ink-2">{eventTypeLabels[row.type] ?? row.type}</span>
+            <span className="font-mono tabular-nums text-ink">{row.count.toLocaleString()}</span>
+          </div>
+          <div className="h-[7px] rounded-full bg-panel overflow-hidden">
+            <div
+              className="h-full rounded-full bg-good"
+              style={{ width: `${percentOf(row.count, max)}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

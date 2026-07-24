@@ -1,4 +1,4 @@
-import { queryString, request } from './client'
+import { queryString, request, responderRequest } from './client'
 import { demoApi } from './demo'
 import { useAuthStore } from '@/store/auth'
 import type {
@@ -14,6 +14,7 @@ import type {
   UserWebhook,
   EnrollSecret,
   MyHosts,
+  ExecuteResult,
 } from './types'
 
 type AlertFilter = {
@@ -70,6 +71,13 @@ export const api = {
       : request<Alert>(`/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
 
   geoThreats: () => (isDemo() ? demoApi.geoThreats() : request<GeoThreat[]>('/alerts/geo')),
+
+  /** 실제 조치: responder-service 가 host 에서 target 프로세스를 종료한다. 데모 폴백 없음(비로그인 시 호출 금지). */
+  executeKill: (host: string, target: string) =>
+    responderRequest<ExecuteResult>('/api/responder/kill', {
+      method: 'POST',
+      body: { host, target },
+    }),
 
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 

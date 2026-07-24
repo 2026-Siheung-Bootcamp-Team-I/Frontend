@@ -10,6 +10,12 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
  */
 const API_KEY = import.meta.env.VITE_API_KEY ?? 'dev-api-key'
 
+/**
+ * 실제 조치(kill)는 api-service 가 아니라 responder-service(:8082) 가 처리한다.
+ * dev 기본값은 Vite proxy(`/responder-api` -> responder-service). 배포 시 VITE_RESPONDER_BASE_URL 로 절대 주소.
+ */
+const RESPONDER_BASE_URL = import.meta.env.VITE_RESPONDER_BASE_URL ?? '/responder-api'
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -24,11 +30,13 @@ type RequestOptions = {
   body?: unknown
   /** false 면 Authorization 헤더를 붙이지 않는다(로그인/회원가입). */
   auth?: boolean
+  /** 기본은 api-service. responder-service 처럼 다른 서비스면 base 를 바꾼다. */
+  baseUrl?: string
 }
 
 export async function request<T>(
   path: string,
-  { method = 'GET', body, auth = true }: RequestOptions = {},
+  { method = 'GET', body, auth = true, baseUrl = BASE_URL }: RequestOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = {}
   if (body !== undefined) headers['Content-Type'] = 'application/json'
@@ -40,7 +48,7 @@ export async function request<T>(
 
   let res: Response
   try {
-    res = await fetch(`${BASE_URL}${path}`, {
+    res = await fetch(`${baseUrl}${path}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -57,6 +65,11 @@ export async function request<T>(
   }
   if (res.status === 204) return undefined as T
   return (await res.json()) as T
+}
+
+/** responder-service 호출. 인증 헤더 없이 responder base 로 보낸다. */
+export function responderRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return request<T>(path, { ...options, auth: false, baseUrl: RESPONDER_BASE_URL })
 }
 
 export const UNREACHABLE = '서버에 연결하지 못했습니다'

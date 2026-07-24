@@ -58,6 +58,15 @@ function inCausalOrder(lineage: Lineage): LineageNode[] {
 }
 
 /**
+ * 실제 조치(kill)의 대상 프로세스. 공격 경로 인과 순서상 마지막 process 노드를
+ * 가장 위험한 단계로 보고 그 label 을 종료 대상으로 쓴다. process 노드가 없으면 null.
+ */
+export function killTarget(lineage: Lineage): string | null {
+  const procs = inCausalOrder(lineage).filter((n) => n.kind === 'process')
+  return procs.length ? procs[procs.length - 1].label : null
+}
+
+/**
  * lineage 그래프를 공격 경로 단계로 편다. 분기는 표현하지 않고 한 줄 경로로 잇는다.
  * 단계가 많으면 앞부분을 잘라 마지막 maxSteps 개만 보여준다.
  */

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useThemeStore } from '@/store/theme'
 import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
@@ -233,6 +233,14 @@ function Topbar({ onMenuOpen }: TopbarProps) {
             </span>
             <span className="hidden sm:inline">{themeLabel}</span>
           </button>
+          {isDemo && (
+            <Link
+              to="/login"
+              className="inline-flex flex-shrink-0 items-center h-[34px] px-[13px] sm:px-[15px] rounded-[10px] bg-accent !text-white font-sans text-[12.5px] font-semibold cursor-pointer"
+            >
+              로그인
+            </Link>
+          )}
         </div>
       </div>
     </div>

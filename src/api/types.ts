@@ -99,6 +99,23 @@ export type GeoThreat = {
   ts: number
 }
 
+/** responder-service 실제 조치(kill) 결과. status 는 KillOutcome + 실행기 상태. */
+export type ExecuteStatus =
+  | 'KILLED'
+  | 'NO_MATCH'
+  | 'TIMEOUT'
+  | 'FAILED'
+  | 'COOLDOWN'
+  | 'DISABLED'
+
+export type ExecuteResult = {
+  host: string
+  target: string
+  status: ExecuteStatus
+  /** Fleet 실행 id. 없으면 null. */
+  executionId: string | null
+}
+
 export type AuthResponse = {
   token: string
   userId: number

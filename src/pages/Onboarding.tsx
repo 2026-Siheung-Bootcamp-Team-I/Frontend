@@ -475,10 +475,7 @@ function Onboarding() {
         {loggedIn ? <MyHostsPanel /> : <LoginHint />}
       </SectionCard>
 
-      <SectionCard
-        title="5. 기기 상태"
-        description="조직에서 관측 중인 기기의 상태입니다."
-      >
+      <SectionCard title="5. 기기 상태" description="조직에서 관측 중인 기기의 상태입니다.">
         <HostStatusPanel />
       </SectionCard>
     </div>

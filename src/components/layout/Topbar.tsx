@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useThemeStore } from '@/store/theme'
 import { useAlertsStore } from '@/store/alerts'
+import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { api } from '@/api'
 import { searchAll } from '@/lib/search'
@@ -25,6 +26,7 @@ function Topbar({ onMenuOpen }: TopbarProps) {
   const navigate = useNavigate()
   const pageTitle = titles[pathname] ?? 'EDRdog'
   const themeLabel = theme === 'dark' ? '라이트' : '다크'
+  const isDemo = useAuthStore((s) => s.token) === null
 
   const alertsVersion = useAlertsStore((s) => s.version)
   const [query, setQuery] = useState('')
@@ -88,6 +90,11 @@ function Topbar({ onMenuOpen }: TopbarProps) {
           <span className="text-[16px] font-bold text-ink tracking-[-0.01em] whitespace-nowrap">
             {pageTitle}
           </span>
+          {isDemo && (
+            <span className="flex-shrink-0 text-[11px] font-semibold text-high bg-[var(--high-wash)] px-[8px] py-[2px] rounded-full whitespace-nowrap">
+              예시 데이터
+            </span>
+          )}
           <span className="hidden md:inline-flex items-center gap-[6px] text-[12px] text-mid ml-2">
             <span
               className="w-[6px] h-[6px] rounded-full bg-good"

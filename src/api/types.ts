@@ -63,6 +63,23 @@ export type HostSummary = {
   total: number
 }
 
+/** 내 개인 Slack webhook. 미설정이면 webhookUrl 이 null. */
+export type UserWebhook = {
+  userId: number
+  webhookUrl: string | null
+}
+
+/** tenant enroll secret. 미발급이면 enrollSecret 이 null. */
+export type EnrollSecret = {
+  tenantId: number
+  enrollSecret: string | null
+}
+
+/** 내가 소유 등록한 host 목록. 이 host 들의 탐지 알림이 내 webhook 으로 라우팅된다. */
+export type MyHosts = {
+  hosts: string[]
+}
+
 /** ClickHouse 집계라 cnt 가 문자열로 올 수 있다. */
 export type EventSummary = {
   total: number

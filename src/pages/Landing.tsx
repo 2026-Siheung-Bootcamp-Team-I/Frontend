@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom'
 import { useThemeStore } from '@/store/theme'
 import ScrollArea from '@/components/ui/ScrollArea'
 
-const container = 'max-w-[1200px] mx-auto px-[20px] md:px-[40px]'
+const container = 'max-w-[1440px] mx-auto px-[20px] md:px-[40px]'
 const eyebrow =
   'text-[12px] font-semibold tracking-[0.08em] uppercase text-accent border-l-2 border-accent pl-[9px]'
 const cardBase = 'bg-surface border border-line rounded-[14px] shadow-[var(--shadow-1)]'
@@ -256,10 +256,14 @@ function Landing() {
         </div>
       </div>
 
-      {/* ===== HERO ===== */}
+      {/*
+        ===== HERO =====
+        좌측 560px 은 h1 이 의도한 2줄로 들어가는 최소 폭. 더 좁으면 마지막 글자가 3줄로 떨어진다.
+        2열은 xl 부터. lg 에서 나누면 우측 제품 패널이 3D 를 보여주기엔 너무 좁아진다.
+      */}
       <div className={container}>
         <div
-          className="grid grid-cols-1 gap-[40px] pt-[48px] pb-[64px] lg:grid-cols-[440px_1fr] lg:gap-[56px] lg:pt-[72px] lg:pb-[92px] items-center relative"
+          className="grid grid-cols-1 gap-[40px] pt-[48px] pb-[64px] lg:pt-[72px] lg:pb-[92px] xl:grid-cols-[560px_minmax(0,1fr)] xl:gap-[56px] items-center relative"
           style={{ perspective: '1900px' }}
         >
           <div
@@ -478,90 +482,90 @@ function Landing() {
       <div className="border-t border-b border-line-2 bg-surface">
         <div className={container}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-line-2">
-          <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
-            <span className={iconTile}>
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 12h4l2.5-7 4 14 2.5-7H21" />
-              </svg>
-            </span>
-            <div className="text-[15px] font-[650] text-ink">실시간 모니터링</div>
-            <div className="text-[12.5px] leading-[1.55] text-faint">
-              서버·PC·노트북을 24시간 지켜봅니다.
+            <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
+              <span className={iconTile}>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12h4l2.5-7 4 14 2.5-7H21" />
+                </svg>
+              </span>
+              <div className="text-[15px] font-[650] text-ink">실시간 모니터링</div>
+              <div className="text-[12.5px] leading-[1.55] text-faint">
+                서버·PC·노트북을 24시간 지켜봅니다.
+              </div>
             </div>
-          </div>
-          <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
-            <span className={iconTile}>
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 15l6-6" />
-                <path d="M10.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-1 1" />
-                <path d="M13.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l1-1" />
-              </svg>
-            </span>
-            <div className="text-[15px] font-[650] text-ink">시퀀스 상관분석</div>
-            <div className="text-[12.5px] leading-[1.55] text-faint">
-              흩어진 신호를 하나의 공격 경로로 잇습니다.
+            <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
+              <span className={iconTile}>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 15l6-6" />
+                  <path d="M10.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-1 1" />
+                  <path d="M13.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l1-1" />
+                </svg>
+              </span>
+              <div className="text-[15px] font-[650] text-ink">시퀀스 상관분석</div>
+              <div className="text-[12.5px] leading-[1.55] text-faint">
+                흩어진 신호를 하나의 공격 경로로 잇습니다.
+              </div>
             </div>
-          </div>
-          <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
-            <span className={iconTile}>
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 3l7 3v5c0 4.5-3 7-7 8-4-1-7-3.5-7-8V6z" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-            </span>
-            <div className="text-[15px] font-[650] text-ink">자동 대응 권고</div>
-            <div className="text-[12.5px] leading-[1.55] text-faint">
-              다음에 할 행동을 그대로 제안합니다.
+            <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
+              <span className={iconTile}>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3l7 3v5c0 4.5-3 7-7 8-4-1-7-3.5-7-8V6z" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+              </span>
+              <div className="text-[15px] font-[650] text-ink">자동 대응 권고</div>
+              <div className="text-[12.5px] leading-[1.55] text-faint">
+                다음에 할 행동을 그대로 제안합니다.
+              </div>
             </div>
-          </div>
-          <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
-            <span className={iconTile}>
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </span>
-            <div className="text-[15px] font-[650] text-ink">실행 전 dry-run</div>
-            <div className="text-[12.5px] leading-[1.55] text-faint">
-              격리·차단 전 결과를 미리 확인합니다.
+            <div className="bg-surface px-[26px] py-[30px] flex flex-col gap-[12px]">
+              <span className={iconTile}>
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </span>
+              <div className="text-[15px] font-[650] text-ink">실행 전 dry-run</div>
+              <div className="text-[12.5px] leading-[1.55] text-faint">
+                격리·차단 전 결과를 미리 확인합니다.
+              </div>
             </div>
-          </div>
           </div>
         </div>
       </div>
@@ -578,7 +582,10 @@ function Landing() {
             있습니다.
           </p>
         </div>
-        <div data-reveal className="grid grid-cols-1 gap-[20px] mt-[36px] md:grid-cols-3 md:gap-[24px] md:mt-[56px]">
+        <div
+          data-reveal
+          className="grid grid-cols-1 gap-[20px] mt-[36px] md:grid-cols-3 md:gap-[24px] md:mt-[56px]"
+        >
           {[
             {
               num: '01',
@@ -660,7 +667,10 @@ function Landing() {
 
       {/* ===== FEATURES ===== */}
       <div id="features" className={`${container} pt-[64px] md:pt-[104px]`}>
-        <div data-reveal className="flex justify-between items-end gap-[24px] flex-wrap mb-[32px] md:mb-[44px]">
+        <div
+          data-reveal
+          className="flex justify-between items-end gap-[24px] flex-wrap mb-[32px] md:mb-[44px]"
+        >
           <div className="flex flex-col gap-[14px] max-w-[34ch]">
             <span className={eyebrow}>Features</span>
             <h2 className="text-[26px] md:text-[32px] lg:text-[36px] leading-[1.14] font-[730] tracking-[-0.02em] text-ink text-balance">
@@ -800,147 +810,150 @@ function Landing() {
                 className="grid items-start relative"
                 style={{ gridTemplateColumns: 'repeat(4, minmax(120px, 1fr))' }}
               >
-              {[
-                {
-                  title: '메일 첨부 실행',
-                  time: '09:14:02',
-                  color: 'var(--accent)',
-                  wash: 'var(--accent-wash)',
-                  strong: false,
-                  ring: false,
-                  connector: 'line' as const,
-                  icon: (
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="5" width="18" height="14" rx="2" />
-                      <path d="M3 7l9 6 9-6" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: '스크립트 실행',
-                  time: '09:14:08',
-                  color: 'var(--high)',
-                  wash: 'var(--high-wash)',
-                  strong: false,
-                  ring: false,
-                  connector: 'line' as const,
-                  icon: (
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="4" width="18" height="16" rx="2" />
-                      <path d="M7 9.5l2.5 2.5L7 14.5" />
-                      <path d="M12.5 15h4" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: '자격증명 접근',
-                  time: '09:14:11',
-                  color: 'var(--crit)',
-                  wash: 'var(--crit-wash)',
-                  strong: true,
-                  ring: true,
-                  connector: 'crit' as const,
-                  icon: (
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="8.5" cy="8.5" r="4.5" />
-                      <path d="M11.8 11.8L20 20" />
-                      <path d="M17 17l2.2-2.2" />
-                    </svg>
-                  ),
-                },
-                {
-                  title: '외부 서버 연결',
-                  time: '09:14:15',
-                  color: 'var(--crit)',
-                  wash: 'var(--crit-wash)',
-                  strong: true,
-                  ring: false,
-                  connector: null,
-                  icon: (
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="4" width="18" height="7" rx="1.6" />
-                      <rect x="3" y="13" width="18" height="7" rx="1.6" />
-                      <path d="M6.5 7.5h.01" />
-                      <path d="M6.5 16.5h.01" />
-                    </svg>
-                  ),
-                },
-              ].map((step) => {
-                const connectorColor = step.connector === 'crit' ? 'var(--crit)' : 'var(--line)'
-                return (
-                  <div key={step.title} className="flex flex-col items-center gap-[10px] relative">
+                {[
+                  {
+                    title: '메일 첨부 실행',
+                    time: '09:14:02',
+                    color: 'var(--accent)',
+                    wash: 'var(--accent-wash)',
+                    strong: false,
+                    ring: false,
+                    connector: 'line' as const,
+                    icon: (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="M3 7l9 6 9-6" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    title: '스크립트 실행',
+                    time: '09:14:08',
+                    color: 'var(--high)',
+                    wash: 'var(--high-wash)',
+                    strong: false,
+                    ring: false,
+                    connector: 'line' as const,
+                    icon: (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="M7 9.5l2.5 2.5L7 14.5" />
+                        <path d="M12.5 15h4" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    title: '자격증명 접근',
+                    time: '09:14:11',
+                    color: 'var(--crit)',
+                    wash: 'var(--crit-wash)',
+                    strong: true,
+                    ring: true,
+                    connector: 'crit' as const,
+                    icon: (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="8.5" cy="8.5" r="4.5" />
+                        <path d="M11.8 11.8L20 20" />
+                        <path d="M17 17l2.2-2.2" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    title: '외부 서버 연결',
+                    time: '09:14:15',
+                    color: 'var(--crit)',
+                    wash: 'var(--crit-wash)',
+                    strong: true,
+                    ring: false,
+                    connector: null,
+                    icon: (
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="7" rx="1.6" />
+                        <rect x="3" y="13" width="18" height="7" rx="1.6" />
+                        <path d="M6.5 7.5h.01" />
+                        <path d="M6.5 16.5h.01" />
+                      </svg>
+                    ),
+                  },
+                ].map((step) => {
+                  const connectorColor = step.connector === 'crit' ? 'var(--crit)' : 'var(--line)'
+                  return (
                     <div
-                      className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center"
-                      style={
-                        {
-                          border: `1.8px solid ${step.color}`,
-                          background: step.wash,
-                          color: step.color,
-                          boxShadow: step.ring ? `0 0 0 4px ${step.wash}` : undefined,
-                        } as CSSProperties
-                      }
+                      key={step.title}
+                      className="flex flex-col items-center gap-[10px] relative"
                     >
-                      {step.icon}
-                    </div>
-                    <span
-                      className={`text-[12.5px] text-center ${
-                        step.strong ? 'font-bold text-crit' : 'font-semibold text-ink'
-                      }`}
-                    >
-                      {step.title}
-                    </span>
-                    <span className="font-mono text-[10.5px] text-faint">{step.time}</span>
-                    {step.connector && (
-                      <div className="absolute top-[24px] left-[calc(50%+30px)] w-[calc(100%-60px)] h-[6px] flex items-center">
-                        <div className="flex-1 h-[2px]" style={{ background: connectorColor }} />
-                        <div
-                          className="w-[6px] h-[6px] rotate-45 -ml-1 flex-shrink-0"
-                          style={{
-                            borderTop: `2px solid ${connectorColor}`,
-                            borderRight: `2px solid ${connectorColor}`,
-                          }}
-                        />
+                      <div
+                        className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center"
+                        style={
+                          {
+                            border: `1.8px solid ${step.color}`,
+                            background: step.wash,
+                            color: step.color,
+                            boxShadow: step.ring ? `0 0 0 4px ${step.wash}` : undefined,
+                          } as CSSProperties
+                        }
+                      >
+                        {step.icon}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                      <span
+                        className={`text-[12.5px] text-center ${
+                          step.strong ? 'font-bold text-crit' : 'font-semibold text-ink'
+                        }`}
+                      >
+                        {step.title}
+                      </span>
+                      <span className="font-mono text-[10.5px] text-faint">{step.time}</span>
+                      {step.connector && (
+                        <div className="absolute top-[24px] left-[calc(50%+30px)] w-[calc(100%-60px)] h-[6px] flex items-center">
+                          <div className="flex-1 h-[2px]" style={{ background: connectorColor }} />
+                          <div
+                            className="w-[6px] h-[6px] rotate-45 -ml-1 flex-shrink-0"
+                            style={{
+                              borderTop: `2px solid ${connectorColor}`,
+                              borderRight: `2px solid ${connectorColor}`,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </ScrollArea>
             <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:gap-[16px] mt-[26px] px-[18px] py-[16px] bg-surface border border-line-2 rounded-[12px] border-l-[3px] border-l-crit">

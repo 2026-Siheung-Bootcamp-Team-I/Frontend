@@ -37,7 +37,8 @@ function AppLayout() {
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar onMenuOpen={() => setMenuOpen(true)} />
-        <div className="px-[16px] pt-[18px] pb-[32px] lg:px-[28px] lg:pt-[26px] lg:pb-[40px]">
+        {/* 초광폭에서 표 열 사이가 과하게 벌어지지 않도록 본문 폭을 제한한다. 상단바도 같은 폭으로 맞춘다. */}
+        <div className="w-full max-w-[1600px] mx-auto px-[16px] pt-[18px] pb-[32px] lg:px-[28px] lg:pt-[26px] lg:pb-[40px]">
           <Outlet />
         </div>
       </div>

@@ -35,7 +35,9 @@ function Sequence() {
   return (
     <div className="flex flex-col gap-[20px]">
       <div>
-        <div className="text-[18px] sm:text-[20px] font-bold text-ink tracking-[-0.01em]">시퀀스 분석</div>
+        <div className="text-[18px] sm:text-[20px] font-bold text-ink tracking-[-0.01em]">
+          시퀀스 분석
+        </div>
         <div className="mt-[6px] text-[13px] text-faint">
           개별 행동을 시간순으로 이어 공격 경로로 재구성합니다.
         </div>
@@ -45,7 +47,8 @@ function Sequence() {
       <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-[20px] items-start">
         <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px] flex flex-col gap-[10px]">
           <div className="text-[13px] font-bold text-ink mb-1">탐지된 시퀀스</div>
-          <div className="flex flex-col gap-[10px] max-h-[320px] overflow-y-auto lg:max-h-none lg:overflow-visible">
+          {/* 1열로 쌓일 때는 목록이 길어져 상세가 밀리므로 높이를 제한한다. 2열(xl)이 되면 푼다. */}
+          <div className="flex flex-col gap-[10px] max-h-[320px] overflow-y-auto xl:max-h-none xl:overflow-visible">
             <AsyncState
               loading={list.loading}
               error={list.error}

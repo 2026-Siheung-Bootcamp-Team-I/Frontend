@@ -27,7 +27,9 @@ function Report() {
   return (
     <div className="flex flex-col gap-[20px]">
       <div>
-        <div className="text-[18px] sm:text-[20px] font-bold text-ink tracking-[-0.01em]">요약 보기</div>
+        <div className="text-[18px] sm:text-[20px] font-bold text-ink tracking-[-0.01em]">
+          요약 보기
+        </div>
         <div className="mt-[6px] text-[13px] text-faint">
           에이전트가 관측한 이벤트와 탐지된 위협을 요약합니다.
         </div>

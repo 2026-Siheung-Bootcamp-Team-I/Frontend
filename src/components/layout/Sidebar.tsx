@@ -145,10 +145,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
   return (
     <>
       {open && (
-        <div
-          className="fixed inset-0 z-30 bg-[rgba(0,0,0,0.5)] lg:hidden"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 z-30 bg-[rgba(0,0,0,0.5)] lg:hidden" onClick={onClose} />
       )}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-[224px] flex-shrink-0 border-r border-line-2 bg-surface h-screen flex flex-col px-[14px] py-[18px] transition-transform lg:inset-auto lg:z-auto lg:sticky lg:top-0 lg:translate-x-0 ${

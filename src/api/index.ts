@@ -7,7 +7,7 @@ import type {
   AlertSummary,
   AuthResponse,
   EventSummary,
-  GeoThreat,
+  GeoDestination,
   Host,
   HostSummary,
   Lineage,
@@ -70,7 +70,9 @@ export const api = {
       ? demoApi.triage(id, status)
       : request<Alert>(`/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
 
-  geoThreats: () => (isDemo() ? demoApi.geoThreats() : request<GeoThreat[]>('/alerts/geo')),
+  /** 외부 연결 목적지 국가 집계. 백엔드는 alerts 가 아니라 events 를 기준으로 센다. */
+  geoDestinations: () =>
+    isDemo() ? demoApi.geoDestinations() : request<GeoDestination[]>('/events/geo'),
 
   /**
    * 실제 조치(kill). responder 를 직접 부르지 않고 반드시 api-service 를 경유한다

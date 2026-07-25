@@ -5,11 +5,10 @@ import { feature } from 'topojson-client'
 import type { Topology } from 'topojson-specification'
 import worldTopo from 'world-atlas/countries-110m.json'
 import { api } from '@/api'
-import type { AlertSeverity, GeoThreat } from '@/api/types'
+import type { GeoDestination } from '@/api/types'
 import Card from '@/components/ui/Card'
 import AsyncState from '@/components/ui/AsyncState'
 import { useApi } from '@/hooks/useApi'
-import { relativeTime, severityLabel } from '@/lib/format'
 import { useThemeStore } from '@/store/theme'
 
 // 세계지도는 world-atlas(topojson) 를 오프라인으로 조달해 한 번만 등록한다.
@@ -53,22 +52,37 @@ const palettes: Record<'dark' | 'light', Palette> = {
   },
 }
 
-function severityColor(severity: AlertSeverity, p: Palette): string {
-  if (severity === 'CRITICAL') return p.crit
-  if (severity === 'HIGH') return p.high
+/**
+ * 건수 비중으로 색을 정한다. 백엔드가 국가별 집계만 주고 심각도는 주지 않으므로
+ * 상위 국가일수록 강한 색을 쓴다. 기준은 최다 국가 대비 비율.
+ */
+function countColor(count: number, max: number, p: Palette): string {
+  if (max <= 0) return p.mid
+  const ratio = count / max
+  if (ratio >= 0.6) return p.crit
+  if (ratio >= 0.25) return p.high
   return p.mid
 }
 
-function buildOption(threats: GeoThreat[], p: Palette): echarts.EChartsOption {
-  const lines = threats.map((t) => ({
-    coords: [ORIGIN, [t.lng, t.lat]],
-    lineStyle: { color: severityColor(t.severity, p) },
+/** 건수에 따라 마커 크기를 8~22px 로 키운다. */
+function markerSize(count: number, max: number): number {
+  if (max <= 0) return 8
+  return 8 + Math.round((count / max) * 14)
+}
+
+function buildOption(dests: GeoDestination[], p: Palette): echarts.EChartsOption {
+  const max = dests.reduce((m, d) => Math.max(m, d.count), 0)
+
+  const lines = dests.map((d) => ({
+    coords: [ORIGIN, [d.lng, d.lat]],
+    lineStyle: { color: countColor(d.count, max, p) },
   }))
 
-  const scatter = threats.map((t) => ({
-    name: t.country,
-    value: [t.lng, t.lat, t.remoteIp],
-    itemStyle: { color: severityColor(t.severity, p) },
+  const scatter = dests.map((d) => ({
+    name: d.country,
+    value: [d.lng, d.lat, d.count],
+    symbolSize: markerSize(d.count, max),
+    itemStyle: { color: countColor(d.count, max, p) },
   }))
 
   return {
@@ -111,12 +125,11 @@ function buildOption(threats: GeoThreat[], p: Palette): echarts.EChartsOption {
         coordinateSystem: 'geo',
         zlevel: 2,
         rippleEffect: { brushType: 'stroke', scale: 4 },
-        symbolSize: 11,
         data: scatter,
         tooltip: {
           formatter: (params: { name?: string; value?: unknown }) => {
             const value = Array.isArray(params.value) ? params.value : []
-            return `${params.name ?? ''}<br/>${value[2] ?? ''}`
+            return `${params.name ?? ''}<br/>연결 ${value[2] ?? 0}건`
           },
         },
       },
@@ -135,22 +148,19 @@ function buildOption(threats: GeoThreat[], p: Palette): echarts.EChartsOption {
 
 function ThreatMap() {
   const theme = useThemeStore((s) => s.theme)
-  const geo = useApi(() => api.geoThreats())
-  const threats = useMemo(() => geo.data ?? [], [geo.data])
+  const geo = useApi(() => api.geoDestinations())
   const p = palettes[theme]
 
-  const option = useMemo(() => buildOption(threats, p), [threats, p])
+  // 백엔드가 정렬을 보장하지 않으므로 건수 내림차순으로 다시 세운다.
+  const byCountry = useMemo(
+    () => [...(geo.data ?? [])].sort((a, b) => b.count - a.count),
+    [geo.data],
+  )
 
-  const byCountry = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const t of threats) counts.set(t.country, (counts.get(t.country) ?? 0) + 1)
-    return [...counts.entries()]
-      .map(([country, count]) => ({ country, count }))
-      .sort((a, b) => b.count - a.count)
-  }, [threats])
+  const option = useMemo(() => buildOption(byCountry, p), [byCountry, p])
 
-  const recent = useMemo(() => [...threats].sort((a, b) => b.ts - a.ts).slice(0, 5), [threats])
   const maxCount = byCountry[0]?.count ?? 0
+  const totalCount = useMemo(() => byCountry.reduce((sum, d) => sum + d.count, 0), [byCountry])
 
   return (
     <div className="flex flex-col gap-[20px]">
@@ -159,7 +169,7 @@ function ThreatMap() {
           위협 지도
         </div>
         <div className="mt-[6px] text-[13px] text-faint">
-          악성 외부 연결(C2)의 목적지를 지도로 봅니다.
+          최근 24시간 외부 연결의 목적지를 국가별로 봅니다. 사설 IP 는 제외됩니다.
         </div>
       </div>
 
@@ -168,8 +178,8 @@ function ThreatMap() {
           <AsyncState
             loading={geo.loading}
             error={geo.error}
-            empty={threats.length === 0}
-            emptyText="외부 연결 위협이 없습니다"
+            empty={byCountry.length === 0}
+            emptyText="외부 연결이 없습니다 (서버에 GeoIP DB 가 없으면 항상 비어 있습니다)"
             onRetry={geo.refetch}
           >
             <ReactECharts
@@ -183,7 +193,7 @@ function ThreatMap() {
 
         <div className="flex flex-col gap-[20px]">
           <Card className="px-[16px] py-[18px] sm:px-[20px] sm:py-[20px]">
-            <div className="text-[14px] font-bold text-ink mb-[16px]">국가별 위협 건수</div>
+            <div className="text-[14px] font-bold text-ink mb-[16px]">국가별 연결 건수</div>
             <AsyncState
               loading={geo.loading}
               error={geo.error}
@@ -212,35 +222,35 @@ function ThreatMap() {
             </AsyncState>
           </Card>
 
+          {/* 백엔드가 국가 집계만 주므로 개별 연결(호스트·IP·시각) 목록은 만들 수 없다. 요약으로 대체. */}
           <Card className="px-[16px] py-[18px] sm:px-[20px] sm:py-[20px]">
-            <div className="text-[14px] font-bold text-ink mb-[16px]">최근 외부 연결</div>
+            <div className="text-[14px] font-bold text-ink mb-[16px]">요약</div>
             <AsyncState
               loading={geo.loading}
               error={geo.error}
-              empty={recent.length === 0}
-              emptyText="최근 연결이 없습니다"
+              empty={byCountry.length === 0}
+              emptyText="집계할 연결이 없습니다"
               onRetry={geo.refetch}
             >
               <div className="flex flex-col gap-[14px]">
-                {recent.map((t) => (
-                  <div key={t.id} className="flex flex-col gap-[3px]">
-                    <div className="flex justify-between items-baseline gap-[10px]">
-                      <span className="font-mono text-[12px] text-mid truncate">{t.host}</span>
-                      <span className="font-mono text-[11px] text-faint flex-shrink-0">
-                        {relativeTime(t.ts)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-baseline gap-[10px]">
-                      <span className="text-[13px] text-ink truncate">
-                        {t.country}
-                        <span className="text-faint"> · {severityLabel(t.severity)}</span>
-                      </span>
-                      <span className="font-mono text-[11px] text-faint flex-shrink-0">
-                        {t.remoteIp}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                <div className="flex justify-between items-baseline gap-[10px]">
+                  <span className="text-[13px] text-ink-2">전체 연결</span>
+                  <span className="font-mono tabular-nums text-[13px] text-ink flex-shrink-0">
+                    {totalCount.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline gap-[10px]">
+                  <span className="text-[13px] text-ink-2">관측 국가</span>
+                  <span className="font-mono tabular-nums text-[13px] text-ink flex-shrink-0">
+                    {byCountry.length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline gap-[10px]">
+                  <span className="text-[13px] text-ink-2">최다 목적지</span>
+                  <span className="text-[13px] text-ink truncate">
+                    {byCountry[0]?.country ?? '-'}
+                  </span>
+                </div>
               </div>
             </AsyncState>
           </Card>

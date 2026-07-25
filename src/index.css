@@ -5,19 +5,23 @@
     'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI',
     'Noto Sans KR', sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --bg: #0b0f16;
-  --surface: #141a24;
-  --panel: #141c24;
-  --panel-2: #0f1620;
-  --ink: #e8ecf2;
-  --ink-2: #c4cdd6;
-  --mid: #93a0ad;
-  --faint: #6b7684;
-  --line: #222c38;
-  --line-2: #1b242d;
-  --accent: #5b78ff;
-  --accent-strong: #7089ff;
-  --accent-wash: rgba(91, 120, 255, 0.14);
+  /*
+    콘솔 계열 톤. 채널 편차를 3 이내로 유지해 무채색을 지킨다.
+    남색이 섞이면(이전 --bg #0b0f16 은 편차 11) 심각도 색과 경합해 대시보드가 템플릿처럼 읽힌다.
+  */
+  --bg: #0a0a0c;
+  --surface: #121215;
+  --panel: #1a1a1e;
+  --panel-2: #0e0e11;
+  --ink: #e6e6ea;
+  --ink-2: #c0c0c8;
+  --mid: #9a9aa4;
+  --faint: #6e6e78;
+  --line: #2a2a30;
+  --line-2: #1e1e23;
+  --accent: #4a76e8;
+  --accent-strong: #6b91f0;
+  --accent-wash: rgba(74, 118, 232, 0.16);
   --crit: #f0645c;
   --crit-wash: rgba(240, 100, 92, 0.14);
   --high: #f2cb45;
@@ -28,19 +32,19 @@
   --lift: 0 40px 80px rgba(0, 0, 0, 0.45);
 }
 :root[data-theme='light'] {
-  --bg: #f4f6f9;
+  --bg: #f4f4f5;
   --surface: #ffffff;
-  --panel: #eef1f6;
-  --panel-2: #f7f9fb;
-  --ink: #0e1420;
-  --ink-2: #35404c;
-  --mid: #545e6b;
-  --faint: #8a94a1;
-  --line: #e4e8ee;
-  --line-2: #eef1f5;
-  --accent: #2b4de0;
-  --accent-strong: #1e3ab8;
-  --accent-wash: #edf0fe;
+  --panel: #eeeef0;
+  --panel-2: #fafafa;
+  --ink: #16161a;
+  --ink-2: #3a3a42;
+  --mid: #5a5a64;
+  --faint: #8a8a94;
+  --line: #e2e2e6;
+  --line-2: #ededf0;
+  --accent: #2c4fd4;
+  --accent-strong: #1f3aa8;
+  --accent-wash: #eef1fc;
   --crit: #e5484d;
   --crit-wash: #fcecec;
   --high: #eab308;
@@ -69,6 +73,15 @@
   --color-good: var(--good);
   --font-sans: var(--sans);
   --font-mono: var(--mono);
+
+  /*
+    콘솔 곡률 스케일. 3단계로 고정하고 임의값(rounded-[10px] 류)은 쓰지 않는다.
+    xs=배지·태그, sm=버튼·입력·행, md=카드·패널·오버레이.
+    Landing 은 마케팅 페이지라 자체 값을 유지한다.
+  */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
 }
 
 * {

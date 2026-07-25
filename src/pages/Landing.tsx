@@ -326,10 +326,15 @@ function Landing() {
             부유하는 기울인 목업 자체가 지난 세대 SaaS 랜딩 문법이다.
             그림자는 여기 하나만 남긴다. 창이 페이지 위에 떠 있다는 신호는 필요하다.
           */}
+          {/*
+            기울기는 히어로가 2열이 되는 xl 부터만 준다. 그 아래에서는 목업이 폭을 꽉 채우는데
+            거기서 눕히면 모서리가 화면 밖으로 나가고, 루트의 overflow-x-hidden 에 잘린다.
+            scale 은 기울면서 넓어진 바운딩 박스를 컨테이너 안으로 되돌리는 용도다.
+          */}
           <div
             data-hero-panel
-            className="relative z-[1] overflow-hidden rounded-md border border-line bg-surface"
-            style={{ boxShadow: 'var(--shadow-2)' } as CSSProperties}
+            className="relative z-[1] overflow-hidden rounded-md border border-line bg-surface xl:[transform:perspective(2000px)_rotateY(-11deg)_rotateX(4deg)_scale(0.97)]"
+            style={{ boxShadow: 'var(--shadow-2), var(--lift)' } as CSSProperties}
           >
             {/*
               브라우저 창 크롬. 신호등만 찍으면 macOS 앱 창이 되는데 EDRdog 은 웹 콘솔이라

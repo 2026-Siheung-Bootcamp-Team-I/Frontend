@@ -10,12 +10,13 @@ import ScrollArea from '@/components/ui/ScrollArea'
 import TopThreats from '@/components/ui/TopThreats'
 import TriageActions from '@/components/ui/TriageActions'
 import { useApi } from '@/hooks/useApi'
-import { daysAgo, relativeTime, severityColors, severityLabel, severityTone } from '@/lib/format'
+import { absoluteTime, daysAgo, severityLabel, severityTone } from '@/lib/format'
 import { toAttackSteps } from '@/lib/lineagePath'
 import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
 
-const rowGrid = 'grid grid-cols-[14px_1fr_130px_88px_64px] gap-[12px]'
+// 위협(2줄) / 호스트 / 심각도 / 탐지 시각
+const rowGrid = 'grid grid-cols-[1fr_124px_84px_142px] gap-[12px]'
 
 // echarts 를 쓰는 차트는 지연 경계로 두어 별도 청크에서 온디맨드로 로드한다.
 const ThreatTrendChart = lazy(() => import('@/components/ui/ThreatTrendChart'))
@@ -130,41 +131,39 @@ function Dashboard() {
               onRetry={recent.refetch}
             >
               <ScrollArea label="최근 탐지된 위협 목록">
-                <div className="min-w-[560px]">
+                <div className="min-w-[620px]">
                   <div
                     className={`${rowGrid} py-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
                   >
-                    <span />
                     <span>위협</span>
                     <span>호스트</span>
                     <span>심각도</span>
-                    <span className="text-right">시간</span>
+                    <span className="text-right">탐지 시각</span>
                   </div>
-                  {(recent.data ?? []).map((row, i, all) => {
-                    const color = severityColors[severityTone(row.severity)]
-                    return (
-                      <div
-                        key={row.id}
-                        className={`${rowGrid} items-center py-[12px] pl-[12px] border-l-[3px] ${
-                          i === all.length - 1 ? '' : 'border-b border-line-2'
-                        }`}
-                        style={{ borderLeftColor: color }}
-                      >
-                        <span
-                          className="w-[7px] h-[7px] rounded-full"
-                          style={{ background: color }}
-                        />
-                        <span className="text-[13.5px] text-ink">{row.threatName}</span>
-                        <span className="font-mono text-[12px] text-mid">{row.host}</span>
-                        <Badge severity={severityTone(row.severity)} className="justify-self-start">
-                          {severityLabel(row.severity)}
-                        </Badge>
-                        <span className="font-mono text-[11px] text-faint text-right">
-                          {relativeTime(row.ts)}
+                  {(recent.data ?? []).map((row, i, all) => (
+                    <div
+                      key={row.id}
+                      className={`${rowGrid} items-center py-[10px] ${
+                        i === all.length - 1 ? '' : 'border-b border-line-2'
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] text-ink">
+                          {row.threatName}
                         </span>
-                      </div>
-                    )
-                  })}
+                        <span className="mt-[2px] block truncate font-mono text-[11px] text-faint">
+                          {row.ruleId}
+                        </span>
+                      </span>
+                      <span className="font-mono text-[12px] text-mid">{row.host}</span>
+                      <Badge severity={severityTone(row.severity)} className="justify-self-start">
+                        {severityLabel(row.severity)}
+                      </Badge>
+                      <span className="text-right font-mono text-[11px] text-faint">
+                        {absoluteTime(row.ts)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </ScrollArea>
             </AsyncState>

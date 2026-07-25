@@ -9,6 +9,8 @@ import { hostStatusColor, hostStatusLabel, relativeTime } from '@/lib/format'
 
 type OsKey = 'macos' | 'windows'
 
+type Step = { title: string; body: string; command?: string }
+
 const OS_TABS: { key: OsKey; label: string }[] = [
   { key: 'macos', label: 'macOS' },
   { key: 'windows', label: 'Windows' },
@@ -16,7 +18,7 @@ const OS_TABS: { key: OsKey; label: string }[] = [
 
 // 설치·수집 명령어는 백엔드 collector-service README(실측)의 osquery 경로 기준.
 // 로그 수집 = osquery TLS → api-service. (kill 조치는 별도로 Fleet 사용)
-const INSTALL_STEPS: Record<OsKey, { title: string; body: string; command?: string }[]> = {
+const INSTALL_STEPS: Record<OsKey, Step[]> = {
   macos: [
     {
       title: 'osquery 설치',
@@ -63,6 +65,82 @@ const INSTALL_STEPS: Record<OsKey, { title: string; body: string; command?: stri
   ],
 }
 
+type FleetOsKey = 'macos' | 'linux'
+
+const FLEET_OS_TABS: { key: FleetOsKey; label: string }[] = [
+  { key: 'macos', label: 'macOS' },
+  { key: 'linux', label: 'Linux' },
+]
+
+/**
+ * 배포된 Fleet 서버 주소. 백엔드가 내려주는 값이 아직 없어 빌드 시 주입한다.
+ * 미설정이면 플레이스홀더를 보여주고 관리자에게 받도록 안내한다.
+ */
+const FLEET_URL_PLACEHOLDER = 'https://fleet.example.com'
+const FLEET_URL: string = import.meta.env.VITE_FLEET_URL || FLEET_URL_PLACEHOLDER
+
+// kill(실제 조치)은 Fleet 의 run-script 로 실행된다. 수집용 osquery 와 별개로 fleetd(orbit) 등록이 필요하다.
+const FLEET_STEPS: Record<FleetOsKey, Step[]> = {
+  macos: [
+    {
+      title: 'fleetctl 설치',
+      body: '설치 패키지를 만드는 도구입니다. kill 대상 기기가 아니라 작업용 PC에 설치합니다.',
+      command: 'npm install -g fleetctl',
+    },
+    {
+      title: 'Fleet enroll secret 확인',
+      body: 'Fleet 콘솔 → Hosts → Add hosts 에서 확인합니다. 1번의 osquery enroll secret과는 다른 값입니다.',
+    },
+    {
+      title: 'fleetd 패키지 생성',
+      body: '실행하면 현재 디렉터리에 fleet-osquery.pkg가 생성됩니다.',
+      command: `fleetctl package --type=pkg --fleet-url=${FLEET_URL} --enroll-secret=<FLEET_ENROLL_SECRET>`,
+    },
+    {
+      title: '대상 기기에 설치',
+      body: '만들어진 pkg를 kill 대상 기기로 옮겨 설치합니다.',
+      command: 'sudo installer -pkg fleet-osquery.pkg -target /',
+    },
+    {
+      title: '등록 확인',
+      body: 'Fleet 콘솔 Hosts 목록에 이 기기가 online으로 뜨면 완료입니다. 이때 호스트 이름이 알림에 표시되는 host와 같아야 조치가 그 기기로 전달됩니다.',
+    },
+  ],
+  linux: [
+    {
+      title: 'fleetctl 설치',
+      body: '설치 패키지를 만드는 도구입니다. kill 대상 기기가 아니라 작업용 PC에 설치합니다.',
+      command: 'npm install -g fleetctl',
+    },
+    {
+      title: 'Fleet enroll secret 확인',
+      body: 'Fleet 콘솔 → Hosts → Add hosts 에서 확인합니다. 1번의 osquery enroll secret과는 다른 값입니다.',
+    },
+    {
+      title: 'fleetd 패키지 생성',
+      body: 'RPM 계열(RHEL·Rocky 등)이면 --type=rpm 으로 바꿉니다.',
+      command: `fleetctl package --type=deb --fleet-url=${FLEET_URL} --enroll-secret=<FLEET_ENROLL_SECRET>`,
+    },
+    {
+      title: '대상 기기에 설치',
+      body: 'RPM 계열이면 sudo rpm -Uvh fleet-osquery-*.rpm 로 설치합니다.',
+      command: 'sudo dpkg -i fleet-osquery_*.deb',
+    },
+    {
+      title: '등록 확인',
+      body: 'Fleet 콘솔 Hosts 목록에 이 기기가 online으로 뜨면 완료입니다. 이때 호스트 이름이 알림에 표시되는 host와 같아야 조치가 그 기기로 전달됩니다.',
+    },
+  ],
+}
+
+// 하나라도 빠지면 "실행" 버튼이 눌려도 프로세스가 종료되지 않는다.
+const KILL_REQUIREMENTS = [
+  'fleetd(orbit)가 설치돼 Fleet 호스트 목록에 online으로 보일 것',
+  'Fleet 서버의 스크립트 실행(run-script)이 켜져 있을 것 (Settings → Organization settings → Advanced)',
+  'Fleet 서버가 https이고 인증서가 유효할 것. 자체 서명 인증서면 fleetd가 등록 단계에서 실패합니다.',
+  '대상이 macOS 또는 Linux일 것. 조치 스크립트가 POSIX sh라 Windows는 아직 지원하지 않습니다.',
+]
+
 const SLACK_STEPS = [
   'api.slack.com/apps 접속 → Create New App → From scratch 선택',
   '앱 이름 입력, 알림을 받을 워크스페이스 선택 후 생성',
@@ -108,6 +186,54 @@ function StepNumber({ n }: { n: number }) {
     <span className="mt-[1px] flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full border border-line text-[12px] font-semibold text-mid">
       {n}
     </span>
+  )
+}
+
+function OsTabs<K extends string>({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: { key: K; label: string }[]
+  value: K
+  onChange: (key: K) => void
+}) {
+  return (
+    <div className="inline-flex gap-[3px] rounded-[10px] border border-line-2 p-[3px]">
+      {tabs.map((tab) => (
+        <button
+          key={tab.key}
+          type="button"
+          onClick={() => onChange(tab.key)}
+          className={`rounded-[8px] px-[16px] py-[6px] text-[13px] font-semibold cursor-pointer transition-colors ${
+            value === tab.key
+              ? 'bg-[var(--accent-wash)] text-accent'
+              : 'text-mid hover:text-ink-2 hover:bg-panel'
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function StepList({ steps }: { steps: Step[] }) {
+  return (
+    <ol className="mt-[18px] flex flex-col gap-[18px]">
+      {steps.map((step, i) => (
+        <li key={step.title} className="flex gap-[12px]">
+          <StepNumber n={i + 1} />
+          <div className="grow min-w-0">
+            <div className="text-[13.5px] font-semibold text-ink">{step.title}</div>
+            <div className="mt-[4px] whitespace-pre-line text-[13px] text-mid leading-[1.6]">
+              {step.body}
+            </div>
+            {step.command && <CommandBlock command={step.command} />}
+          </div>
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -393,6 +519,7 @@ function HostStatusPanel() {
 
 function Onboarding() {
   const [os, setOs] = useState<OsKey>('macos')
+  const [fleetOs, setFleetOs] = useState<FleetOsKey>('macos')
   const loggedIn = useAuthStore((s) => s.token !== null)
 
   return (
@@ -418,37 +545,8 @@ function Onboarding() {
         title="2. 기기 설치 및 로그 수집"
         description="OS를 선택해 설치·수집 명령어를 확인하세요. 서버 인증서·플래그 파일은 관리자가 제공합니다."
       >
-        <div className="inline-flex gap-[3px] rounded-[10px] border border-line-2 p-[3px]">
-          {OS_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setOs(tab.key)}
-              className={`rounded-[8px] px-[16px] py-[6px] text-[13px] font-semibold cursor-pointer transition-colors ${
-                os === tab.key
-                  ? 'bg-[var(--accent-wash)] text-accent'
-                  : 'text-mid hover:text-ink-2 hover:bg-panel'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <ol className="mt-[18px] flex flex-col gap-[18px]">
-          {INSTALL_STEPS[os].map((step, i) => (
-            <li key={step.title} className="flex gap-[12px]">
-              <StepNumber n={i + 1} />
-              <div className="grow min-w-0">
-                <div className="text-[13.5px] font-semibold text-ink">{step.title}</div>
-                <div className="mt-[4px] whitespace-pre-line text-[13px] text-mid leading-[1.6]">
-                  {step.body}
-                </div>
-                {step.command && <CommandBlock command={step.command} />}
-              </div>
-            </li>
-          ))}
-        </ol>
+        <OsTabs tabs={OS_TABS} value={os} onChange={setOs} />
+        <StepList steps={INSTALL_STEPS[os]} />
       </SectionCard>
 
       <SectionCard
@@ -477,6 +575,45 @@ function Onboarding() {
 
       <SectionCard title="5. 기기 상태" description="조직에서 관측 중인 기기의 상태입니다.">
         <HostStatusPanel />
+      </SectionCard>
+
+      <SectionCard
+        title="6. kill 대상 기기 Fleet 등록"
+        description="알림의 '실행' 버튼으로 프로세스를 실제 종료하려면 대상 기기가 Fleet에 등록돼 있어야 합니다."
+      >
+        <div className="rounded-[9px] border border-line bg-panel-2 border-l-[3px] border-l-high px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
+          2번의 osquery 설치는 <span className="text-ink-2">로그 수집</span>용이고, 여기 fleetd
+          설치는 <span className="text-ink-2">kill 실행</span>용이라 별개입니다. 두 가지를 모두
+          마쳐야 탐지부터 조치까지 동작합니다.
+        </div>
+
+        <div className="mt-[18px]">
+          <OsTabs tabs={FLEET_OS_TABS} value={fleetOs} onChange={setFleetOs} />
+        </div>
+        <StepList steps={FLEET_STEPS[fleetOs]} />
+
+        {FLEET_URL === FLEET_URL_PLACEHOLDER && (
+          <div className="mt-[14px] text-[12px] text-high leading-[1.6]">
+            Fleet 서버 주소가 아직 설정되지 않아 명령어의 --fleet-url은 예시 값입니다. 실제 주소는
+            관리자에게 받아 바꿔서 실행하세요.
+          </div>
+        )}
+
+        <div className="mt-[24px] text-[13px] font-semibold text-ink-2">kill 가능 조건</div>
+        <ul className="mt-[10px] flex flex-col gap-[8px]">
+          {KILL_REQUIREMENTS.map((req) => (
+            <li key={req} className="flex gap-[10px] text-[13px] text-mid leading-[1.6]">
+              <span className="mt-[8px] h-[4px] w-[4px] shrink-0 rounded-full bg-line" />
+              <span className="grow">{req}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-[18px] text-[12px] text-faint leading-[1.6]">
+          등록 여부는 Fleet 콘솔 Hosts 목록에서 확인합니다. 위 5번 기기 상태는 osquery 수집 기준이라
+          Fleet 등록 여부와는 다릅니다. Fleet은 폴링 방식이라 등록 직후나 조치 실행 후 반영까지 수십
+          초가 걸릴 수 있습니다.
+        </div>
       </SectionCard>
     </div>
   )

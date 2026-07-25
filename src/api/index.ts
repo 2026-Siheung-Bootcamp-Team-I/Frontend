@@ -80,13 +80,15 @@ export const api = {
    * 실제 조치(kill). responder 를 직접 부르지 않고 반드시 api-service 를 경유한다
    * (api-service 가 Bearer 인증 + tenant 소유 확인 후 responder 로 프록시).
    * host 는 서버가 알림에서 가져오므로 클라이언트는 종료 대상 프로세스(target)만 보낸다.
-   * 데모 폴백 없음(비로그인 시 호출 금지).
+   * 비로그인(데모)에서는 서버를 부르지 않고 성공한 셈 치고 답한다(예시임을 화면에 밝힌다).
    */
   executeKill: (id: string, target: string) =>
-    request<ExecuteResult>(`/alerts/${encodeURIComponent(id)}/respond`, {
-      method: 'POST',
-      body: { target },
-    }),
+    isDemo()
+      ? demoApi.executeKill(id, target)
+      : request<ExecuteResult>(`/alerts/${encodeURIComponent(id)}/respond`, {
+          method: 'POST',
+          body: { target },
+        }),
 
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 

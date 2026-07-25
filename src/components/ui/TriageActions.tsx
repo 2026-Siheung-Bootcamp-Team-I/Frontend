@@ -21,11 +21,14 @@ type TriageActionsProps = {
 /** 권고 대응 문구와 트리아지(확정·오탐) 버튼. 이미 판단된 알림은 결과만 보여준다. */
 function TriageActions({ alert, detailTo }: TriageActionsProps) {
   const [pending, setPending] = useState<'confirmed' | 'false_positive' | null>(null)
+  // 위협 확정은 되돌릴 수 없어서 실수 클릭을 막으려고 버튼을 한 번 더 누르게 한다. 오탐은 즉시 처리한다.
+  const [asking, setAsking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bump = useAlertsStore((s) => s.bump)
 
   async function triage(status: 'confirmed' | 'false_positive') {
     setPending(status)
+    setAsking(false)
     setError(null)
     try {
       await api.triage(alert.id, status)
@@ -59,7 +62,28 @@ function TriageActions({ alert, detailTo }: TriageActionsProps) {
           </Link>
         )}
 
-        {alert.status === 'open' ? (
+        {alert.status !== 'open' ? (
+          <span className="flex-1 sm:flex-none text-center whitespace-nowrap text-[13px] font-semibold text-mid border border-line px-[16px] py-[10px] rounded-sm">
+            {statusLabel(alert.status)}
+          </span>
+        ) : asking ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setAsking(false)}
+              className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-ink-2 border border-line px-[16px] py-[10px] rounded-sm cursor-pointer font-sans"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={() => triage('confirmed')}
+              className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-crit px-[18px] py-[10px] rounded-sm cursor-pointer font-sans"
+            >
+              정말 확정하시겠습니까?
+            </button>
+          </>
+        ) : (
           <>
             <button
               type="button"
@@ -71,17 +95,13 @@ function TriageActions({ alert, detailTo }: TriageActionsProps) {
             </button>
             <button
               type="button"
-              onClick={() => triage('confirmed')}
+              onClick={() => setAsking(true)}
               disabled={pending !== null}
               className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-accent px-[18px] py-[10px] rounded-sm cursor-pointer font-sans disabled:opacity-60"
             >
               {pending === 'confirmed' ? '처리 중' : '위협 확정'}
             </button>
           </>
-        ) : (
-          <span className="flex-1 sm:flex-none text-center whitespace-nowrap text-[13px] font-semibold text-mid border border-line px-[16px] py-[10px] rounded-sm">
-            {statusLabel(alert.status)}
-          </span>
         )}
       </div>
     </div>

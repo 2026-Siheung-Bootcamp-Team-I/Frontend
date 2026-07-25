@@ -64,7 +64,7 @@ function Sequence() {
                     key={alert.id}
                     type="button"
                     onClick={() => setPickedId(alert.id)}
-                    className={`flex flex-col gap-[6px] p-[14px] rounded-[12px] cursor-pointer border text-left font-sans ${
+                    className={`flex flex-col gap-[6px] p-[14px] rounded-md cursor-pointer border text-left font-sans ${
                       alert.id === selectedId
                         ? 'border-accent bg-[var(--accent-wash)]'
                         : 'border-line-2 bg-panel-2'
@@ -172,7 +172,7 @@ function RealAction({ alert }: { alert: Alert }) {
   }
 
   return (
-    <div className="mt-[12px] px-[14px] py-[14px] sm:px-[18px] sm:py-[16px] bg-panel-2 border border-line-2 rounded-[12px] border-l-[3px] border-l-high">
+    <div className="mt-[12px] px-[14px] py-[14px] sm:px-[18px] sm:py-[16px] bg-panel-2 border border-line-2 rounded-md">
       <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center sm:gap-[16px]">
         <div className="flex-1">
           <div className="text-[12px] text-faint mb-1">실제 조치 (프로세스 종료)</div>
@@ -212,14 +212,14 @@ function RealAction({ alert }: { alert: Alert }) {
               <button
                 type="button"
                 onClick={() => setPhase('idle')}
-                className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-ink-2 border border-line px-[16px] py-[10px] rounded-[10px] cursor-pointer font-sans"
+                className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-ink-2 border border-line px-[16px] py-[10px] rounded-sm cursor-pointer font-sans"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={run}
-                className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-crit px-[18px] py-[10px] rounded-[10px] cursor-pointer font-sans"
+                className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-crit px-[18px] py-[10px] rounded-sm cursor-pointer font-sans"
               >
                 확인
               </button>
@@ -229,7 +229,7 @@ function RealAction({ alert }: { alert: Alert }) {
               type="button"
               onClick={ask}
               disabled={isDemo || !target || phase === 'pending'}
-              className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-high px-[18px] py-[10px] rounded-[10px] cursor-pointer font-sans disabled:opacity-60 disabled:cursor-default"
+              className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-high px-[18px] py-[10px] rounded-sm cursor-pointer font-sans disabled:opacity-60 disabled:cursor-default"
             >
               {phase === 'pending' ? '실행 중' : '실제 조치 실행'}
             </button>

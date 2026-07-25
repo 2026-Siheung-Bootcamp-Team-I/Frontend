@@ -42,7 +42,7 @@ function Message({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="text-[12.5px] font-semibold text-ink-2 border border-line bg-surface px-[14px] py-[7px] rounded-[10px] cursor-pointer"
+          className="text-[12.5px] font-semibold text-ink-2 border border-line bg-surface px-[14px] py-[7px] rounded-sm cursor-pointer"
         >
           다시 시도
         </button>

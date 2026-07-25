@@ -70,7 +70,7 @@ function Topbar({ onMenuOpen }: TopbarProps) {
             type="button"
             onClick={onMenuOpen}
             aria-label="메뉴 열기"
-            className="lg:hidden flex-shrink-0 w-[40px] h-[40px] flex items-center justify-center rounded-[10px] text-ink-2 cursor-pointer"
+            className="lg:hidden flex-shrink-0 w-[40px] h-[40px] flex items-center justify-center rounded-sm text-ink-2 cursor-pointer"
           >
             <svg
               width="18"
@@ -106,7 +106,7 @@ function Topbar({ onMenuOpen }: TopbarProps) {
         <div className="flex items-center gap-[8px] sm:gap-[12px]">
           <div
             ref={searchRef}
-            className="relative flex items-center gap-2 h-[34px] px-[12px] rounded-[10px] border border-line bg-surface flex-1 min-w-[120px] max-w-[260px] sm:min-w-[220px]"
+            className="relative flex items-center gap-2 h-[34px] px-[12px] rounded-sm border border-line bg-surface flex-1 min-w-[120px] max-w-[260px] sm:min-w-[220px]"
           >
             <svg
               width="14"
@@ -132,7 +132,7 @@ function Topbar({ onMenuOpen }: TopbarProps) {
               className="flex-1 min-w-0 bg-transparent border-0 outline-none font-sans text-[13px] text-ink placeholder:text-faint"
             />
             {showDropdown && (
-              <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-30 bg-surface border border-line rounded-[10px] shadow-[var(--shadow-2)] py-[6px] max-h-[320px] overflow-y-auto">
+              <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-30 bg-surface border border-line rounded-md shadow-[var(--shadow-2)] py-[6px] max-h-[320px] overflow-y-auto">
                 {loading ? (
                   <div className="text-[12.5px] text-faint px-[12px] py-[14px] text-center">
                     불러오는 중
@@ -200,7 +200,7 @@ function Topbar({ onMenuOpen }: TopbarProps) {
           </div>
           <button
             onClick={toggle}
-            className="inline-flex flex-shrink-0 items-center gap-[7px] h-[34px] pl-[11px] pr-[11px] sm:pr-[14px] rounded-[10px] border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer shadow-[var(--shadow-1)]"
+            className="inline-flex flex-shrink-0 items-center gap-[7px] h-[34px] pl-[11px] pr-[11px] sm:pr-[14px] rounded-sm border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer"
           >
             <span data-om-sun className="items-center text-high">
               <svg
@@ -236,7 +236,7 @@ function Topbar({ onMenuOpen }: TopbarProps) {
           {isDemo && (
             <Link
               to="/login"
-              className="inline-flex flex-shrink-0 items-center h-[34px] px-[13px] sm:px-[15px] rounded-[10px] bg-accent !text-white font-sans text-[12.5px] font-semibold cursor-pointer"
+              className="inline-flex flex-shrink-0 items-center h-[34px] px-[13px] sm:px-[15px] rounded-sm bg-accent !text-white font-sans text-[12.5px] font-semibold cursor-pointer"
             >
               로그인
             </Link>

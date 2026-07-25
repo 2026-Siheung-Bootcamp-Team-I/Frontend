@@ -29,9 +29,9 @@ function ProgressBar({
           {percent}%
         </span>
       </div>
-      <div className="h-[7px] rounded-full bg-panel overflow-hidden">
+      <div className="h-[7px] rounded-xs bg-panel overflow-hidden">
         <div
-          className="h-full rounded-full origin-left"
+          className="h-full rounded-xs origin-left"
           style={{
             width: `${percent}%`,
             background: color,

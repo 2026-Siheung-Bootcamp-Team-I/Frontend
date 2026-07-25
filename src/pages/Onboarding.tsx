@@ -65,6 +65,61 @@ const INSTALL_STEPS: Record<OsKey, Step[]> = {
   ],
 }
 
+// 수집 종료. 설치(INSTALL_STEPS)와 대칭 구조이고, 경로는 collector-service의 osquery/*.flags 실측 기준.
+// 1번만 하면 임시 중지, 끝까지 하면 완전 종료.
+const STOP_STEPS: Record<OsKey, Step[]> = {
+  macos: [
+    {
+      title: '에이전트 중지',
+      body: 'osqueryctl로 데몬을 등록했다면 아래로 중지합니다. 2번에서 osqueryd를 직접 띄웠다면 sudo pkill -x osqueryd 로 종료합니다.',
+      command: 'sudo osqueryctl stop',
+    },
+    {
+      title: '자동 시작 해제',
+      body: '재부팅해도 다시 뜨지 않게 launchd 등록을 내립니다.',
+      command: 'sudo launchctl unload -w /Library/LaunchDaemons/com.facebook.osqueryd.plist',
+    },
+    {
+      title: 'osquery 제거',
+      body: 'Homebrew로 설치한 경우입니다.',
+      command: 'brew uninstall --cask osquery',
+    },
+    {
+      title: 'enroll secret · 인증서 · 플래그 파일 삭제',
+      body: '남겨두면 osquery를 다시 설치했을 때 같은 값으로 그대로 재등록됩니다.',
+      command:
+        'sudo rm -f /etc/osquery/enroll.secret /etc/osquery/osquery-server.pem /etc/osquery/osquery.mac.flags',
+    },
+    {
+      title: '전체 디스크 접근 회수',
+      body: '시스템 설정 → 개인정보 보호 및 보안 → 전체 디스크 접근에서 osqueryd 항목을 제거합니다.',
+    },
+  ],
+  windows: [
+    {
+      title: '에이전트 중지',
+      body: '관리자 권한 PowerShell에서 실행합니다. 서비스로 등록하지 않고 osqueryd.exe를 직접 띄웠다면 Stop-Process -Name osqueryd -Force 를 씁니다.',
+      command: 'Stop-Service osqueryd',
+    },
+    {
+      title: '자동 시작 해제',
+      body: '재부팅 후 서비스가 다시 뜨지 않게 시작 유형을 사용 안 함으로 바꿉니다.',
+      command: 'Set-Service osqueryd -StartupType Disabled',
+    },
+    {
+      title: 'osquery 제거',
+      body: '설정 → 앱 → 설치된 앱에서 osquery를 제거합니다. winget으로 설치했다면 아래 명령으로도 제거됩니다.',
+      command: 'winget uninstall osquery',
+    },
+    {
+      title: 'enroll secret · 인증서 · 플래그 파일 삭제',
+      body: 'C:\\ProgramData\\osquery\\ 아래에 둔 파일을 지웁니다. 남겨두면 재설치 시 같은 값으로 그대로 재등록됩니다.',
+      command:
+        'Remove-Item C:\\ProgramData\\osquery\\enroll.secret, C:\\ProgramData\\osquery\\osquery-server.pem, C:\\ProgramData\\osquery\\osquery.win.flags',
+    },
+  ],
+}
+
 type FleetOsKey = 'macos' | 'linux'
 
 const FLEET_OS_TABS: { key: FleetOsKey; label: string }[] = [
@@ -163,7 +218,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="shrink-0 rounded-[7px] border border-line px-[10px] py-[5px] text-[12px] font-semibold text-mid hover:text-ink-2 hover:bg-panel cursor-pointer transition-colors"
+      className="shrink-0 rounded-sm border border-line px-[10px] py-[5px] text-[12px] font-semibold text-mid hover:text-ink-2 hover:bg-panel cursor-pointer transition-colors"
     >
       {copied ? '복사됨' : '복사'}
     </button>
@@ -172,7 +227,7 @@ function CopyButton({ text }: { text: string }) {
 
 function CommandBlock({ command }: { command: string }) {
   return (
-    <div className="mt-[10px] flex items-center gap-[10px] rounded-[9px] border border-line bg-panel-2 px-[12px] py-[9px]">
+    <div className="mt-[10px] flex items-center gap-[10px] rounded-sm border border-line bg-panel-2 px-[12px] py-[9px]">
       <code className="grow overflow-x-auto whitespace-pre font-mono text-[12.5px] text-good">
         {command}
       </code>
@@ -199,13 +254,13 @@ function OsTabs<K extends string>({
   onChange: (key: K) => void
 }) {
   return (
-    <div className="inline-flex gap-[3px] rounded-[10px] border border-line-2 p-[3px]">
+    <div className="inline-flex gap-[3px] rounded-md border border-line-2 p-[3px]">
       {tabs.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`rounded-[8px] px-[16px] py-[6px] text-[13px] font-semibold cursor-pointer transition-colors ${
+          className={`rounded-xs px-[16px] py-[6px] text-[13px] font-semibold cursor-pointer transition-colors ${
             value === tab.key
               ? 'bg-[var(--accent-wash)] text-accent'
               : 'text-mid hover:text-ink-2 hover:bg-panel'
@@ -257,7 +312,7 @@ function SectionCard({
 
 function LoginHint() {
   return (
-    <div className="rounded-[9px] border border-dashed border-line px-[16px] py-[14px] text-[13px] text-mid leading-[1.6]">
+    <div className="rounded-sm border border-dashed border-line px-[16px] py-[14px] text-[13px] text-mid leading-[1.6]">
       로그인하면 여기서 바로 발급·저장·등록할 수 있습니다.{' '}
       <Link to="/login" className="font-semibold !text-accent">
         로그인
@@ -280,7 +335,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="shrink-0 rounded-[9px] bg-accent px-[18px] py-[9px] text-[13px] font-semibold !text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+      className="shrink-0 rounded-sm bg-accent px-[18px] py-[9px] text-[13px] font-semibold !text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
       {children}
     </button>
@@ -361,7 +416,7 @@ function WebhookForm({ initial }: { initial: string | null }) {
             setSaved(false)
           }}
           placeholder="https://hooks.slack.com/services/..."
-          className="grow rounded-[9px] border border-line bg-panel-2 px-[12px] py-[9px] text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+          className="grow rounded-sm border border-line bg-panel-2 px-[12px] py-[9px] text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
         />
         <PrimaryButton onClick={save} disabled={busy || !valid}>
           {busy ? '저장 중' : '저장'}
@@ -430,7 +485,7 @@ function MyHostsPanel() {
           value={host}
           onChange={(e) => setHost(e.target.value)}
           placeholder="등록할 host 이름 (예: WIN-FIN-02)"
-          className="grow rounded-[9px] border border-line bg-panel-2 px-[12px] py-[9px] text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+          className="grow rounded-sm border border-line bg-panel-2 px-[12px] py-[9px] text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
         />
         <PrimaryButton onClick={register} disabled={busy || host.trim().length === 0}>
           {busy ? '등록 중' : '등록'}
@@ -449,7 +504,7 @@ function MyHostsPanel() {
             {hosts.map((name) => (
               <div
                 key={name}
-                className="flex items-center gap-[12px] rounded-[9px] border border-line bg-panel-2 px-[12px] py-[9px]"
+                className="flex items-center gap-[12px] rounded-sm border border-line bg-panel-2 px-[12px] py-[9px]"
               >
                 <span className="grow font-mono text-[13px] text-ink-2">{name}</span>
                 <button
@@ -520,6 +575,7 @@ function HostStatusPanel() {
 function Onboarding() {
   const [os, setOs] = useState<OsKey>('macos')
   const [fleetOs, setFleetOs] = useState<FleetOsKey>('macos')
+  const [stopOs, setStopOs] = useState<OsKey>('macos')
   const loggedIn = useAuthStore((s) => s.token !== null)
 
   return (
@@ -581,7 +637,7 @@ function Onboarding() {
         title="6. kill 대상 기기 Fleet 등록"
         description="알림의 '실행' 버튼으로 프로세스를 실제 종료하려면 대상 기기가 Fleet에 등록돼 있어야 합니다."
       >
-        <div className="rounded-[9px] border border-line bg-panel-2 border-l-[3px] border-l-high px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
+        <div className="rounded-sm border border-line bg-panel-2 px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
           2번의 osquery 설치는 <span className="text-ink-2">로그 수집</span>용이고, 여기 fleetd
           설치는 <span className="text-ink-2">kill 실행</span>용이라 별개입니다. 두 가지를 모두
           마쳐야 탐지부터 조치까지 동작합니다.
@@ -613,6 +669,27 @@ function Onboarding() {
           등록 여부는 Fleet 콘솔 Hosts 목록에서 확인합니다. 위 5번 기기 상태는 osquery 수집 기준이라
           Fleet 등록 여부와는 다릅니다. Fleet은 폴링 방식이라 등록 직후나 조치 실행 후 반영까지 수십
           초가 걸릴 수 있습니다.
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="7. 수집 종료"
+        description="이 기기의 이벤트 수집을 멈춥니다. 1번만 하면 임시 중지, 끝까지 하면 완전 종료입니다."
+      >
+        <OsTabs tabs={OS_TABS} value={stopOs} onChange={setStopOs} />
+        <StepList steps={STOP_STEPS[stopOs]} />
+
+        <div className="mt-[24px] text-[13px] font-semibold text-ink-2">enroll secret 회전</div>
+        <div className="mt-[10px] rounded-sm border border-line bg-panel-2 px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
+          1번에서 secret을 재발급하면 <span className="text-ink-2">앞으로의 신규 등록</span>만
+          막힙니다. 이미 등록을 마친 기기는 발급받은 node_key로 계속 수집하므로, 그 기기는 위 절차로
+          에이전트를 직접 중지해야 합니다. 재발급 후에는 다른 기기의 enroll.secret 파일도 새 값으로
+          바꿔야 재등록이 됩니다.
+        </div>
+
+        <div className="mt-[18px] text-[12px] text-faint leading-[1.6]">
+          수집은 그대로 두고 알림만 끊으려면 4번 내 기기 등록에서 해당 host를 해제하세요. kill
+          조치까지 끊으려면 Fleet에서 그 호스트의 fleetd도 별도로 제거해야 합니다.
         </div>
       </SectionCard>
     </div>

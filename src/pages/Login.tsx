@@ -2,12 +2,13 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '@/api'
+import LogoMark from '@/components/ui/LogoMark'
 import { useAuthStore } from '@/store/auth'
 
 type Mode = 'login' | 'signup'
 
 const inputClass =
-  'h-[40px] px-[13px] rounded-[10px] border border-line bg-panel-2 text-ink text-[13.5px] font-sans outline-none focus:border-accent'
+  'h-[40px] px-[13px] rounded-sm border border-line bg-panel-2 text-ink text-[13.5px] font-sans outline-none focus:border-accent'
 
 function Login() {
   const [mode, setMode] = useState<Mode>('login')
@@ -47,12 +48,12 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-bg font-sans text-ink flex items-center justify-center px-[20px]">
-      <div className="relative w-full max-w-[380px] bg-surface border border-line rounded-[14px] shadow-[var(--shadow-2)] px-[28px] py-[30px]">
+      <div className="relative w-full max-w-[380px] bg-surface border border-line rounded-md px-[28px] py-[30px]">
         <button
           type="button"
           onClick={() => navigate('/')}
           aria-label="닫기"
-          className="absolute top-[16px] right-[16px] w-[30px] h-[30px] flex items-center justify-center rounded-[8px] text-faint hover:text-ink-2 hover:bg-panel cursor-pointer transition-colors"
+          className="absolute top-[16px] right-[16px] w-[30px] h-[30px] flex items-center justify-center rounded-sm text-faint hover:text-ink-2 hover:bg-panel cursor-pointer transition-colors"
         >
           <svg
             width="16"
@@ -69,9 +70,7 @@ function Login() {
           </svg>
         </button>
         <Link to="/" className="flex items-center gap-[10px] mb-[22px]">
-          <div className="w-[28px] h-[28px] rounded-[8px] bg-accent flex items-center justify-center">
-            <div className="w-[10px] h-[10px] bg-white rotate-45 rounded-[2px]" />
-          </div>
+          <LogoMark size={28} />
           <span className="text-[17px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
         </Link>
 
@@ -81,7 +80,7 @@ function Login() {
               key={m}
               type="button"
               onClick={() => switchMode(m)}
-              className={`flex-1 h-[34px] rounded-[10px] text-[12.5px] font-semibold cursor-pointer border transition-colors ${
+              className={`flex-1 h-[34px] rounded-sm text-[12.5px] font-semibold cursor-pointer border transition-colors ${
                 mode === m
                   ? 'bg-accent text-white border-accent'
                   : 'bg-surface text-mid border-line hover:text-ink-2'
@@ -138,7 +137,7 @@ function Login() {
           <button
             type="submit"
             disabled={pending}
-            className="mt-[6px] h-[40px] rounded-[10px] bg-accent text-white text-[13.5px] font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-default"
+            className="mt-[6px] h-[40px] rounded-sm bg-accent text-white text-[13.5px] font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-default"
           >
             {pending ? '처리 중' : mode === 'login' ? '로그인' : '회원가입'}
           </button>

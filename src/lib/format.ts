@@ -13,6 +13,18 @@ export function relativeTime(ts: number, now = Date.now()): string {
   return `${Math.floor(diff / DAY)}일 전`
 }
 
+/**
+ * epoch millis 를 "2026-07-22 23:41:45" 로.
+ * 탐지 시각에 상대 표기("12분 전")를 쓰지 않는 이유: 조사할 때 osquery·Zeek 로그와
+ * 타임라인을 대조해야 하는데 상대 표기로는 대조가 안 된다. 초까지 남긴다.
+ */
+export function absoluteTime(ts: number): string {
+  const d = new Date(ts)
+  const p = (n: number) => String(n).padStart(2, '0')
+  const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  return `${date} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
 /** epoch millis 를 "09:14:02" 로. 시안이 모노 숫자 표기라 ko-KR 의 "9시 14분" 형식은 쓰지 않는다. */
 export function clockTime(ts: number): string {
   const d = new Date(ts)

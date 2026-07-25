@@ -31,9 +31,9 @@ function Report() {
   const events = useApi(() => api.eventSummary({ from: daysAgo(1) }))
 
   const stats = [
-    { label: '이번 주 탐지', value: week.data?.total, state: week, crit: false },
-    { label: '미판단', value: open.data?.length, state: open, crit: true },
-    { label: '심각', value: week.data?.severity.critical, state: week, crit: true },
+    { label: '이번 주 탐지', value: week.data?.total, state: week },
+    { label: '미판단', value: open.data?.length, state: open },
+    { label: '심각', value: week.data?.severity.critical, state: week },
   ]
 
   return (
@@ -52,7 +52,7 @@ function Report() {
         {stats.map((s) => (
           <Card
             key={s.label}
-            className={`px-[16px] py-[18px] sm:px-[24px] sm:py-[22px] ${s.crit ? 'border-l-[3px] border-l-crit' : ''}`}
+            className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]"
           >
             <div className="text-[12px] text-faint">{s.label}</div>
             <AsyncState loading={s.state.loading} error={s.state.error} onRetry={s.state.refetch}>
@@ -122,9 +122,9 @@ function EventCounts({ byType }: { byType: { type: string; cnt: number | string 
               {row.count.toLocaleString()}
             </span>
           </div>
-          <div className="h-[7px] rounded-full bg-panel overflow-hidden">
+          <div className="h-[7px] rounded-xs bg-panel overflow-hidden">
             <div
-              className="h-full rounded-full bg-good"
+              className="h-full rounded-xs bg-good"
               style={{ width: `${percentOf(row.count, max)}%` }}
             />
           </div>

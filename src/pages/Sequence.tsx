@@ -172,7 +172,7 @@ function RealAction({ alert }: { alert: Alert }) {
   }
 
   return (
-    <div className="mt-[12px] px-[14px] py-[14px] sm:px-[18px] sm:py-[16px] bg-panel-2 border border-line-2 rounded-md border-l-[3px] border-l-high">
+    <div className="mt-[12px] px-[14px] py-[14px] sm:px-[18px] sm:py-[16px] bg-panel-2 border border-line-2 rounded-md">
       <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center sm:gap-[16px]">
         <div className="flex-1">
           <div className="text-[12px] text-faint mb-1">실제 조치 (프로세스 종료)</div>

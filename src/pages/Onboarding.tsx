@@ -637,7 +637,7 @@ function Onboarding() {
         title="6. kill 대상 기기 Fleet 등록"
         description="알림의 '실행' 버튼으로 프로세스를 실제 종료하려면 대상 기기가 Fleet에 등록돼 있어야 합니다."
       >
-        <div className="rounded-sm border border-line bg-panel-2 border-l-[3px] border-l-high px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
+        <div className="rounded-sm border border-line bg-panel-2 px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
           2번의 osquery 설치는 <span className="text-ink-2">로그 수집</span>용이고, 여기 fleetd
           설치는 <span className="text-ink-2">kill 실행</span>용이라 별개입니다. 두 가지를 모두
           마쳐야 탐지부터 조치까지 동작합니다.
@@ -680,7 +680,7 @@ function Onboarding() {
         <StepList steps={STOP_STEPS[stopOs]} />
 
         <div className="mt-[24px] text-[13px] font-semibold text-ink-2">enroll secret 회전</div>
-        <div className="mt-[10px] rounded-sm border border-line bg-panel-2 border-l-[3px] border-l-high px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
+        <div className="mt-[10px] rounded-sm border border-line bg-panel-2 px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
           1번에서 secret을 재발급하면 <span className="text-ink-2">앞으로의 신규 등록</span>만
           막힙니다. 이미 등록을 마친 기기는 발급받은 node_key로 계속 수집하므로, 그 기기는 위 절차로
           에이전트를 직접 중지해야 합니다. 재발급 후에는 다른 기기의 enroll.secret 파일도 새 값으로

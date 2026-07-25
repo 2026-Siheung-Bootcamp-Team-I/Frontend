@@ -936,22 +936,16 @@ function Onboarding() {
     [loggedIn],
   )
   const webhookQ = useApi(() => (loggedIn ? api.getWebhook() : Promise.resolve(null)), [loggedIn])
-  const tenantWebhookQ = useApi(
-    () => (loggedIn ? api.getTenantWebhook() : Promise.resolve(null)),
-    [loggedIn],
-  )
 
   // 저장 직후 값. 저장 뒤 재조회하면 폼이 다시 마운트되면서 "저장되었습니다" 가 즉시 사라져서,
   // 체크리스트만 이 값으로 갱신하고 폼은 건드리지 않는다.
   const [justSavedWebhook, setJustSavedWebhook] = useState<string | null>(null)
-  const [justSavedTenantWebhook, setJustSavedTenantWebhook] = useState<string | null>(null)
 
   const observed = observedQ.data ?? []
   const observedNames = observed.map((h) => h.host)
   const myHosts = myHostsQ.data?.hosts ?? []
   const secret = secretQ.data?.enrollSecret ?? null
   const webhookUrl = justSavedWebhook ?? webhookQ.data?.webhookUrl ?? null
-  const tenantWebhookUrl = justSavedTenantWebhook ?? tenantWebhookQ.data?.webhookUrl ?? null
 
   // 등록했지만 그 이름으로 관측된 적이 없는 기기. 오타로 알림이 사라지고 있다는 신호다.
   const unmatched = myHosts.filter((host) => !observedNames.includes(host)).length
@@ -978,11 +972,6 @@ function Onboarding() {
       detail: webhookUrl ? '등록됨' : '미등록',
       done: webhookUrl !== null,
     },
-    {
-      label: '조직 공용 webhook',
-      detail: tenantWebhookUrl ? '등록됨' : '미등록',
-      done: tenantWebhookUrl !== null,
-    },
   ]
 
   return (
@@ -1000,7 +989,7 @@ function Onboarding() {
       {loggedIn && (
         <SectionCard
           title="연동 체크리스트"
-          description="탐지 알림이 전달되려면 (개인 webhook + 내 기기 등록) 또는 (조직 공용 webhook) 중 하나는 갖춰져야 합니다. 둘 다 비어 있으면 알림은 조용히 사라집니다."
+          description="탐지 알림이 전달되려면 개인 webhook 과 내 기기 등록이 둘 다 갖춰져야 합니다. 하나라도 비어 있으면 알림은 조용히 사라집니다."
         >
           <Checklist items={checklist} />
         </SectionCard>
@@ -1073,29 +1062,6 @@ function Onboarding() {
                 onSave={api.setWebhook}
                 onSaved={setJustSavedWebhook}
                 showTest
-              />
-            </AsyncState>
-          ) : (
-            <LoginHint />
-          )}
-        </div>
-
-        <div className="mt-[24px] text-[13px] font-semibold text-ink-2">조직 공용 채널 (선택)</div>
-        <div className="mt-[6px] text-[12px] text-faint leading-[1.6]">
-          개인 webhook이 없거나 호스트 소유자가 지정되지 않은 알림은 이 채널로 갑니다. 비워두면 그런
-          알림은 발송되지 않습니다.
-        </div>
-        <div className="mt-[10px]">
-          {loggedIn ? (
-            <AsyncState
-              loading={tenantWebhookQ.loading}
-              error={tenantWebhookQ.error}
-              onRetry={tenantWebhookQ.refetch}
-            >
-              <WebhookForm
-                initial={tenantWebhookUrl}
-                onSave={api.setTenantWebhook}
-                onSaved={setJustSavedTenantWebhook}
               />
             </AsyncState>
           ) : (
@@ -1196,10 +1162,8 @@ function Onboarding() {
         </div>
 
         <div className="mt-[18px] text-[12px] text-faint leading-[1.6]">
-          수집은 그대로 두고 내 채널 알림만 끊으려면 5번 내 기기 등록에서 해당 host를 해제하세요.
-          다만 3번 조직 공용 webhook이 등록돼 있으면 그 host의 알림은 조직 채널로 계속 갑니다.
-          완전히 끊으려면 조직 공용 webhook도 비워야 합니다. kill 조치까지 끊으려면 Fleet에서 그
-          호스트의 fleetd도 별도로 제거해야 합니다.
+          수집은 그대로 두고 알림만 끊으려면 5번 내 기기 등록에서 해당 host를 해제하세요. kill
+          조치까지 끊으려면 Fleet에서 그 호스트의 fleetd도 별도로 제거해야 합니다.
         </div>
       </SectionCard>
     </div>

@@ -161,7 +161,7 @@ const hosts: Host[] = [
  * 지도에 찍는 외부 연결 목적지. 백엔드 GET /api/events/geo 와 같은 국가별 집계 형태다.
  * 좌표는 국가 대표 좌표(백엔드 CountryCentroid 와 같은 기준).
  */
-export const demoGeoDestinations: GeoDestination[] = [
+const geoDestinations: GeoDestination[] = [
   { country: 'Russia', countryCode: 'RU', lat: 55.75, lng: 37.62, count: 412 },
   { country: 'China', countryCode: 'CN', lat: 39.9, lng: 116.4, count: 268 },
   { country: 'United States', countryCode: 'US', lat: 38.9, lng: -77.0, count: 195 },
@@ -317,7 +317,7 @@ export const demoApi = {
   },
 
   geoDestinations: (): Promise<GeoDestination[]> =>
-    respond([...demoGeoDestinations].sort((a, b) => b.count - a.count)),
+    respond([...geoDestinations].sort((a, b) => b.count - a.count)),
 
   hosts: () => respond(hosts),
 

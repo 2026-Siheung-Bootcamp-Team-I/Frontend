@@ -53,7 +53,7 @@ function AttackPath({ host, label, steps }: AttackPathProps) {
           {steps.map((step) => (
             <div key={step.title} className="flex flex-col items-center gap-[10px] relative">
               <div
-                className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center"
+                className="w-[52px] h-[52px] rounded-md flex items-center justify-center"
                 style={
                   {
                     border: `1.8px solid ${step.color}`,

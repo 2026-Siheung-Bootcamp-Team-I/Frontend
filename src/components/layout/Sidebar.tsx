@@ -197,8 +197,8 @@ function Sidebar({ open, onClose }: SidebarProps) {
         }`}
       >
         <NavLink to="/dashboard" className="flex items-center gap-[10px] px-2 pt-[6px] pb-[18px]">
-          <div className="w-[28px] h-[28px] rounded-[8px] bg-accent flex items-center justify-center">
-            <div className="w-[10px] h-[10px] bg-white rotate-45 rounded-[2px]" />
+          <div className="w-[28px] h-[28px] rounded-sm bg-accent flex items-center justify-center">
+            <div className="w-[10px] h-[10px] bg-white rotate-45 rounded-xs" />
           </div>
           <span className="text-[17px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
         </NavLink>
@@ -208,7 +208,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-[11px] px-[11px] py-[9px] rounded-[9px] text-[13.5px] font-semibold cursor-pointer transition-colors ${
+                `flex items-center gap-[11px] px-[11px] py-[9px] rounded-sm text-[13.5px] font-semibold cursor-pointer transition-colors ${
                   isActive
                     ? 'bg-[var(--accent-wash)] text-accent'
                     : 'text-mid hover:text-ink-2 hover:bg-panel'
@@ -250,7 +250,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
             </span>
             <NavLink
               to="/login"
-              className="text-center text-[12.5px] font-semibold !text-white bg-accent py-[9px] rounded-[9px]"
+              className="text-center text-[12.5px] font-semibold !text-white bg-accent py-[9px] rounded-sm"
             >
               로그인
             </NavLink>

@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
-import type { Alert, ExecuteStatus, Lineage } from '@/api/types'
+import type { Alert, ExecuteStatus } from '@/api/types'
 import Card from '@/components/ui/Card'
 import AttackPath from '@/components/ui/AttackPath'
 import AsyncState from '@/components/ui/AsyncState'
 import TriageActions from '@/components/ui/TriageActions'
 import { useApi } from '@/hooks/useApi'
-import { clockTime, severityColors, severityLabel, severityTone } from '@/lib/format'
-import { killTarget, toAttackSteps } from '@/lib/lineagePath'
+import { clockTime, killTarget, severityColors, severityLabel, severityTone } from '@/lib/format'
+import { toAttackSteps } from '@/lib/lineagePath'
 import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
 
@@ -120,7 +120,7 @@ function SequenceDetail({ alert }: { alert: Alert }) {
       </AsyncState>
       <TriageActions alert={alert} />
       {/* 권고 대응이 kill 인 알림만 실제 조치(프로세스 종료)를 실행할 수 있다. */}
-      {alert.action === 'kill' && <RealAction alert={alert} lineage={data} />}
+      {alert.action === 'kill' && <RealAction alert={alert} />}
     </>
   )
 }
@@ -142,10 +142,11 @@ const toneClass = {
   mid: 'text-mid',
 }
 
-/** 실제 조치(kill) 실행. 확인 단계를 거친 뒤 responder-service 를 호출한다. */
-function RealAction({ alert, lineage }: { alert: Alert; lineage: Lineage | null }) {
+/** 실제 조치(kill) 실행. 확인 단계를 거친 뒤 api-service 를 경유해 실행한다. */
+function RealAction({ alert }: { alert: Alert }) {
   const isDemo = useAuthStore((s) => s.token) === null
-  const target = lineage ? killTarget(lineage) : null
+  // 종료 대상 프로세스는 alert.matched 의 실행 체인 말단 프로세스. 없으면 실행 불가.
+  const target = killTarget(alert.matched)
   const [phase, setPhase] = useState<'idle' | 'confirm' | 'pending'>('idle')
   const [result, setResult] = useState<ExecuteStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -161,7 +162,7 @@ function RealAction({ alert, lineage }: { alert: Alert; lineage: Lineage | null 
     setPhase('pending')
     setError(null)
     try {
-      const res = await api.executeKill(alert.host, target)
+      const res = await api.executeKill(alert.id, target)
       setResult(res.status)
     } catch (e) {
       setError((e as Error).message)

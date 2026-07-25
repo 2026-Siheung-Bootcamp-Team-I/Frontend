@@ -14,10 +14,11 @@ import ScrollArea from '@/components/ui/ScrollArea'
 const container = 'max-w-[1440px] mx-auto px-[20px] md:px-[40px]'
 const eyebrow =
   'text-[12px] font-semibold tracking-[0.08em] uppercase text-accent border-l-2 border-accent pl-[9px]'
-const cardBase = 'bg-surface border border-line rounded-[14px] shadow-[var(--shadow-1)]'
-const featureCard = `${cardBase} p-[22px] md:p-[30px] transition-[box-shadow,transform] duration-200 hover:shadow-[var(--shadow-2)] hover:-translate-y-[3px]`
+const cardBase = 'bg-surface border border-line rounded-md'
+// 평평한 문법이라 hover 는 들어올리기가 아니라 경계선으로 답한다.
+const featureCard = `${cardBase} p-[22px] md:p-[30px] transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--accent)_45%,var(--line))]`
 const iconTile =
-  'w-[40px] h-[40px] rounded-[11px] bg-[var(--accent-wash)] flex items-center justify-center'
+  'w-[40px] h-[40px] rounded-md bg-[var(--accent-wash)] flex items-center justify-center'
 
 function DemoRequestModal({ onClose }: { onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false)
@@ -56,7 +57,7 @@ function DemoRequestModal({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="demo-request-title"
-        className="w-full max-w-[420px] bg-surface border border-line rounded-[16px] shadow-[var(--shadow-2)] p-[24px] sm:p-[32px]"
+        className="w-full max-w-[420px] bg-surface border border-line rounded-md p-[24px] sm:p-[32px]"
       >
         {submitted ? (
           <>
@@ -72,7 +73,7 @@ function DemoRequestModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="w-full mt-[24px] h-[44px] rounded-[10px] bg-accent text-white font-sans text-[14.5px] font-semibold cursor-pointer"
+              className="w-full mt-[24px] h-[44px] rounded-sm bg-accent text-white font-sans text-[14.5px] font-semibold cursor-pointer"
             >
               확인
             </button>
@@ -94,7 +95,7 @@ function DemoRequestModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="text"
                   required
-                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-[10px] border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
+                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-sm border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
                 />
               </label>
               <label className="block">
@@ -102,26 +103,26 @@ function DemoRequestModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="email"
                   required
-                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-[10px] border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
+                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-sm border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
                 />
               </label>
               <label className="block">
                 <span className="text-[12.5px] font-semibold text-ink-2">회사명</span>
                 <input
                   type="text"
-                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-[10px] border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
+                  className="w-full mt-[6px] h-[42px] px-[13px] rounded-sm border border-line bg-panel-2 font-sans text-[14px] text-ink outline-none focus:border-accent placeholder:text-faint"
                 />
               </label>
               <button
                 type="submit"
-                className="w-full mt-[8px] h-[44px] rounded-[10px] bg-accent text-white font-sans text-[14.5px] font-semibold cursor-pointer"
+                className="w-full mt-[8px] h-[44px] rounded-sm bg-accent text-white font-sans text-[14.5px] font-semibold cursor-pointer"
               >
                 데모 요청 보내기
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full h-[42px] rounded-[10px] border border-line bg-surface !text-ink-2 font-sans text-[14px] font-semibold cursor-pointer"
+                className="w-full h-[42px] rounded-sm border border-line bg-surface !text-ink-2 font-sans text-[14px] font-semibold cursor-pointer"
               >
                 닫기
               </button>
@@ -187,7 +188,7 @@ function Landing() {
         <div className={`${container} flex items-center justify-between h-[66px]`}>
           <div className="flex items-center lg:gap-[44px]">
             <Link to="/" className="flex items-center gap-[11px]">
-              <LogoMark size={30} radius="rounded-[9px]" />
+              <LogoMark size={30} />
               <span className="text-[19px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
             </Link>
             <div className="hidden lg:flex gap-[28px]">
@@ -208,7 +209,7 @@ function Landing() {
           <div className="flex items-center gap-[10px] sm:gap-[14px]">
             <button
               onClick={toggle}
-              className="inline-flex items-center gap-[7px] h-[34px] pl-[11px] pr-[11px] sm:pr-[14px] rounded-full border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer shadow-[var(--shadow-1)]"
+              className="inline-flex items-center gap-[7px] h-[34px] pl-[11px] pr-[11px] sm:pr-[14px] rounded-sm border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer"
             >
               <span data-om-sun className="items-center text-high">
                 <svg
@@ -247,7 +248,7 @@ function Landing() {
             <button
               type="button"
               onClick={() => setDemoOpen(true)}
-              className="font-sans text-[13px] font-semibold text-white bg-accent px-[13px] sm:px-[18px] py-[9px] rounded-[10px] cursor-pointer"
+              className="font-sans text-[13px] font-semibold text-white bg-accent px-[13px] sm:px-[18px] py-[9px] rounded-sm cursor-pointer"
             >
               데모 요청
             </button>
@@ -285,7 +286,7 @@ function Landing() {
           />
 
           <div className="relative z-[1] flex flex-col">
-            <span className="inline-flex items-center gap-2 self-start text-[12px] font-semibold tracking-[0.02em] text-ink-2 bg-surface border border-line px-[13px] py-[7px] rounded-full">
+            <span className="inline-flex items-center gap-2 self-start text-[12px] font-semibold tracking-[0.02em] text-ink-2 bg-surface border border-line px-[13px] py-[7px] rounded-sm">
               <span
                 className="w-[6px] h-[6px] rounded-full bg-good"
                 style={{ animation: 'edrPulse 1.6s ease-in-out infinite' }}
@@ -305,34 +306,44 @@ function Landing() {
               <button
                 type="button"
                 onClick={() => setDemoOpen(true)}
-                className="inline-flex items-center gap-[9px] font-sans text-[15px] font-semibold text-white bg-accent px-[22px] py-[13px] rounded-[10px] cursor-pointer"
+                className="inline-flex items-center gap-[9px] font-sans text-[15px] font-semibold text-white bg-accent px-[22px] py-[13px] rounded-sm cursor-pointer"
                 style={{ animation: 'edrCtaGlow 3.6s ease-in-out infinite' }}
               >
                 데모 요청<span className="text-[16px]">→</span>
               </button>
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-[9px] text-[15px] font-semibold !text-ink-2 bg-surface border border-line px-[20px] py-[13px] rounded-[10px]"
+                className="inline-flex items-center gap-[9px] text-[15px] font-semibold !text-ink-2 bg-surface border border-line px-[20px] py-[13px] rounded-sm"
               >
                 대시보드 둘러보기
               </Link>
             </div>
           </div>
 
-          {/* product panel */}
+          {/*
+            product panel — 노트북 목업.
+            본문 UI 는 콘솔과 같은 4px 곡률을 쓰지만 기기 프레임은 하드웨어 묘사라 큰 곡률을 쓴다.
+            UI 크롬이 아니라 사물이므로 콘솔의 평평한 규칙을 따를 대상이 아니다.
+          */}
           <div
             data-hero-panel
-            className="relative z-[1] bg-surface border border-line rounded-[16px] overflow-hidden"
+            className="relative z-[1]"
             style={
               {
-                boxShadow: 'var(--shadow-2), var(--lift)',
-                transform: 'rotateY(-15deg) rotateX(7deg)',
+                transform: 'perspective(1600px) rotateY(-15deg) rotateX(7deg)',
                 transformStyle: 'preserve-3d',
                 animation: 'edrFloatA 8s ease-in-out infinite',
               } as CSSProperties
             }
           >
-            <div className="flex items-center justify-between px-[18px] py-[14px] border-b border-line-2">
+            {/* 상판(화면). 베젤 위쪽을 두껍게 둬 카메라 자리를 만든다 */}
+            <div
+              className="rounded-t-[14px] rounded-b-[4px] border border-[#3a3a40] bg-[#17171a] px-[9px] pb-[9px] pt-[18px]"
+              style={{ boxShadow: 'var(--shadow-2)' }}
+            >
+              <span className="absolute left-1/2 top-[8px] h-[4px] w-[4px] -translate-x-1/2 rounded-full bg-[#4a4a52]" />
+              <div className="overflow-hidden rounded-xs bg-surface">
+                <div className="flex items-center justify-between px-[18px] py-[14px] border-b border-line-2">
               <div className="flex items-center gap-[9px]">
                 <span
                   className="w-2 h-2 rounded-full bg-good"
@@ -343,7 +354,7 @@ function Landing() {
               <span className="font-mono text-[11px] text-faint">방금 업데이트됨</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px] p-[18px]">
-              <div className="bg-panel-2 border border-line-2 rounded-[12px] p-[16px]">
+              <div className="bg-panel-2 border border-line-2 rounded-md p-[16px]">
                 <div className="text-[12px] text-faint mb-[12px]">지금 확인이 필요한 위협</div>
                 <div className="flex items-center gap-[14px]">
                   <div
@@ -374,13 +385,11 @@ function Landing() {
                   </div>
                   <div className="flex flex-col gap-[7px]">
                     <div className="flex items-center gap-[7px]">
-                      <span className="w-[7px] h-[7px] rounded-full bg-crit" />
-                      <span className="text-[12px] text-ink-2">심각</span>
+                        <span className="text-[12px] text-ink-2">심각</span>
                       <span className="font-mono text-[12px] text-ink ml-auto">2</span>
                     </div>
                     <div className="flex items-center gap-[7px]">
-                      <span className="w-[7px] h-[7px] rounded-full bg-high" />
-                      <span className="text-[12px] text-ink-2">높음</span>
+                        <span className="text-[12px] text-ink-2">높음</span>
                       <span className="font-mono text-[12px] text-ink ml-auto">3</span>
                     </div>
                     <div className="flex items-center gap-[7px]">
@@ -391,7 +400,7 @@ function Landing() {
                   </div>
                 </div>
               </div>
-              <div className="bg-panel-2 border border-line-2 rounded-[12px] p-[16px]">
+              <div className="bg-panel-2 border border-line-2 rounded-md p-[16px]">
                 <div className="text-[12px] text-faint mb-[12px]">엔드포인트 상태</div>
                 <div className="flex items-baseline gap-[6px] mb-[12px]">
                   <span className="font-mono text-[24px] font-medium text-ink tabular-nums">
@@ -403,10 +412,10 @@ function Landing() {
                   className="relative flex h-[10px] gap-[3px] mb-[12px] origin-left"
                   style={{ animation: 'edrBarGrow 1.2s cubic-bezier(.2,.7,.2,1) both' }}
                 >
-                  <div className="w-[86%] bg-good rounded-[999px_3px_3px_999px]" />
-                  <div className="w-[10%] bg-high rounded-[3px]" />
+                  <div className="w-[86%] bg-good rounded-xs" />
+                  <div className="w-[10%] bg-high rounded-xs" />
                   <div
-                    className="w-[4%] bg-crit rounded-[3px_999px_999px_3px]"
+                    className="w-[4%] bg-crit rounded-xs"
                     style={{ animation: 'edrCritGlow 1.8s ease-in-out infinite' }}
                   />
                 </div>
@@ -416,7 +425,7 @@ function Landing() {
                   <span>위험 50</span>
                 </div>
               </div>
-              <div className="sm:col-span-2 bg-panel-2 border border-line-2 rounded-[12px] p-[16px]">
+              <div className="sm:col-span-2 bg-panel-2 border border-line-2 rounded-md p-[16px]">
                 <div className="flex justify-between items-center mb-[12px]">
                   <span className="inline-flex items-center gap-2 text-[12px] text-faint">
                     <span className="relative inline-flex w-[13px] h-[13px] items-center justify-center">
@@ -440,30 +449,30 @@ function Landing() {
                   <span className="text-[12px] font-semibold text-accent">전체 보기 →</span>
                 </div>
                 <div className="flex flex-col gap-[2px]">
-                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center min-w-0 pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-crit rounded-[2px]">
-                    <span className="w-[7px] h-[7px] rounded-full bg-crit" />
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-[12px] items-center min-w-0 px-[4px] py-[9px]">
                     <span className="text-[13px] text-ink truncate">관리자 권한 상승 시도</span>
-                    <span className="text-[11px] font-semibold text-crit bg-[var(--crit-wash)] px-[9px] py-[3px] rounded-full">
+                    <span className="inline-flex items-center gap-[5px] border border-[color-mix(in_srgb,var(--crit)_40%,transparent)] bg-[var(--crit-wash)] px-[7px] py-[2px] rounded-xs text-[11px] font-semibold text-crit">
+                      <span className="h-[5px] w-[5px] rounded-full bg-current" />
                       심각
                     </span>
                     <span className="font-mono text-[11px] text-faint w-[48px] text-right">
                       2분 전
                     </span>
                   </div>
-                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center min-w-0 pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-crit rounded-[2px]">
-                    <span className="w-[7px] h-[7px] rounded-full bg-crit" />
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-[12px] items-center min-w-0 px-[4px] py-[9px]">
                     <span className="text-[13px] text-ink truncate">자격증명 접근 탐지</span>
-                    <span className="text-[11px] font-semibold text-crit bg-[var(--crit-wash)] px-[9px] py-[3px] rounded-full">
+                    <span className="inline-flex items-center gap-[5px] border border-[color-mix(in_srgb,var(--crit)_40%,transparent)] bg-[var(--crit-wash)] px-[7px] py-[2px] rounded-xs text-[11px] font-semibold text-crit">
+                      <span className="h-[5px] w-[5px] rounded-full bg-current" />
                       심각
                     </span>
                     <span className="font-mono text-[11px] text-faint w-[48px] text-right">
                       5분 전
                     </span>
                   </div>
-                  <div className="grid grid-cols-[12px_1fr_auto_auto] gap-[12px] items-center min-w-0 pl-[12px] pr-[4px] py-[9px] border-l-[3px] border-l-high rounded-[2px]">
-                    <span className="w-[7px] h-[7px] rounded-full bg-high" />
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-[12px] items-center min-w-0 px-[4px] py-[9px]">
                     <span className="text-[13px] text-ink truncate">비정상 외부 연결</span>
-                    <span className="text-[11px] font-semibold text-high bg-[var(--high-wash)] px-[9px] py-[3px] rounded-full">
+                    <span className="inline-flex items-center gap-[5px] border border-[color-mix(in_srgb,var(--high)_40%,transparent)] bg-[var(--high-wash)] px-[7px] py-[2px] rounded-xs text-[11px] font-semibold text-high">
+                      <span className="h-[5px] w-[5px] rounded-full bg-current" />
                       높음
                     </span>
                     <span className="font-mono text-[11px] text-faint w-[48px] text-right">
@@ -472,6 +481,16 @@ function Landing() {
                   </div>
                 </div>
               </div>
+              </div>
+            </div>
+            </div>
+
+            {/*
+              하판(힌지·받침). 화면보다 좌우로 넓게 빼야 노트북으로 읽힌다.
+              가운데 홈은 열 때 손가락을 거는 부분이라 이게 없으면 그냥 상자로 보인다.
+            */}
+            <div className="relative mx-[-14px] h-[11px] rounded-b-[9px] border border-t-0 border-[#3a3a40] bg-gradient-to-b from-[#26262b] to-[#151518]">
+              <span className="absolute left-1/2 top-0 h-[4px] w-[64px] -translate-x-1/2 rounded-b-[4px] bg-[#0f0f12]" />
             </div>
           </div>
         </div>
@@ -650,10 +669,10 @@ function Landing() {
           ].map((step) => (
             <div key={step.num} className={`${cardBase} p-[22px] md:p-[28px]`}>
               <div className="flex items-center gap-[12px] mb-[18px]">
-                <span className="w-[34px] h-[34px] rounded-[10px] bg-[var(--accent-wash)] text-accent flex items-center justify-center font-mono text-[14px] font-medium">
+                <span className="w-[34px] h-[34px] rounded-sm bg-[var(--accent-wash)] text-accent flex items-center justify-center font-mono text-[14px] font-medium">
                   {step.num}
                 </span>
-                <span className="w-[26px] h-[26px] rounded-[8px] border-[1.8px] border-accent flex items-center justify-center">
+                <span className="w-[26px] h-[26px] rounded-sm border-[1.8px] border-accent flex items-center justify-center">
                   {step.icon}
                 </span>
               </div>
@@ -777,7 +796,7 @@ function Landing() {
       <div id="path" className={`${container} pt-[64px] md:pt-[104px]`}>
         <div
           data-reveal
-          className="bg-surface border border-line rounded-[20px] p-[24px] md:p-[36px] lg:p-[48px] shadow-[var(--shadow-1)] grid grid-cols-1 gap-[32px] lg:grid-cols-[400px_1fr] lg:gap-[48px] items-center"
+          className="bg-surface border border-line rounded-md p-[24px] md:p-[36px] lg:p-[48px] grid grid-cols-1 gap-[32px] lg:grid-cols-[400px_1fr] lg:gap-[48px] items-center"
         >
           <div className="flex flex-col">
             <span className={`self-start ${eyebrow}`}>Attack path</span>
@@ -797,10 +816,10 @@ function Landing() {
               대시보드에서 실제로 보기 →
             </Link>
           </div>
-          <div className="bg-panel-2 border border-line-2 rounded-[16px] pt-[24px] px-[16px] md:px-[26px] pb-[22px]">
+          <div className="bg-panel-2 border border-line-2 rounded-md pt-[24px] px-[16px] md:px-[26px] pb-[22px]">
             <div className="flex flex-wrap justify-between items-center gap-[10px] mb-[28px]">
               <span className="text-[13px] font-[650] text-ink">공격 경로 재구성</span>
-              <span className="inline-flex items-center gap-[7px] text-[11.5px] font-semibold text-accent bg-[var(--accent-wash)] px-[11px] py-1 rounded-full">
+              <span className="inline-flex items-center gap-[7px] text-[11.5px] font-semibold text-accent bg-[var(--accent-wash)] px-[11px] py-1 rounded-sm">
                 dry-run · 실행 안 됨
               </span>
             </div>
@@ -918,7 +937,7 @@ function Landing() {
                       className="flex flex-col items-center gap-[10px] relative"
                     >
                       <div
-                        className="w-[52px] h-[52px] rounded-[14px] flex items-center justify-center"
+                        className="w-[52px] h-[52px] rounded-md flex items-center justify-center"
                         style={
                           {
                             border: `1.8px solid ${step.color}`,
@@ -955,7 +974,7 @@ function Landing() {
                 })}
               </div>
             </ScrollArea>
-            <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:gap-[16px] mt-[26px] px-[18px] py-[16px] bg-surface border border-line-2 rounded-[12px] border-l-[3px] border-l-crit">
+            <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:gap-[16px] mt-[26px] px-[18px] py-[16px] bg-surface border border-line-2 rounded-md">
               <div className="flex-1">
                 <div className="text-[12px] text-faint mb-1">권고 대응</div>
                 <div className="text-[13.5px] leading-[1.5] text-ink">
@@ -963,7 +982,7 @@ function Landing() {
                   실행을 차단하세요.
                 </div>
               </div>
-              <span className="whitespace-nowrap text-[13px] font-semibold text-white bg-accent px-[18px] py-[10px] rounded-[10px] cursor-pointer">
+              <span className="whitespace-nowrap text-[13px] font-semibold text-white bg-accent px-[18px] py-[10px] rounded-sm cursor-pointer">
                 위협 확정
               </span>
             </div>
@@ -975,7 +994,7 @@ function Landing() {
       <div className={`${container} pt-[64px] pb-[64px] md:pt-[104px] md:pb-[104px]`}>
         <div
           data-reveal
-          className="relative overflow-hidden border border-line rounded-[20px] bg-surface px-[24px] py-[48px] md:px-[40px] md:py-[64px] text-center shadow-[var(--shadow-1)]"
+          className="relative overflow-hidden border border-line rounded-md bg-surface px-[24px] py-[48px] md:px-[40px] md:py-[64px] text-center"
         >
           <div
             className="absolute inset-0 pointer-events-none"
@@ -995,14 +1014,14 @@ function Landing() {
               <button
                 type="button"
                 onClick={() => setDemoOpen(true)}
-                className="inline-flex items-center gap-[9px] font-sans text-[15px] font-semibold text-white bg-accent px-[24px] py-[14px] rounded-[10px] cursor-pointer"
+                className="inline-flex items-center gap-[9px] font-sans text-[15px] font-semibold text-white bg-accent px-[24px] py-[14px] rounded-sm cursor-pointer"
                 style={{ animation: 'edrCtaGlow 3.6s ease-in-out infinite' }}
               >
                 데모 요청<span className="text-[16px]">→</span>
               </button>
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-[9px] text-[15px] font-semibold !text-ink-2 bg-transparent border border-line px-[22px] py-[14px] rounded-[10px]"
+                className="inline-flex items-center gap-[9px] text-[15px] font-semibold !text-ink-2 bg-transparent border border-line px-[22px] py-[14px] rounded-sm"
               >
                 대시보드 둘러보기
               </Link>
@@ -1017,7 +1036,7 @@ function Landing() {
           className={`${container} py-[32px] md:py-[40px] flex justify-between items-center gap-[24px] flex-wrap`}
         >
           <div className="flex items-center gap-[12px] min-w-0">
-            <LogoMark size={30} radius="rounded-[9px]" />
+            <LogoMark size={30} />
             <div className="flex flex-col gap-[3px]">
               <span className="text-[17px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
               <span className="text-[12.5px] text-faint">

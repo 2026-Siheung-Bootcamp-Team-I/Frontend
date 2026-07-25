@@ -4,13 +4,11 @@
  * 임시 도안이다. 제품명이 EDRdog 라 개 얼굴 실루엣으로 그렸고, 28px 에서도 형태가 뭉개지지
  * 않도록 눈·코를 fill-rule=evenodd 로 뚫어 배경색이 비치게 했다. 별도 색 지정이 없어서
  * 어떤 배경 위에 올려도 그대로 동작한다.
- *
- * radius 는 감싸는 사각형 크기를 따라간다. 30px 짜리(랜딩)에 4px 를 주면 각져 보인다.
  */
-function LogoMark({ size = 28, radius = 'rounded-md' }: { size?: number; radius?: string }) {
+function LogoMark({ size = 28 }: { size?: number }) {
   return (
     <div
-      className={`flex shrink-0 items-center justify-center bg-accent ${radius}`}
+      className="flex shrink-0 items-center justify-center rounded-md bg-accent"
       style={{ width: size, height: size }}
     >
       <svg

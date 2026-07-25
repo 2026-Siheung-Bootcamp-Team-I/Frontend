@@ -321,29 +321,46 @@ function Landing() {
           </div>
 
           {/*
-            product panel — 노트북 목업.
-            본문 UI 는 콘솔과 같은 4px 곡률을 쓰지만 기기 프레임은 하드웨어 묘사라 큰 곡률을 쓴다.
-            UI 크롬이 아니라 사물이므로 콘솔의 평평한 규칙을 따를 대상이 아니다.
+            product panel — 브라우저 창 목업.
+            기울이지 않는다. 3D 로 눕히면 화면 안 글씨가 왜곡돼 정작 제품이 안 보이고,
+            부유하는 기울인 목업 자체가 지난 세대 SaaS 랜딩 문법이다.
+            그림자는 여기 하나만 남긴다. 창이 페이지 위에 떠 있다는 신호는 필요하다.
           */}
           <div
             data-hero-panel
-            className="relative z-[1]"
-            style={
-              {
-                transform: 'perspective(1600px) rotateY(-15deg) rotateX(7deg)',
-                transformStyle: 'preserve-3d',
-                animation: 'edrFloatA 8s ease-in-out infinite',
-              } as CSSProperties
-            }
+            className="relative z-[1] overflow-hidden rounded-md border border-line bg-surface"
+            style={{ boxShadow: 'var(--shadow-2)' } as CSSProperties}
           >
-            {/* 상판(화면). 베젤 위쪽을 두껍게 둬 카메라 자리를 만든다 */}
-            <div
-              className="rounded-t-[14px] rounded-b-[4px] border border-[#3a3a40] bg-[#17171a] px-[9px] pb-[9px] pt-[18px]"
-              style={{ boxShadow: 'var(--shadow-2)' }}
-            >
-              <span className="absolute left-1/2 top-[8px] h-[4px] w-[4px] -translate-x-1/2 rounded-full bg-[#4a4a52]" />
-              <div className="overflow-hidden rounded-xs bg-surface">
-                <div className="flex items-center justify-between px-[18px] py-[14px] border-b border-line-2">
+            {/*
+              브라우저 창 크롬. 신호등만 찍으면 macOS 앱 창이 되는데 EDRdog 은 웹 콘솔이라
+              형태가 안 맞는다. 주소창까지 넣어야 "로그인해서 쓰는 웹 콘솔"이라는 정보가 된다.
+              신호등 색은 macOS 관례값이라 토큰을 쓰지 않는다.
+            */}
+            <div className="flex items-center gap-[12px] border-b border-line-2 bg-panel px-[14px] py-[10px]">
+              <span className="flex shrink-0 items-center gap-[6px]">
+                <span className="h-[10px] w-[10px] rounded-full bg-[#ff5f57]" />
+                <span className="h-[10px] w-[10px] rounded-full bg-[#febc2e]" />
+                <span className="h-[10px] w-[10px] rounded-full bg-[#28c840]" />
+              </span>
+              <span className="flex min-w-0 flex-1 items-center gap-[7px] rounded-sm border border-line-2 bg-surface px-[10px] py-[4px]">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect
+                    x="4"
+                    y="10"
+                    width="16"
+                    height="11"
+                    rx="2"
+                    stroke="var(--faint)"
+                    strokeWidth="2"
+                  />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="var(--faint)" strokeWidth="2" />
+                </svg>
+                <span className="truncate font-mono text-[11.5px] text-mid">
+                  app.edrdog.io/dashboard
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center justify-between px-[18px] py-[14px] border-b border-line-2">
               <div className="flex items-center gap-[9px]">
                 <span
                   className="w-2 h-2 rounded-full bg-good"
@@ -481,16 +498,6 @@ function Landing() {
                   </div>
                 </div>
               </div>
-              </div>
-            </div>
-            </div>
-
-            {/*
-              하판(힌지·받침). 화면보다 좌우로 넓게 빼야 노트북으로 읽힌다.
-              가운데 홈은 열 때 손가락을 거는 부분이라 이게 없으면 그냥 상자로 보인다.
-            */}
-            <div className="relative mx-[-14px] h-[11px] rounded-b-[9px] border border-t-0 border-[#3a3a40] bg-gradient-to-b from-[#26262b] to-[#151518]">
-              <span className="absolute left-1/2 top-0 h-[4px] w-[64px] -translate-x-1/2 rounded-b-[4px] bg-[#0f0f12]" />
             </div>
           </div>
         </div>

@@ -22,7 +22,7 @@ const OS_TABS: { key: OsKey; label: string }[] = [
  * 빌드 시 주입한다. collector-service 의 기본값은 localhost:8443(dev)이라 그대로 쓰면 붙지 않는다.
  * 미설정이면 플레이스홀더를 보여주고 관리자에게 받도록 안내한다.
  */
-const TLS_HOST_PLACEHOLDER = 'edrdog.example.com:8443'
+const TLS_HOST_PLACEHOLDER = 'edrdog.example.com:30443'
 const TLS_HOST: string = import.meta.env.VITE_OSQUERY_TLS_HOST || TLS_HOST_PLACEHOLDER
 
 // 플래그 파일 전문. collector-service/osquery/osquery.*.flags 실측 기준이고 tls_hostname 만 주입한다.
@@ -46,10 +46,21 @@ const MAC_FLAGS = `# EDRdog osquery 엔드포인트 플래그 (macOS). api-servi
 --logger_tls_period=10
 --disable_carver=true
 
-# --- evented 테이블 + EndpointSecurity(es_process_events) ---
-# FDA(전체 디스크 접근)가 없으면 EndpointSecurity 는 에러 없이 조용히 빈 결과가 된다.
+# --- evented 테이블 ---
+# 퍼블리셔마다 켜는 플래그가 따로 있다. 하나라도 빠지면 osquery 는 에러 없이 조용히 빈 결과를 준다.
 --disable_events=false
+
+# 프로세스 생성(es_process_events, EndpointSecurity)
+# FDA(전체 디스크 접근)가 없으면 여기까지 맞춰도 조용히 빈 결과가 된다.
 --disable_endpointsecurity=false
+
+# 파일 변경(file_events, FSEvents)
+--enable_file_events=true
+
+# 아웃바운드 연결(socket_events, OpenBSM)
+--disable_audit=false
+--audit_allow_config=true
+--audit_allow_sockets=true
 
 --host_identifier=hostname
 --disable_watchdog=true`
@@ -73,9 +84,16 @@ const WIN_FLAGS = `# EDRdog osquery 엔드포인트 플래그 (Windows). api-ser
 --logger_tls_period=10
 --disable_carver=true
 
-# --- evented 테이블 + ETW(process_etw_events) 로 프로세스 생성 감시 ---
+# --- evented 테이블 ---
+# 퍼블리셔마다 켜는 플래그가 따로 있다. 하나라도 빠지면 osquery 는 에러 없이 조용히 빈 결과를 준다.
 # network 이벤트는 core osquery 에 실시간 소켓 테이블이 없어 Zeek 가 담당한다.
 --disable_events=false
+
+# 프로세스 생성(process_etw_events, ETW). 이 플래그가 없으면 Windows 수집은 전부 0건이다.
+--enable_process_etw_events=true
+
+# 파일 변경(file_events, NTFS USN 저널)
+--enable_ntfs_event_publisher=true
 
 --host_identifier=hostname
 --disable_watchdog=true`
@@ -95,7 +113,7 @@ const INSTALL_STEPS: Record<OsKey, Step[]> = {
     },
     {
       title: '플래그 파일 배치',
-      body: '아래 내용을 그대로 /etc/osquery/osquery.mac.flags 로 저장합니다. 5번 실행 명령이 이 파일을 참조하므로 없으면 unable to open flagfile 로 멈춥니다.\n--tls_hostname 이 수집 서버 주소입니다. 이 값이 틀리면 osquery가 등록 단계에서 조용히 실패합니다.',
+      body: '아래 내용을 그대로 /var/osquery/osquery.flags 로 저장합니다. 이 경로여야 합니다. launchd 데몬이 --flagfile=/var/osquery/osquery.flags 로 고정돼 있어서, 다른 경로에 두면 5번 실행 명령이 이 파일을 그냥 무시합니다.\n--tls_hostname 이 수집 서버 주소입니다. 이 값이 틀리면 osquery가 등록 단계에서 조용히 실패합니다.\n주석은 반드시 줄 전체로 쓰세요. 값 뒤에 # 을 붙이면 그 주석까지 값에 포함됩니다.',
       command: MAC_FLAGS,
     },
     {
@@ -104,8 +122,8 @@ const INSTALL_STEPS: Record<OsKey, Step[]> = {
     },
     {
       title: 'osquery 실행',
-      body: 'launchd 데몬으로 실행합니다. 포그라운드로 띄우면 FDA 권한이 터미널 앱에 귀속돼 동작하지 않습니다. (osqueryctl로 데몬 등록 후 sudo osqueryctl start 도 가능)',
-      command: 'sudo osqueryd --flagfile /etc/osquery/osquery.mac.flags',
+      body: 'launchd 데몬으로 실행합니다. 이 명령이 /var/osquery/io.osquery.agent.plist 를 LaunchDaemons 로 복사하고 load 합니다. 터미널에서 osqueryd 를 직접 띄우면 FDA 권한이 터미널 앱에 귀속돼 동작하지 않습니다.',
+      command: 'sudo osqueryctl start',
     },
     {
       title: '재부팅 후 확인',
@@ -115,8 +133,8 @@ const INSTALL_STEPS: Record<OsKey, Step[]> = {
   windows: [
     {
       title: 'osquery 설치',
-      body: 'winget으로 설치합니다. 설치 후 기본 경로는 C:\\ProgramData\\osquery\\ 입니다.',
-      command: 'winget install osquery',
+      body: 'winget으로 설치합니다. 설치 경로는 C:\\Program Files\\osquery\\ 이고, 데몬은 C:\\Program Files\\osquery\\osqueryd\\osqueryd.exe 입니다. PATH에는 등록되지 않습니다.',
+      command: 'winget install --id osquery.osquery -e',
     },
     {
       title: 'enroll secret · 서버 인증서 배치',
@@ -129,13 +147,15 @@ const INSTALL_STEPS: Record<OsKey, Step[]> = {
     },
     {
       title: 'osquery 실행',
-      body: '관리자 권한 PowerShell에서 실행합니다. 프로세스 감시가 ETW라 관리자 권한이 필수입니다.',
-      command: 'osqueryd.exe --flagfile C:\\ProgramData\\osquery\\osquery.win.flags',
+      body: '관리자 권한 PowerShell에서 실행합니다. 프로세스 감시가 ETW라 관리자 권한이 필수입니다. osqueryd.exe는 PATH에 없으므로 전체 경로로 부릅니다.',
+      command:
+        '& "C:\\Program Files\\osquery\\osqueryd\\osqueryd.exe" --flagfile C:\\ProgramData\\osquery\\osquery.win.flags',
     },
     {
       title: '수집 확인',
-      body: 'osqueryi.exe에서 아래 쿼리로 프로세스 이벤트가 들어오는지 확인합니다. 네트워크·DNS 이벤트는 Zeek가 담당합니다. 수집이 시작되면 아래 4번 기기 상태에 이 기기가 나타납니다.',
-      command: 'SELECT DISTINCT type FROM process_etw_events;',
+      body: '수집이 시작되면 아래 4번 기기 상태에 이 기기가 나타납니다. 연결 여부는 그 표의 마지막 확인 시각으로 판단하세요. 네트워크·DNS 이벤트는 Zeek가 담당합니다.\nosqueryi로 확인하려면 osqueryd를 멈춘 뒤 아래처럼 플래그를 직접 주고 띄워야 합니다. osqueryd가 도는 중에 그냥 osqueryi를 열면 별개 프로세스라 자기 빈 버퍼를 보게 돼 항상 0건으로 나옵니다.',
+      command:
+        '& "C:\\Program Files\\osquery\\osqueryi.exe" --disable_events=false --enable_process_etw_events=true',
     },
   ],
 }
@@ -146,13 +166,13 @@ const STOP_STEPS: Record<OsKey, Step[]> = {
   macos: [
     {
       title: '에이전트 중지',
-      body: 'osqueryctl로 데몬을 등록했다면 아래로 중지합니다. 2번에서 osqueryd를 직접 띄웠다면 sudo pkill -x osqueryd 로 종료합니다.',
+      body: '데몬을 중지합니다. 이 명령이 launchd 등록을 내리고 /Library/LaunchDaemons/io.osquery.agent.plist 까지 삭제하므로, 재부팅해도 다시 뜨지 않습니다.',
       command: 'sudo osqueryctl stop',
     },
     {
-      title: '자동 시작 해제',
-      body: '재부팅해도 다시 뜨지 않게 launchd 등록을 내립니다.',
-      command: 'sudo launchctl unload -w /Library/LaunchDaemons/com.facebook.osqueryd.plist',
+      title: '자동 시작 해제 (직접 등록한 경우만)',
+      body: 'osqueryctl 대신 plist를 직접 복사해 load 했다면 이 명령으로 내립니다. 1번을 썼다면 이미 내려가 있으므로 건너뛰세요.',
+      command: 'sudo launchctl unload -w /Library/LaunchDaemons/io.osquery.agent.plist',
     },
     {
       title: 'osquery 제거',
@@ -163,7 +183,7 @@ const STOP_STEPS: Record<OsKey, Step[]> = {
       title: 'enroll secret · 인증서 · 플래그 파일 삭제',
       body: '남겨두면 osquery를 다시 설치했을 때 같은 값으로 그대로 재등록됩니다.',
       command:
-        'sudo rm -f /etc/osquery/enroll.secret /etc/osquery/osquery-server.pem /etc/osquery/osquery.mac.flags',
+        'sudo rm -f /etc/osquery/enroll.secret /etc/osquery/osquery-server.pem /var/osquery/osquery.flags',
     },
     {
       title: '전체 디스크 접근 회수',
@@ -269,6 +289,7 @@ const KILL_REQUIREMENTS = [
   'Fleet 서버의 스크립트 실행(run-script)이 켜져 있을 것 (Settings → Organization settings → Advanced)',
   'Fleet 서버가 https이고 인증서가 유효할 것. 자체 서명 인증서면 fleetd가 등록 단계에서 실패합니다.',
   '대상이 macOS 또는 Linux일 것. 조치 스크립트가 POSIX sh라 Windows는 아직 지원하지 않습니다.',
+  '서버의 조치 실행 스위치가 켜져 있을 것. 이 스위치가 꺼져 있으면 위를 다 갖춰도 실제로는 아무것도 실행되지 않습니다(관리자 확인).',
 ]
 
 const SLACK_STEPS = [
@@ -979,7 +1000,7 @@ function Onboarding() {
       {loggedIn && (
         <SectionCard
           title="연동 체크리스트"
-          description="아래 항목이 다 채워져야 탐지 알림이 실제로 전달됩니다. 하나라도 비면 알림은 조용히 사라집니다."
+          description="탐지 알림이 전달되려면 (개인 webhook + 내 기기 등록) 또는 (조직 공용 webhook) 중 하나는 갖춰져야 합니다. 둘 다 비어 있으면 알림은 조용히 사라집니다."
         >
           <Checklist items={checklist} />
         </SectionCard>
@@ -1175,8 +1196,10 @@ function Onboarding() {
         </div>
 
         <div className="mt-[18px] text-[12px] text-faint leading-[1.6]">
-          수집은 그대로 두고 알림만 끊으려면 5번 내 기기 등록에서 해당 host를 해제하세요. kill
-          조치까지 끊으려면 Fleet에서 그 호스트의 fleetd도 별도로 제거해야 합니다.
+          수집은 그대로 두고 내 채널 알림만 끊으려면 5번 내 기기 등록에서 해당 host를 해제하세요.
+          다만 3번 조직 공용 webhook이 등록돼 있으면 그 host의 알림은 조직 채널로 계속 갑니다.
+          완전히 끊으려면 조직 공용 webhook도 비워야 합니다. kill 조치까지 끊으려면 Fleet에서 그
+          호스트의 fleetd도 별도로 제거해야 합니다.
         </div>
       </SectionCard>
     </div>

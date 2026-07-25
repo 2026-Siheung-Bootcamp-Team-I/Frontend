@@ -10,6 +10,7 @@ import type {
   AlertStatus,
   AlertSummary,
   EventSummary,
+  ExecuteResult,
   GeoDestination,
   Host,
   HostSummary,
@@ -160,7 +161,7 @@ const hosts: Host[] = [
  * 지도에 찍는 외부 연결 목적지. 백엔드 GET /api/events/geo 와 같은 국가별 집계 형태다.
  * 좌표는 국가 대표 좌표(백엔드 CountryCentroid 와 같은 기준).
  */
-const geoDestinations: GeoDestination[] = [
+export const demoGeoDestinations: GeoDestination[] = [
   { country: 'Russia', countryCode: 'RU', lat: 55.75, lng: 37.62, count: 412 },
   { country: 'China', countryCode: 'CN', lat: 39.9, lng: 116.4, count: 268 },
   { country: 'United States', countryCode: 'US', lat: 38.9, lng: -77.0, count: 195 },
@@ -302,8 +303,21 @@ export const demoApi = {
     return respond<Alert>(target ?? alerts[0])
   },
 
+  /**
+   * 실제 조치(kill) 흉내. 서버(responder)를 부르지 않고 성공한 셈 치고 답한다.
+   * 데모에서 버튼이 눌리지도 않으면 이 기능이 있다는 걸 보여 줄 방법이 없어서 둔다.
+   * responder 를 거치지 않으므로 executionId 는 없다.
+   */
+  executeKill: (id: string, target: string): Promise<ExecuteResult> => {
+    const host = alerts.find((a) => a.id === id)?.host ?? alerts[0].host
+    // 실제 조치는 왕복이 있어 즉답이 아니다. 버튼이 "실행 중" 을 거치도록 조금 더 기다린다.
+    return new Promise((resolve) =>
+      setTimeout(() => resolve({ host, target, status: 'KILLED', executionId: null }), 900),
+    )
+  },
+
   geoDestinations: (): Promise<GeoDestination[]> =>
-    respond([...geoDestinations].sort((a, b) => b.count - a.count)),
+    respond([...demoGeoDestinations].sort((a, b) => b.count - a.count)),
 
   hosts: () => respond(hosts),
 

@@ -5,6 +5,7 @@ import { feature } from 'topojson-client'
 import type { Topology } from 'topojson-specification'
 import worldTopo from 'world-atlas/countries-110m.json'
 import { api } from '@/api'
+import { demoGeoDestinations } from '@/api/demo'
 import type { GeoDestination } from '@/api/types'
 import Card from '@/components/ui/Card'
 import AsyncState from '@/components/ui/AsyncState'
@@ -151,10 +152,16 @@ function ThreatMap() {
   const geo = useApi(() => api.geoDestinations())
   const p = palettes[theme]
 
+  /**
+   * 서버에 GeoIP DB 가 없으면 /events/geo 가 항상 빈 배열이라 지도가 통째로 비어 버린다.
+   * 데모에서 빈 화면을 보이느니 예시 집계를 대신 그리고, 예시라는 사실을 화면에 밝힌다.
+   */
+  const sample = !geo.loading && geo.error === null && (geo.data?.length ?? 0) === 0
+
   // 백엔드가 정렬을 보장하지 않으므로 건수 내림차순으로 다시 세운다.
   const byCountry = useMemo(
-    () => [...(geo.data ?? [])].sort((a, b) => b.count - a.count),
-    [geo.data],
+    () => [...(sample ? demoGeoDestinations : (geo.data ?? []))].sort((a, b) => b.count - a.count),
+    [geo.data, sample],
   )
 
   const option = useMemo(() => buildOption(byCountry, p), [byCountry, p])
@@ -165,23 +172,27 @@ function ThreatMap() {
   return (
     <div className="flex flex-col gap-[20px]">
       <div>
-        <div className="text-[18px] sm:text-[20px] font-bold text-ink tracking-[-0.01em]">
-          위협 지도
+        <div className="flex items-center gap-[8px]">
+          <div className="text-[18px] sm:text-[20px] font-bold text-ink tracking-[-0.01em]">
+            위협 지도
+          </div>
+          {sample && (
+            <span className="flex-shrink-0 text-[11px] font-semibold text-high bg-[var(--high-wash)] px-[8px] py-[2px] rounded-full whitespace-nowrap">
+              예시 데이터
+            </span>
+          )}
         </div>
         <div className="mt-[6px] text-[13px] text-faint">
-          최근 24시간 외부 연결의 목적지를 국가별로 봅니다. 사설 IP 는 제외됩니다.
+          {sample
+            ? '서버에 집계된 외부 연결이 없어 예시 집계를 보여 줍니다. 실제 연결이 쌓이면 자동으로 바뀝니다.'
+            : '최근 24시간 외부 연결의 목적지를 국가별로 봅니다. 사설 IP 는 제외됩니다.'}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-[20px] items-start">
         <Card className="px-[10px] py-[10px] sm:px-[14px] sm:py-[14px]">
-          <AsyncState
-            loading={geo.loading}
-            error={geo.error}
-            empty={byCountry.length === 0}
-            emptyText="외부 연결이 없습니다 (서버에 GeoIP DB 가 없으면 항상 비어 있습니다)"
-            onRetry={geo.refetch}
-          >
+          {/* 비어 있으면 위에서 예시 집계로 채우므로 empty 상태는 나오지 않는다. */}
+          <AsyncState loading={geo.loading} error={geo.error} onRetry={geo.refetch}>
             <ReactECharts
               option={option}
               notMerge
@@ -194,13 +205,7 @@ function ThreatMap() {
         <div className="flex flex-col gap-[20px]">
           <Card className="px-[16px] py-[18px] sm:px-[20px] sm:py-[20px]">
             <div className="text-[14px] font-bold text-ink mb-[16px]">국가별 연결 건수</div>
-            <AsyncState
-              loading={geo.loading}
-              error={geo.error}
-              empty={byCountry.length === 0}
-              emptyText="집계할 연결이 없습니다"
-              onRetry={geo.refetch}
-            >
+            <AsyncState loading={geo.loading} error={geo.error} onRetry={geo.refetch}>
               <div className="flex flex-col gap-[13px]">
                 {byCountry.map((row) => (
                   <div key={row.country} className="flex flex-col gap-[6px]">
@@ -225,13 +230,7 @@ function ThreatMap() {
           {/* 백엔드가 국가 집계만 주므로 개별 연결(호스트·IP·시각) 목록은 만들 수 없다. 요약으로 대체. */}
           <Card className="px-[16px] py-[18px] sm:px-[20px] sm:py-[20px]">
             <div className="text-[14px] font-bold text-ink mb-[16px]">요약</div>
-            <AsyncState
-              loading={geo.loading}
-              error={geo.error}
-              empty={byCountry.length === 0}
-              emptyText="집계할 연결이 없습니다"
-              onRetry={geo.refetch}
-            >
+            <AsyncState loading={geo.loading} error={geo.error} onRetry={geo.refetch}>
               <div className="flex flex-col gap-[14px]">
                 <div className="flex justify-between items-baseline gap-[10px]">
                   <span className="text-[13px] text-ink-2">전체 연결</span>

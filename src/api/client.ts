@@ -51,8 +51,14 @@ export async function request<T>(
   }
 
   if (!res.ok) {
-    // 토큰 만료/무효면 로그인 상태를 비워 RequireAuth 가 로그인 화면으로 돌린다.
-    if (res.status === 401 && auth) useAuthStore.getState().clear()
+    // 401 은 원인이 둘이다.
+    // 1) 토큰 만료/무효: 재로그인이 답이라 clear() 로 로그인 화면으로 돌린다.
+    // 2) X-API-Key 불일치(ApiKeyFilter): /tenant/** 경로만 X-API-Key 를 강제하는데,
+    //    배포자가 백엔드 EDRDOG_API_KEY 와 프론트 VITE_API_KEY 를 다르게 설정하면 여기서 401 이 난다.
+    //    이 경우 재로그인해도 고쳐지지 않으므로 clear() 하지 말고 에러를 그대로 던져
+    //    화면에 원인 메시지가 보이게 한다(clear() 하면 컴포넌트가 언마운트되며 원인이 사라진다).
+    const isTenantPath = path.startsWith('/tenant/')
+    if (res.status === 401 && auth && !isTenantPath) useAuthStore.getState().clear()
     throw new ApiError(res.status, await errorMessage(res))
   }
   if (res.status === 204) return undefined as T

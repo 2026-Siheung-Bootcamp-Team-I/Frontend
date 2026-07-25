@@ -8,19 +8,13 @@ import FilterChips from '@/components/ui/FilterChips'
 import AsyncState from '@/components/ui/AsyncState'
 import ScrollArea from '@/components/ui/ScrollArea'
 import { useApi } from '@/hooks/useApi'
-import {
-  relativeTime,
-  severityColors,
-  severityLabel,
-  severityTone,
-  statusLabel,
-  statusTone,
-} from '@/lib/format'
+import { absoluteTime, severityLabel, severityTone, statusLabel, statusTone } from '@/lib/format'
 import { useAlertsStore } from '@/store/alerts'
 
 type Filter = 'all' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'handled'
 
-const rowGrid = 'grid grid-cols-[14px_1fr_120px_84px_96px_72px] gap-[12px]'
+// 위협 / MITRE / 호스트 / 심각도 / 상태 / 근거 / 탐지 시각
+const rowGrid = 'grid grid-cols-[1fr_92px_116px_78px_86px_48px_142px] gap-[12px]'
 
 /** 처리됨 = 트리아지로 open 을 벗어난 것(확정·오탐). */
 function matches(alert: Alert, filter: Filter): boolean {
@@ -96,42 +90,48 @@ function Threats() {
           onRetry={refetch}
         >
           <ScrollArea label="위협 목록">
-            <div className="min-w-[660px]">
+            <div className="min-w-[860px]">
               <div
-                className={`${rowGrid} pt-2 pb-2 pl-[12px] border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
+                className={`${rowGrid} pt-2 pb-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
               >
-                <span />
                 <span>위협</span>
+                <span>MITRE</span>
                 <span>호스트</span>
                 <span>심각도</span>
                 <span>상태</span>
-                <span className="text-right">탐지</span>
+                <span className="text-right">근거</span>
+                <span className="text-right">탐지 시각</span>
               </div>
-              {rows.map((row, i) => {
-                const color = severityColors[severityTone(row.severity)]
-                return (
-                  <div
-                    key={row.id}
-                    className={`${rowGrid} items-center py-[12px] pl-[12px] border-l-[3px] ${
-                      i === rows.length - 1 ? '' : 'border-b border-line-2'
-                    }`}
-                    style={{ borderLeftColor: color }}
-                  >
-                    <span className="w-[7px] h-[7px] rounded-full" style={{ background: color }} />
-                    <span className="text-[13.5px] text-ink">{row.threatName}</span>
-                    <span className="font-mono text-[12px] text-mid">{row.host}</span>
-                    <Badge severity={severityTone(row.severity)} className="justify-self-start">
-                      {severityLabel(row.severity)}
-                    </Badge>
-                    <Badge severity={statusTone(row.status)} className="justify-self-start">
-                      {statusLabel(row.status)}
-                    </Badge>
-                    <span className="font-mono text-[11px] text-faint text-right">
-                      {relativeTime(row.ts)}
+              {rows.map((row, i) => (
+                <div
+                  key={row.id}
+                  className={`${rowGrid} items-center py-[10px] ${
+                    i === rows.length - 1 ? '' : 'border-b border-line-2'
+                  }`}
+                >
+                  {/* 한글 위협명 아래에 detector 룰 원문을 깐다. 조사할 때 실제로 대조하는 값은 ruleId 다. */}
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13px] text-ink">{row.threatName}</span>
+                    <span className="mt-[2px] block truncate font-mono text-[11px] text-faint">
+                      {row.ruleId}
                     </span>
-                  </div>
-                )
-              })}
+                  </span>
+                  <span className="font-mono text-[11.5px] text-mid">{row.mitre ?? '—'}</span>
+                  <span className="font-mono text-[12px] text-mid">{row.host}</span>
+                  <Badge severity={severityTone(row.severity)} className="justify-self-start">
+                    {severityLabel(row.severity)}
+                  </Badge>
+                  <Badge severity={statusTone(row.status)} className="justify-self-start">
+                    {statusLabel(row.status)}
+                  </Badge>
+                  <span className="text-right font-mono text-[12px] text-mid">
+                    {row.matched.length}
+                  </span>
+                  <span className="text-right font-mono text-[11px] text-faint">
+                    {absoluteTime(row.ts)}
+                  </span>
+                </div>
+              ))}
             </div>
           </ScrollArea>
         </AsyncState>

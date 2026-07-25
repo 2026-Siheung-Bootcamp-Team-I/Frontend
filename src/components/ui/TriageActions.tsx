@@ -40,7 +40,7 @@ function TriageActions({ alert, detailTo }: TriageActionsProps) {
   const suffix = actionText[alert.action ?? ''] ?? '의 활동을 확인하세요.'
 
   return (
-    <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:gap-[16px] mt-[24px] px-[14px] py-[14px] sm:px-[18px] sm:py-[16px] bg-panel-2 border border-line-2 rounded-md border-l-[3px] border-l-crit">
+    <div className="flex flex-col gap-[12px] sm:flex-row sm:items-center sm:gap-[16px] mt-[24px] px-[14px] py-[14px] sm:px-[18px] sm:py-[16px] bg-panel-2 border border-line-2 rounded-md">
       <div className="flex-1">
         <div className="text-[12px] text-faint mb-1">권고 대응</div>
         <div className="text-[13.5px] leading-[1.5] text-ink">

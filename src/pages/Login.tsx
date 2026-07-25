@@ -112,7 +112,7 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={8}
+              minLength={mode === 'signup' ? 8 : undefined}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               className={inputClass}
             />

@@ -218,7 +218,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="shrink-0 rounded-[7px] border border-line px-[10px] py-[5px] text-[12px] font-semibold text-mid hover:text-ink-2 hover:bg-panel cursor-pointer transition-colors"
+      className="shrink-0 rounded-sm border border-line px-[10px] py-[5px] text-[12px] font-semibold text-mid hover:text-ink-2 hover:bg-panel cursor-pointer transition-colors"
     >
       {copied ? '복사됨' : '복사'}
     </button>
@@ -227,7 +227,7 @@ function CopyButton({ text }: { text: string }) {
 
 function CommandBlock({ command }: { command: string }) {
   return (
-    <div className="mt-[10px] flex items-center gap-[10px] rounded-[9px] border border-line bg-panel-2 px-[12px] py-[9px]">
+    <div className="mt-[10px] flex items-center gap-[10px] rounded-sm border border-line bg-panel-2 px-[12px] py-[9px]">
       <code className="grow overflow-x-auto whitespace-pre font-mono text-[12.5px] text-good">
         {command}
       </code>
@@ -254,13 +254,13 @@ function OsTabs<K extends string>({
   onChange: (key: K) => void
 }) {
   return (
-    <div className="inline-flex gap-[3px] rounded-[10px] border border-line-2 p-[3px]">
+    <div className="inline-flex gap-[3px] rounded-md border border-line-2 p-[3px]">
       {tabs.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`rounded-[8px] px-[16px] py-[6px] text-[13px] font-semibold cursor-pointer transition-colors ${
+          className={`rounded-xs px-[16px] py-[6px] text-[13px] font-semibold cursor-pointer transition-colors ${
             value === tab.key
               ? 'bg-[var(--accent-wash)] text-accent'
               : 'text-mid hover:text-ink-2 hover:bg-panel'
@@ -312,7 +312,7 @@ function SectionCard({
 
 function LoginHint() {
   return (
-    <div className="rounded-[9px] border border-dashed border-line px-[16px] py-[14px] text-[13px] text-mid leading-[1.6]">
+    <div className="rounded-sm border border-dashed border-line px-[16px] py-[14px] text-[13px] text-mid leading-[1.6]">
       로그인하면 여기서 바로 발급·저장·등록할 수 있습니다.{' '}
       <Link to="/login" className="font-semibold !text-accent">
         로그인
@@ -335,7 +335,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="shrink-0 rounded-[9px] bg-accent px-[18px] py-[9px] text-[13px] font-semibold !text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+      className="shrink-0 rounded-sm bg-accent px-[18px] py-[9px] text-[13px] font-semibold !text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
       {children}
     </button>
@@ -416,7 +416,7 @@ function WebhookForm({ initial }: { initial: string | null }) {
             setSaved(false)
           }}
           placeholder="https://hooks.slack.com/services/..."
-          className="grow rounded-[9px] border border-line bg-panel-2 px-[12px] py-[9px] text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+          className="grow rounded-sm border border-line bg-panel-2 px-[12px] py-[9px] text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
         />
         <PrimaryButton onClick={save} disabled={busy || !valid}>
           {busy ? '저장 중' : '저장'}
@@ -485,7 +485,7 @@ function MyHostsPanel() {
           value={host}
           onChange={(e) => setHost(e.target.value)}
           placeholder="등록할 host 이름 (예: WIN-FIN-02)"
-          className="grow rounded-[9px] border border-line bg-panel-2 px-[12px] py-[9px] text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
+          className="grow rounded-sm border border-line bg-panel-2 px-[12px] py-[9px] text-[13px] text-ink placeholder:text-faint focus:border-accent focus:outline-none"
         />
         <PrimaryButton onClick={register} disabled={busy || host.trim().length === 0}>
           {busy ? '등록 중' : '등록'}
@@ -504,7 +504,7 @@ function MyHostsPanel() {
             {hosts.map((name) => (
               <div
                 key={name}
-                className="flex items-center gap-[12px] rounded-[9px] border border-line bg-panel-2 px-[12px] py-[9px]"
+                className="flex items-center gap-[12px] rounded-sm border border-line bg-panel-2 px-[12px] py-[9px]"
               >
                 <span className="grow font-mono text-[13px] text-ink-2">{name}</span>
                 <button
@@ -637,7 +637,7 @@ function Onboarding() {
         title="6. kill 대상 기기 Fleet 등록"
         description="알림의 '실행' 버튼으로 프로세스를 실제 종료하려면 대상 기기가 Fleet에 등록돼 있어야 합니다."
       >
-        <div className="rounded-[9px] border border-line bg-panel-2 border-l-[3px] border-l-high px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
+        <div className="rounded-sm border border-line bg-panel-2 border-l-[3px] border-l-high px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
           2번의 osquery 설치는 <span className="text-ink-2">로그 수집</span>용이고, 여기 fleetd
           설치는 <span className="text-ink-2">kill 실행</span>용이라 별개입니다. 두 가지를 모두
           마쳐야 탐지부터 조치까지 동작합니다.
@@ -680,7 +680,7 @@ function Onboarding() {
         <StepList steps={STOP_STEPS[stopOs]} />
 
         <div className="mt-[24px] text-[13px] font-semibold text-ink-2">enroll secret 회전</div>
-        <div className="mt-[10px] rounded-[9px] border border-line bg-panel-2 border-l-[3px] border-l-high px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
+        <div className="mt-[10px] rounded-sm border border-line bg-panel-2 border-l-[3px] border-l-high px-[14px] py-[12px] text-[13px] text-mid leading-[1.6]">
           1번에서 secret을 재발급하면 <span className="text-ink-2">앞으로의 신규 등록</span>만
           막힙니다. 이미 등록을 마친 기기는 발급받은 node_key로 계속 수집하므로, 그 기기는 위 절차로
           에이전트를 직접 중지해야 합니다. 재발급 후에는 다른 기기의 enroll.secret 파일도 새 값으로

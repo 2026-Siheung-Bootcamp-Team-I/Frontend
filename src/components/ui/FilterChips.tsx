@@ -16,7 +16,7 @@ function FilterChips({ chips }: FilterChipsProps) {
           key={chip.label}
           type="button"
           onClick={chip.onClick}
-          className={`text-[12.5px] font-semibold px-[13px] py-[7px] rounded-full cursor-pointer border font-sans ${
+          className={`text-[12.5px] font-semibold px-[13px] py-[7px] rounded-sm cursor-pointer border font-sans ${
             chip.active ? 'bg-accent text-white border-accent' : 'bg-surface text-mid border-line'
           }`}
         >

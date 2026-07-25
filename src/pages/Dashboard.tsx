@@ -66,7 +66,7 @@ function Dashboard() {
       {demo && <DemoBanner />}
       {/* stat tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
-        <div className="bg-surface border border-line rounded-[12px] p-[18px] shadow-[var(--shadow-1)] border-l-[3px] border-l-crit">
+        <div className="bg-surface border border-line rounded-md p-[18px] border-l-[3px] border-l-crit">
           <div className="text-[12px] text-faint">미판단 위협</div>
           <AsyncState loading={open.loading} error={open.error} onRetry={open.refetch}>
             <div className="flex items-center gap-[9px] mt-[10px]">
@@ -81,7 +81,7 @@ function Dashboard() {
             </div>
           </AsyncState>
         </div>
-        <div className="bg-surface border border-line rounded-[12px] p-[18px] shadow-[var(--shadow-1)]">
+        <div className="bg-surface border border-line rounded-md p-[18px]">
           <div className="text-[12px] text-faint">이번 주 탐지</div>
           <AsyncState loading={week.loading} error={week.error} onRetry={week.refetch}>
             <div className="flex items-baseline gap-[5px] mt-[10px]">
@@ -206,7 +206,7 @@ function Dashboard() {
 /** 로그인 전에 보이는 화면이 실제 데이터가 아님을 알린다. */
 function DemoBanner() {
   return (
-    <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center sm:gap-[16px] px-[16px] py-[14px] bg-panel-2 border border-line-2 rounded-[12px] border-l-[3px] border-l-accent">
+    <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center sm:gap-[16px] px-[16px] py-[14px] bg-panel-2 border border-line-2 rounded-md border-l-[3px] border-l-accent">
       <div className="flex-1">
         <div className="text-[13.5px] font-semibold text-ink">데모 데이터를 보고 있습니다</div>
         <div className="text-[12.5px] text-mid mt-[3px] leading-[1.5]">
@@ -215,7 +215,7 @@ function DemoBanner() {
       </div>
       <Link
         to="/login"
-        className="text-center whitespace-nowrap text-[13px] font-semibold !text-white bg-accent px-[18px] py-[10px] rounded-[10px]"
+        className="text-center whitespace-nowrap text-[13px] font-semibold !text-white bg-accent px-[18px] py-[10px] rounded-sm"
       >
         로그인
       </Link>
@@ -236,7 +236,7 @@ function NotCollected({ onRetry }: { onRetry: () => void }) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-[8px] text-[13px] font-semibold text-ink-2 border border-line bg-surface px-[18px] py-[10px] rounded-[10px] cursor-pointer font-sans"
+          className="mt-[8px] text-[13px] font-semibold text-ink-2 border border-line bg-surface px-[18px] py-[10px] rounded-sm cursor-pointer font-sans"
         >
           다시 확인
         </button>

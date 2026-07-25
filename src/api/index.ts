@@ -14,6 +14,7 @@ import type {
   UserWebhook,
   EnrollSecret,
   MyHosts,
+  ExecuteResult,
 } from './types'
 
 type AlertFilter = {
@@ -70,6 +71,18 @@ export const api = {
       : request<Alert>(`/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
 
   geoThreats: () => (isDemo() ? demoApi.geoThreats() : request<GeoThreat[]>('/alerts/geo')),
+
+  /**
+   * 실제 조치(kill). responder 를 직접 부르지 않고 반드시 api-service 를 경유한다
+   * (api-service 가 Bearer 인증 + tenant 소유 확인 후 responder 로 프록시).
+   * host 는 서버가 알림에서 가져오므로 클라이언트는 종료 대상 프로세스(target)만 보낸다.
+   * 데모 폴백 없음(비로그인 시 호출 금지).
+   */
+  executeKill: (id: string, target: string) =>
+    request<ExecuteResult>(`/alerts/${encodeURIComponent(id)}/respond`, {
+      method: 'POST',
+      body: { target },
+    }),
 
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 

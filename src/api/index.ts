@@ -12,7 +12,6 @@ import type {
   HostSummary,
   Lineage,
   UserWebhook,
-  TenantWebhook,
   WebhookTestResult,
   EnrollSecret,
   MyHosts,
@@ -109,15 +108,7 @@ export const api = {
   /** 저장된 개인 webhook 으로 실제 발송을 시도한다. 등록이 됐는지 확인할 유일한 수단이다. */
   testWebhook: () => request<WebhookTestResult>('/me/webhook/test', { method: 'POST' }),
 
-  /**
-   * 조직 공용 webhook. 개인 webhook 이 없는 알림의 fallback 이라 비워두면 그 알림은 사라진다.
-   * /api/tenant/** 는 X-API-Key 가 필요한 경로다(client.ts 가 붙여준다).
-   */
-  getTenantWebhook: () => request<TenantWebhook>('/tenant/webhook'),
-
-  setTenantWebhook: (webhookUrl: string) =>
-    request<TenantWebhook>('/tenant/webhook', { method: 'PUT', body: { webhookUrl } }),
-
+  /** /api/tenant/** 는 X-API-Key 가 필요한 경로다(client.ts 가 붙여준다). */
   getEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret'),
 
   rotateEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret', { method: 'POST' }),

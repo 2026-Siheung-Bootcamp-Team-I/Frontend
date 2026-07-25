@@ -70,15 +70,6 @@ export type UserWebhook = {
 }
 
 /**
- * 조직(tenant) 공용 Slack webhook. 백엔드 AlertRouter 의 fallback 채널이다.
- * 호스트 소유자의 개인 webhook 이 없을 때만 쓰이고, 이것도 없으면 알림 발송 자체가 skip 된다.
- */
-export type TenantWebhook = {
-  tenantId: number
-  webhookUrl: string | null
-}
-
-/**
  * POST /api/me/webhook/test 성공 응답. status 는 Slack 이 돌려준 HTTP 코드다.
  * 실패는 4xx/5xx + {"error": ...} 라 request() 가 ApiError 로 던진다.
  */

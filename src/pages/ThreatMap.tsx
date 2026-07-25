@@ -12,15 +12,114 @@ import AsyncState from '@/components/ui/AsyncState'
 import { useApi } from '@/hooks/useApi'
 import { useThemeStore } from '@/store/theme'
 
+/**
+ * 지도 가운데에 둘 경도. 한국(127°E)에서 보는 지도라 태평양 중심으로 돌린다.
+ * 정확히 127 로 두면 이음매(중심에서 180° 떨어진 경도)가 53°W 라 브라질이 좌우로 잘린다.
+ * 150 이면 이음매가 대서양 30°W 로 떨어져 아메리카·아프리카가 온전하다(그린란드만 나뉜다).
+ */
+const CENTER_LNG = 150
+
+/** 경도를 지도 중심 기준으로 옮겨 [-180,180] 안에 넣는다. 마커·연결선 좌표에 쓴다. */
+function rotate(lng: number): number {
+  return ((lng - CENTER_LNG + 540) % 360) - 180
+}
+
+type Ring = number[][]
+
+/** 링의 경도에서 ±360 점프를 펴서 연속된 값으로 만든다. 자르려면 먼저 이어져 있어야 한다. */
+function unwrap(ring: Ring): Ring {
+  const out: Ring = [[...ring[0]]]
+  for (let i = 1; i < ring.length; i++) {
+    const prev = out[i - 1][0]
+    let lng = ring[i][0]
+    while (lng - prev > 180) lng -= 360
+    while (prev - lng > 180) lng += 360
+    out.push([lng, ring[i][1]])
+  }
+  return out
+}
+
+/** x = edge 를 기준으로 한쪽 반평면만 남긴다(Sutherland–Hodgman). */
+function clip(ring: Ring, edge: number, keepLeft: boolean): Ring {
+  const inside = (p: number[]) => (keepLeft ? p[0] <= edge : p[0] >= edge)
+  const out: Ring = []
+  for (let i = 0; i < ring.length; i++) {
+    const cur = ring[i]
+    const prev = ring[(i - 1 + ring.length) % ring.length]
+    if (inside(cur) !== inside(prev)) {
+      const t = (edge - prev[0]) / (cur[0] - prev[0])
+      out.push([edge, prev[1] + t * (cur[1] - prev[1])])
+    }
+    if (inside(cur)) out.push(cur)
+  }
+  return out
+}
+
+/** 펴면서 [-180,180] 밖으로 나간 조각을 제자리로 되돌리고 링을 닫는다. */
+function normalize(ring: Ring): Ring {
+  const xs = ring.map((p) => p[0])
+  const mid = (Math.min(...xs) + Math.max(...xs)) / 2
+  const shift = -360 * Math.round(mid / 360)
+  const moved = shift === 0 ? ring : ring.map(([x, y]) => [x + shift, y])
+  return [...moved, [...moved[0]]]
+}
+
+/** 링 하나를 날짜변경선에서 잘라 [왼쪽, 오른쪽] 으로 준다. 안 걸치면 한쪽만 채운다. */
+function splitRing(ring: Ring): [Ring | null, Ring | null] {
+  // 닫는 점은 클리핑에서 중복되므로 뗀다. 편 뒤에 중심만큼 옮겨야 이음매가 제자리에 생긴다.
+  const u = unwrap(ring.slice(0, -1)).map(([x, y]) => [x - CENTER_LNG, y])
+  const xs = u.map((p) => p[0])
+  const lo = Math.min(...xs)
+  const hi = Math.max(...xs)
+  // 편 좌표계에서 날짜변경선은 180 + 360n. 링 폭이 360 이하라 걸쳐도 한 줄뿐이다.
+  const edge = 180 + 360 * (Math.floor((lo - 180) / 360) + 1)
+  if (edge <= lo || edge >= hi) return [normalize(u), null]
+  const left = clip(u, edge, true)
+  const right = clip(u, edge, false)
+  return [left.length >= 3 ? normalize(left) : null, right.length >= 3 ? normalize(right) : null]
+}
+
+/**
+ * world-atlas 110m 은 러시아·피지·남극처럼 날짜변경선을 넘는 나라를 폴리곤 하나에 담아 둔다.
+ * echarts geo 는 경위도를 평면에 그대로 찍으므로 179°→-179° 로 건너뛰는 변이 지도를 가로지르는
+ * 띠로 그려진다. 등록 전에 ±180° 에서 잘라 두 폴리곤으로 나눈다.
+ *
+ * 구멍(내부 링)은 왼쪽 조각에 붙인다. 지금 데이터에서 날짜변경선을 넘는 폴리곤은 모두 구멍이
+ * 없어 문제가 되지 않는다.
+ */
+function splitPolygon(poly: Ring[]): Ring[][] {
+  const left: Ring[] = []
+  const right: Ring[] = []
+  for (const ring of poly) {
+    const [l, r] = splitRing(ring)
+    if (l) left.push(l)
+    if (r) right.push(r)
+  }
+  return [left, right].filter((rings) => rings.length > 0)
+}
+
+type PolyGeometry =
+  | { type: 'Polygon'; coordinates: Ring[] }
+  | { type: 'MultiPolygon'; coordinates: Ring[][] }
+
+/** 나라 하나를 중심 경도 기준으로 돌리고 이음매에서 잘라 놓는다. */
+function recenter(geometry: PolyGeometry): PolyGeometry {
+  const polys = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates
+  return { type: 'MultiPolygon', coordinates: polys.flatMap(splitPolygon) }
+}
+
 // 세계지도는 world-atlas(topojson) 를 오프라인으로 조달해 한 번만 등록한다.
 const worldGeo = feature(
   worldTopo as unknown as Topology,
   (worldTopo as unknown as Topology).objects.countries,
-)
+) as unknown as { features: { geometry: PolyGeometry }[] }
+
+for (const f of worldGeo.features) f.geometry = recenter(f.geometry)
+
 echarts.registerMap('world', worldGeo as never)
 
-// 모든 연결의 출발지(감시 조직). 서울.
-const ORIGIN: [number, number] = [126.978, 37.566]
+// 모든 연결의 출발지(감시 조직). 서울. 지도와 같은 기준으로 돌려 놓는다.
+const ORIGIN: [number, number] = [rotate(126.978), 37.566]
 
 type Palette = {
   area: string
@@ -75,13 +174,13 @@ function buildOption(dests: GeoDestination[], p: Palette): echarts.EChartsOption
   const max = dests.reduce((m, d) => Math.max(m, d.count), 0)
 
   const lines = dests.map((d) => ({
-    coords: [ORIGIN, [d.lng, d.lat]],
+    coords: [ORIGIN, [rotate(d.lng), d.lat]],
     lineStyle: { color: countColor(d.count, max, p) },
   }))
 
   const scatter = dests.map((d) => ({
     name: d.country,
-    value: [d.lng, d.lat, d.count],
+    value: [rotate(d.lng), d.lat, d.count],
     symbolSize: markerSize(d.count, max),
     itemStyle: { color: countColor(d.count, max, p) },
   }))

@@ -7,11 +7,13 @@ import type {
   AlertSummary,
   AuthResponse,
   EventSummary,
-  GeoThreat,
+  GeoDestination,
   Host,
   HostSummary,
   Lineage,
   UserWebhook,
+  TenantWebhook,
+  WebhookTestResult,
   EnrollSecret,
   MyHosts,
   ExecuteResult,
@@ -70,19 +72,23 @@ export const api = {
       ? demoApi.triage(id, status)
       : request<Alert>(`/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
 
-  geoThreats: () => (isDemo() ? demoApi.geoThreats() : request<GeoThreat[]>('/alerts/geo')),
+  /** 외부 연결 목적지 국가 집계. 백엔드는 alerts 가 아니라 events 를 기준으로 센다. */
+  geoDestinations: () =>
+    isDemo() ? demoApi.geoDestinations() : request<GeoDestination[]>('/events/geo'),
 
   /**
    * 실제 조치(kill). responder 를 직접 부르지 않고 반드시 api-service 를 경유한다
    * (api-service 가 Bearer 인증 + tenant 소유 확인 후 responder 로 프록시).
    * host 는 서버가 알림에서 가져오므로 클라이언트는 종료 대상 프로세스(target)만 보낸다.
-   * 데모 폴백 없음(비로그인 시 호출 금지).
+   * 비로그인(데모)에서는 서버를 부르지 않고 성공한 셈 치고 답한다(예시임을 화면에 밝힌다).
    */
   executeKill: (id: string, target: string) =>
-    request<ExecuteResult>(`/alerts/${encodeURIComponent(id)}/respond`, {
-      method: 'POST',
-      body: { target },
-    }),
+    isDemo()
+      ? demoApi.executeKill(id, target)
+      : request<ExecuteResult>(`/alerts/${encodeURIComponent(id)}/respond`, {
+          method: 'POST',
+          body: { target },
+        }),
 
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 
@@ -99,6 +105,18 @@ export const api = {
 
   setWebhook: (webhookUrl: string) =>
     request<UserWebhook>('/me/webhook', { method: 'PUT', body: { webhookUrl } }),
+
+  /** 저장된 개인 webhook 으로 실제 발송을 시도한다. 등록이 됐는지 확인할 유일한 수단이다. */
+  testWebhook: () => request<WebhookTestResult>('/me/webhook/test', { method: 'POST' }),
+
+  /**
+   * 조직 공용 webhook. 개인 webhook 이 없는 알림의 fallback 이라 비워두면 그 알림은 사라진다.
+   * /api/tenant/** 는 X-API-Key 가 필요한 경로다(client.ts 가 붙여준다).
+   */
+  getTenantWebhook: () => request<TenantWebhook>('/tenant/webhook'),
+
+  setTenantWebhook: (webhookUrl: string) =>
+    request<TenantWebhook>('/tenant/webhook', { method: 'PUT', body: { webhookUrl } }),
 
   getEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret'),
 

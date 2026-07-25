@@ -1,13 +1,22 @@
-import { useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
 import type { Alert, ExecuteStatus } from '@/api/types'
+import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
 import AttackPath from '@/components/ui/AttackPath'
 import AsyncState from '@/components/ui/AsyncState'
 import TriageActions from '@/components/ui/TriageActions'
 import { useApi } from '@/hooks/useApi'
-import { clockTime, killTarget, severityColors, severityLabel, severityTone } from '@/lib/format'
+import {
+  clockTime,
+  killTarget,
+  severityColors,
+  severityLabel,
+  severityTone,
+  statusLabel,
+  statusTone,
+} from '@/lib/format'
 import { toAttackSteps } from '@/lib/lineagePath'
 import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
@@ -23,7 +32,19 @@ const labelColor = {
 function Sequence() {
   const alertsVersion = useAlertsStore((s) => s.version)
   const list = useApi(() => api.alerts({ limit: 100 }), [alertsVersion])
-  const alerts = list.data ?? []
+  /**
+   * 아직 판단하지 않은 시퀀스를 위로 올리고, 이미 처리(확정·오탐)한 것은 아래로 내린다.
+   * 처리한 것도 목록에서 지우지 않는다. 무엇을 어떻게 처리했는지 남아 있어야 하기 때문.
+   * sort 는 안정 정렬이라 그룹 안에서는 서버가 준 최신순이 그대로 유지된다.
+   */
+  const alerts = useMemo(
+    () =>
+      [...(list.data ?? [])].sort(
+        (a, b) => Number(a.status !== 'open') - Number(b.status !== 'open'),
+      ),
+    [list.data],
+  )
+  const doneFrom = alerts.findIndex((a) => a.status !== 'open')
 
   // 대시보드의 "자세히" 가 ?alert= 로 딥링크한다. 목록에서 직접 고르면 그쪽이 우선한다.
   const [searchParams] = useSearchParams()
@@ -57,32 +78,46 @@ function Sequence() {
               emptyText="탐지된 시퀀스가 없습니다"
               onRetry={list.refetch}
             >
-              {alerts.map((alert) => {
+              {alerts.map((alert, i) => {
                 const tone = severityTone(alert.severity)
+                const done = alert.status !== 'open'
                 return (
-                  <button
-                    key={alert.id}
-                    type="button"
-                    onClick={() => setPickedId(alert.id)}
-                    className={`flex flex-col gap-[6px] p-[14px] rounded-md cursor-pointer border text-left font-sans ${
-                      alert.id === selectedId
-                        ? 'border-accent bg-[var(--accent-wash)]'
-                        : 'border-line-2 bg-panel-2'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-[7px] h-[7px] rounded-full"
-                        style={{ background: severityColors[tone] }}
-                      />
-                      <span className="font-mono text-[12px] text-ink-2">{alert.host}</span>
-                      <span className={`ml-auto text-[10.5px] font-semibold ${labelColor[tone]}`}>
-                        {severityLabel(alert.severity)}
-                      </span>
-                    </div>
-                    <div className="text-[13px] font-semibold text-ink">{alert.threatName}</div>
-                    <div className="text-[11.5px] text-faint">{clockTime(alert.ts)}</div>
-                  </button>
+                  <Fragment key={alert.id}>
+                    {i === doneFrom && (
+                      <div className="mt-[6px] pt-[10px] border-t border-line-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-faint">
+                        처리 완료
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPickedId(alert.id)}
+                      className={`flex flex-col gap-[6px] p-[14px] rounded-md cursor-pointer border text-left font-sans ${
+                        alert.id === selectedId
+                          ? 'border-accent bg-[var(--accent-wash)]'
+                          : 'border-line-2 bg-panel-2'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-[7px] h-[7px] rounded-full"
+                          style={{ background: severityColors[tone] }}
+                        />
+                        <span className="font-mono text-[12px] text-ink-2">{alert.host}</span>
+                        <span className={`ml-auto text-[10.5px] font-semibold ${labelColor[tone]}`}>
+                          {severityLabel(alert.severity)}
+                        </span>
+                      </div>
+                      <div className="text-[13px] font-semibold text-ink">{alert.threatName}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11.5px] text-faint">{clockTime(alert.ts)}</span>
+                        {done && (
+                          <Badge severity={statusTone(alert.status)} className="ml-auto">
+                            {statusLabel(alert.status)}
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                  </Fragment>
                 )
               })}
             </AsyncState>
@@ -186,11 +221,6 @@ function RealAction({ alert }: { alert: Alert }) {
               '종료할 프로세스를 찾지 못했습니다.'
             )}
           </div>
-          {phase === 'confirm' && (
-            <div className="mt-[6px] text-[12.5px] font-semibold text-high">
-              되돌릴 수 없습니다. 확인하겠습니까?
-            </div>
-          )}
           {result && (
             <div
               className={`mt-[6px] text-[12.5px] font-semibold ${toneClass[execResult[result].tone]}`}
@@ -200,7 +230,7 @@ function RealAction({ alert }: { alert: Alert }) {
           )}
           {isDemo && (
             <div className="mt-[6px] text-[12px] text-faint">
-              데모에서는 실제 조치가 실행되지 않습니다. 로그인 후 이용하세요.
+              데모라 실제로 종료하지는 않습니다. 예시 결과만 보여 줍니다.
             </div>
           )}
           {error && <div className="mt-[6px] text-[12px] text-crit">{error}</div>}
@@ -221,14 +251,14 @@ function RealAction({ alert }: { alert: Alert }) {
                 onClick={run}
                 className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-crit px-[18px] py-[10px] rounded-sm cursor-pointer font-sans"
               >
-                확인
+                정말 종료하시겠습니까?
               </button>
             </>
           ) : (
             <button
               type="button"
               onClick={ask}
-              disabled={isDemo || !target || phase === 'pending'}
+              disabled={!target || phase === 'pending'}
               className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-high px-[18px] py-[10px] rounded-sm cursor-pointer font-sans disabled:opacity-60 disabled:cursor-default"
             >
               {phase === 'pending' ? '실행 중' : '실제 조치 실행'}

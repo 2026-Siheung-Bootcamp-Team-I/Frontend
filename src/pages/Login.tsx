@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '@/api'
+import LogoMark from '@/components/ui/LogoMark'
 import { useAuthStore } from '@/store/auth'
 
 type Mode = 'login' | 'signup'
@@ -69,9 +70,7 @@ function Login() {
           </svg>
         </button>
         <Link to="/" className="flex items-center gap-[10px] mb-[22px]">
-          <div className="w-[28px] h-[28px] rounded-sm bg-accent flex items-center justify-center">
-            <div className="w-[10px] h-[10px] bg-white rotate-45 rounded-xs" />
-          </div>
+          <LogoMark size={28} />
           <span className="text-[17px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
         </Link>
 

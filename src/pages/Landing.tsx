@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { Link } from 'react-router-dom'
 import { useThemeStore } from '@/store/theme'
+import LogoMark from '@/components/ui/LogoMark'
 import ScrollArea from '@/components/ui/ScrollArea'
 
 const container = 'max-w-[1440px] mx-auto px-[20px] md:px-[40px]'
@@ -186,9 +187,7 @@ function Landing() {
         <div className={`${container} flex items-center justify-between h-[66px]`}>
           <div className="flex items-center lg:gap-[44px]">
             <Link to="/" className="flex items-center gap-[11px]">
-              <div className="w-[30px] h-[30px] rounded-[9px] bg-accent flex items-center justify-center">
-                <div className="w-[11px] h-[11px] bg-white rotate-45 rounded-[2px]" />
-              </div>
+              <LogoMark size={30} radius="rounded-[9px]" />
               <span className="text-[19px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
             </Link>
             <div className="hidden lg:flex gap-[28px]">
@@ -1018,9 +1017,7 @@ function Landing() {
           className={`${container} py-[32px] md:py-[40px] flex justify-between items-center gap-[24px] flex-wrap`}
         >
           <div className="flex items-center gap-[12px] min-w-0">
-            <div className="w-[30px] h-[30px] rounded-[9px] bg-accent flex items-center justify-center">
-              <div className="w-[11px] h-[11px] bg-white rotate-45 rounded-[2px]" />
-            </div>
+            <LogoMark size={30} radius="rounded-[9px]" />
             <div className="flex flex-col gap-[3px]">
               <span className="text-[17px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
               <span className="text-[12.5px] text-faint">

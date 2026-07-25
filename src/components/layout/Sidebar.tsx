@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { api } from '@/api'
+import LogoMark from '@/components/ui/LogoMark'
 import { useApi } from '@/hooks/useApi'
 import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
@@ -235,12 +236,15 @@ function Sidebar({ open, onClose }: SidebarProps) {
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <NavLink to="/dashboard" className="flex items-center gap-[10px] px-2 pt-[6px] pb-[18px]">
-          <div className="w-[28px] h-[28px] rounded-sm bg-accent flex items-center justify-center">
-            <div className="w-[10px] h-[10px] bg-white rotate-45 rounded-xs" />
-          </div>
+        {/*
+          로고는 서비스 홈(랜딩)으로 간다. 대시보드는 아래 첫 항목이 담당한다.
+          NavLink 가 아니라 Link 인 이유: NavLink to="/" 는 end 가 없으면 모든 하위 경로에
+          활성으로 걸려서 어느 화면에서든 로고가 accent 색으로 물든다. 로고에 활성 상태는 필요 없다.
+        */}
+        <Link to="/" className="flex items-center gap-[10px] px-2 pt-[6px] pb-[18px]">
+          <LogoMark size={28} />
           <span className="text-[17px] font-[750] tracking-[-0.02em] text-ink">EDRdog</span>
-        </NavLink>
+        </Link>
         <nav className="flex flex-col mt-[6px]">
           <div className="flex flex-col gap-[3px]">
             {items

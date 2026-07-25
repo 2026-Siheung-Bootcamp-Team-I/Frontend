@@ -1000,7 +1000,7 @@ function Onboarding() {
       {loggedIn && (
         <SectionCard
           title="연동 체크리스트"
-          description="아래 항목이 다 채워져야 탐지 알림이 실제로 전달됩니다. 하나라도 비면 알림은 조용히 사라집니다."
+          description="탐지 알림이 전달되려면 (개인 webhook + 내 기기 등록) 또는 (조직 공용 webhook) 중 하나는 갖춰져야 합니다. 둘 다 비어 있으면 알림은 조용히 사라집니다."
         >
           <Checklist items={checklist} />
         </SectionCard>
@@ -1196,8 +1196,10 @@ function Onboarding() {
         </div>
 
         <div className="mt-[18px] text-[12px] text-faint leading-[1.6]">
-          수집은 그대로 두고 알림만 끊으려면 5번 내 기기 등록에서 해당 host를 해제하세요. kill
-          조치까지 끊으려면 Fleet에서 그 호스트의 fleetd도 별도로 제거해야 합니다.
+          수집은 그대로 두고 내 채널 알림만 끊으려면 5번 내 기기 등록에서 해당 host를 해제하세요.
+          다만 3번 조직 공용 webhook이 등록돼 있으면 그 host의 알림은 조직 채널로 계속 갑니다.
+          완전히 끊으려면 조직 공용 webhook도 비워야 합니다. kill 조치까지 끊으려면 Fleet에서 그
+          호스트의 fleetd도 별도로 제거해야 합니다.
         </div>
       </SectionCard>
     </div>

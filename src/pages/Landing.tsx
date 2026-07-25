@@ -280,15 +280,14 @@ function Landing() {
                   </div>
                   <div className="flex flex-col gap-[7px]">
                     <div className="flex items-center gap-[7px]">
-                        <span className="text-[12px] text-ink-2">심각</span>
+                      <span className="text-[12px] text-ink-2">심각</span>
                       <span className="font-mono text-[12px] text-ink ml-auto">2</span>
                     </div>
                     <div className="flex items-center gap-[7px]">
-                        <span className="text-[12px] text-ink-2">높음</span>
+                      <span className="text-[12px] text-ink-2">높음</span>
                       <span className="font-mono text-[12px] text-ink ml-auto">3</span>
                     </div>
                     <div className="flex items-center gap-[7px]">
-                      <span className="w-[7px] h-[7px] rounded-full bg-mid" />
                       <span className="text-[12px] text-ink-2">보통</span>
                       <span className="font-mono text-[12px] text-ink ml-auto">4</span>
                     </div>

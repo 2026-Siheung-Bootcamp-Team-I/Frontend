@@ -64,34 +64,41 @@ function Topbar({ onMenuOpen }: TopbarProps) {
   return (
     <div className="h-[58px] flex-shrink-0 border-b border-line-2 bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] backdrop-blur-[10px] sticky top-0 z-20">
       {/* 구분선은 화면 끝까지 긋되, 내용은 본문과 같은 폭에 맞춘다(AppLayout 과 동일한 max-w). */}
-      <div className="h-full w-full max-w-[1600px] mx-auto flex items-center justify-between px-[16px] lg:px-[28px]">
-        <div className="flex items-center gap-[10px] min-w-0">
-          <button
-            type="button"
-            onClick={onMenuOpen}
-            aria-label="메뉴 열기"
-            className="lg:hidden flex-shrink-0 w-[40px] h-[40px] flex items-center justify-center rounded-sm text-ink-2 cursor-pointer"
+      <div className="h-full w-full max-w-[1600px] mx-auto flex items-center justify-between gap-[10px] px-[16px] lg:px-[28px]">
+        {/*
+          메뉴 버튼은 제목 묶음 밖에 둔다. 안에 넣으면 좁은 화면에서 그 묶음이 폭 0 으로 접힐 때
+          버튼이 묶음 밖으로 밀려나 검색창(불투명 배경) 밑에 깔려 아예 보이지 않는다.
+          형제로 두고 flex-shrink-0 을 주면 40px 자리는 무슨 일이 있어도 남는다.
+        */}
+        <button
+          type="button"
+          onClick={onMenuOpen}
+          aria-label="메뉴 열기"
+          className="lg:hidden flex-shrink-0 w-[40px] h-[40px] -ml-[8px] flex items-center justify-center rounded-sm text-ink-2 cursor-pointer"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 6h18" />
-              <path d="M3 12h18" />
-              <path d="M3 18h18" />
-            </svg>
-          </button>
-          <span className="text-[16px] font-bold text-ink tracking-[-0.01em] whitespace-nowrap">
+            <path d="M3 6h18" />
+            <path d="M3 12h18" />
+            <path d="M3 18h18" />
+          </svg>
+        </button>
+        <div className="flex items-center gap-[10px] min-w-0">
+          {/* 좁은 화면에서 제목이 줄어들 수 있어야 우측 묶음이 자리를 뺏지 않는다. */}
+          <span className="text-[16px] font-bold text-ink tracking-[-0.01em] truncate">
             {pageTitle}
           </span>
+          {/* 같은 이유로 배지는 sm 부터. 데모라는 사실은 사이드바 하단에도 적혀 있다. */}
           {isDemo && (
-            <span className="flex-shrink-0 text-[11px] font-semibold text-high bg-[var(--high-wash)] px-[8px] py-[2px] rounded-full whitespace-nowrap">
+            <span className="hidden sm:inline-flex flex-shrink-0 text-[11px] font-semibold text-high bg-[var(--high-wash)] px-[8px] py-[2px] rounded-full whitespace-nowrap">
               예시 데이터
             </span>
           )}
@@ -103,10 +110,10 @@ function Topbar({ onMenuOpen }: TopbarProps) {
             실시간 동기화 중
           </span>
         </div>
-        <div className="flex items-center gap-[8px] sm:gap-[12px]">
+        <div className="flex items-center gap-[8px] sm:gap-[12px] min-w-0">
           <div
             ref={searchRef}
-            className="relative flex items-center gap-2 h-[34px] px-[12px] rounded-sm border border-line bg-surface flex-1 min-w-[120px] max-w-[260px] sm:min-w-[220px]"
+            className="relative flex items-center gap-2 h-[34px] px-[12px] rounded-sm border border-line bg-surface flex-1 min-w-0 max-w-[260px] sm:min-w-[220px]"
           >
             <svg
               width="14"

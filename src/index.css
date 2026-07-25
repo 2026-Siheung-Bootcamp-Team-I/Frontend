@@ -101,6 +101,13 @@
 body {
   margin: 0;
   background: var(--bg);
+  /*
+    한글은 어절 단위로 끊는다. 기본값(word-break: normal)은 CJK 를 글자 단위로 쪼개도 된다고 보므로
+    "어떤 위 / 협부터" 처럼 단어 한가운데서 줄이 바뀐다.
+    keep-all 만 두면 긴 영문 토큰(호스트명·해시·URL)이 컨테이너를 밀어내므로 break-word 를 함께 준다.
+  */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 a {
   color: var(--accent);

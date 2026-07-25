@@ -86,17 +86,18 @@ export type EventSummary = {
   byType: { type: string; cnt: number | string }[]
 }
 
-/** 악성 외부 연결(C2)의 목적지. 지도 시각화용으로 좌표를 포함한다. */
-export type GeoThreat = {
-  id: string
-  host: string
-  remoteIp: string
+/**
+ * 외부 연결 목적지를 국가로 묶은 집계. GET /api/events/geo 응답 그대로다.
+ * 백엔드가 개별 연결이 아니라 국가 단위로 세어 주므로 host·IP·시각은 없다.
+ * 사설 IP 는 제외되고, 서버에 GeoIP DB 가 없으면 빈 배열이 온다.
+ */
+export type GeoDestination = {
   country: string
+  /** ISO2 국가 코드 */
+  countryCode: string
   lat: number
   lng: number
-  severity: AlertSeverity
-  /** epoch millis */
-  ts: number
+  count: number
 }
 
 /** responder-service 실제 조치(kill) 결과. status 는 KillOutcome + 실행기 상태. */

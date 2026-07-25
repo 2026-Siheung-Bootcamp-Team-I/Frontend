@@ -200,9 +200,9 @@ function ThreatMap() {
                         {row.count}
                       </span>
                     </div>
-                    <div className="h-[6px] rounded-full bg-panel overflow-hidden">
+                    <div className="h-[6px] rounded-xs bg-panel overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-crit"
+                        className="h-full rounded-xs bg-crit"
                         style={{ width: `${maxCount > 0 ? (row.count / maxCount) * 100 : 0}%` }}
                       />
                     </div>

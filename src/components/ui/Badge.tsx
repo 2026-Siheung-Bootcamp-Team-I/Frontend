@@ -19,7 +19,7 @@ type BadgeProps = {
 function Badge({ severity, children, className = '' }: BadgeProps) {
   return (
     <span
-      className={`text-[11px] font-semibold px-[9px] py-[3px] rounded-full ${styles[severity]} ${className}`}
+      className={`text-[11px] font-semibold px-[9px] py-[3px] rounded-xs ${styles[severity]} ${className}`}
     >
       {children}
     </span>

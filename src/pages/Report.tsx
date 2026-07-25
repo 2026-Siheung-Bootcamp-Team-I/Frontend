@@ -122,9 +122,9 @@ function EventCounts({ byType }: { byType: { type: string; cnt: number | string 
               {row.count.toLocaleString()}
             </span>
           </div>
-          <div className="h-[7px] rounded-full bg-panel overflow-hidden">
+          <div className="h-[7px] rounded-xs bg-panel overflow-hidden">
             <div
-              className="h-full rounded-full bg-good"
+              className="h-full rounded-xs bg-good"
               style={{ width: `${percentOf(row.count, max)}%` }}
             />
           </div>

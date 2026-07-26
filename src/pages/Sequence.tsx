@@ -154,8 +154,12 @@ function SequenceDetail({ alert }: { alert: Alert }) {
         <AttackPath host={alert.host} label={`${alert.threatName} 시퀀스`} steps={steps} />
       </AsyncState>
       <TriageActions alert={alert} />
-      {/* 권고 대응이 kill 인 알림만 실제 조치(프로세스 종료)를 실행할 수 있다. */}
-      {alert.action === 'kill' && <RealAction alert={alert} />}
+      {/*
+        실행 가능한 조치는 프로세스 종료 하나뿐이다. 권고가 kill 이면 그대로 실행하고,
+        isolate(CRITICAL)면 격리 구현이 없어 종료로 대신한다는 것을 화면에 밝힌다.
+        notify(MEDIUM)는 조치 대상이 아니라 버튼을 띄우지 않는다.
+      */}
+      {(alert.action === 'kill' || alert.action === 'isolate') && <RealAction alert={alert} />}
     </>
   )
 }
@@ -211,6 +215,11 @@ function RealAction({ alert }: { alert: Alert }) {
       <div className="flex flex-col gap-[10px] sm:flex-row sm:items-center sm:gap-[16px]">
         <div className="flex-1">
           <div className="text-[12px] text-faint mb-1">실제 조치 (프로세스 종료)</div>
+          {alert.action === 'isolate' && (
+            <div className="mb-[6px] text-[12px] text-high leading-[1.5]">
+              권고 대응은 격리지만 아직 구현되지 않았습니다. 대신 프로세스를 종료합니다.
+            </div>
+          )}
           <div className="text-[13.5px] leading-[1.5] text-ink">
             {target ? (
               <>

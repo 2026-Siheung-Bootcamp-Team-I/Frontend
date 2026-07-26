@@ -127,7 +127,7 @@ const INSTALL_STEPS: Record<OsKey, Step[]> = {
     },
     {
       title: '재부팅 후 확인',
-      body: 'FDA(TCC) 권한은 실행 중 세션에 즉시 반영되지 않습니다. 재부팅 후 exec 이벤트가 수집되는지 확인합니다. 수집이 시작되면 아래 4번 기기 상태에 이 기기가 나타납니다.',
+      body: 'FDA(TCC) 권한은 실행 중 세션에 즉시 반영되지 않습니다. 재부팅 후 exec 이벤트가 수집되는지 확인합니다. 등록되면 아래 4번 기기 상태에 이 기기가 먼저 나타나고, 이벤트가 아직 없으면 수집 없음으로 표시됩니다.',
     },
   ],
   windows: [
@@ -153,7 +153,7 @@ const INSTALL_STEPS: Record<OsKey, Step[]> = {
     },
     {
       title: '수집 확인',
-      body: '수집이 시작되면 아래 4번 기기 상태에 이 기기가 나타납니다. 연결 여부는 그 표의 마지막 확인 시각으로 판단하세요. 네트워크·DNS 이벤트는 Zeek가 담당합니다.\nosqueryi로 확인하려면 osqueryd를 멈춘 뒤 아래처럼 플래그를 직접 주고 띄워야 합니다. osqueryd가 도는 중에 그냥 osqueryi를 열면 별개 프로세스라 자기 빈 버퍼를 보게 돼 항상 0건으로 나옵니다.',
+      body: '등록되면 아래 4번 기기 상태에 이 기기가 먼저 나타납니다. 실제로 이벤트가 들어오는지는 마지막 이벤트가 아니라 그 표의 에이전트 연결 시각으로 판단하세요. 네트워크·DNS 이벤트는 Zeek가 담당합니다.\nosqueryi로 확인하려면 osqueryd를 멈춘 뒤 아래처럼 플래그를 직접 주고 띄워야 합니다. osqueryd가 도는 중에 그냥 osqueryi를 열면 별개 프로세스라 자기 빈 버퍼를 보게 돼 항상 0건으로 나옵니다.',
       command:
         '& "C:\\Program Files\\osquery\\osqueryi.exe" --disable_events=false --enable_process_etw_events=true',
     },
@@ -218,7 +218,7 @@ function quickInstallStepsWindows(secret: string): Step[] {
     },
     {
       title: '수집 확인',
-      body: '서비스가 Running이면 수집이 시작된 것입니다. 프로세스 감시가 ETW라 별도 권한 승인은 필요 없습니다.\n수집이 시작되면 아래 4번 기기 상태에 이 기기가 나타납니다.',
+      body: '서비스가 Running이면 수집이 시작된 것입니다. 프로세스 감시가 ETW라 별도 권한 승인은 필요 없습니다.\n등록되면 아래 4번 기기 상태에 이 기기가 먼저 나타나고, 이벤트가 아직 없으면 수집 없음으로 표시됩니다.',
       command: 'Get-Service osqueryd',
     },
   ]
@@ -242,7 +242,7 @@ function quickInstallSteps(secret: string): Step[] {
     },
     {
       title: '재부팅 후 확인',
-      body: 'FDA 권한은 실행 중인 프로세스에 즉시 반영되지 않습니다. 재부팅하면 수집이 시작되고, 아래 4번 기기 상태에 이 기기가 나타납니다.',
+      body: 'FDA 권한은 실행 중인 프로세스에 즉시 반영되지 않습니다. 재부팅하면 등록이 이뤄져 아래 4번 기기 상태에 이 기기가 나타납니다. 이벤트 수집 여부는 그 표의 에이전트 연결 시각으로 확인하세요.',
       command: 'sudo osqueryctl status',
     },
   ]
@@ -943,7 +943,7 @@ function MyHostsPanel({
   )
 }
 
-const statusGrid = 'grid grid-cols-[1fr_100px_100px_80px] gap-[12px]'
+const statusGrid = 'grid grid-cols-[1fr_90px_90px_100px_100px] gap-[12px]'
 
 function HostStatusPanel({
   hosts,
@@ -974,54 +974,68 @@ function HostStatusPanel({
           loading={loading}
           error={error}
           empty={hosts.length === 0}
-          emptyText="아직 관측된 기기가 없습니다. 수집이 시작되면 여기에 표시됩니다."
+          emptyText="아직 등록되거나 관측된 기기가 없습니다. 설치·등록을 마치면 여기에 표시됩니다."
           onRetry={refetch}
         >
           <div className="overflow-x-auto">
-            <div className="min-w-[520px]">
+            <div className="min-w-[600px]">
               <div
                 className={`${statusGrid} pb-[8px] border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
               >
                 <span>호스트</span>
                 <span>상태</span>
                 <span>연결</span>
-                <span className="text-right">마지막 확인</span>
+                <span className="text-right">마지막 이벤트</span>
+                <span className="text-right">에이전트 연결</span>
               </div>
-              {hosts.map((h, i) => (
-                <div
-                  key={h.host}
-                  className={`${statusGrid} items-center py-[11px] ${
-                    i === hosts.length - 1 ? '' : 'border-b border-line-2'
-                  }`}
-                >
-                  <span className="font-mono text-[13px] text-ink-2">{h.host}</span>
-                  <span className="flex items-center gap-[7px] text-[12.5px] text-mid">
-                    <span
-                      className="h-[7px] w-[7px] rounded-full"
-                      style={{ background: hostStatusColor(h.status) }}
-                    />
-                    {hostStatusLabel(h.status)}
-                  </span>
-                  <span
-                    className={`text-[12.5px] ${
-                      now - h.lastSeen > STALE_MS ? 'text-high' : 'text-mid'
+              {hosts.map((h, i) => {
+                // 등록은 됐지만 이벤트가 아직 없는 기기. 이런 기기는 열린 알림이 없어 healthy 로
+                // 오는데, 그대로 초록 "정상"을 켜면 검증도 안 된 상태를 좋다고 말하는 셈이라
+                // 중립으로 내린다.
+                const noEvents = h.enrolled && h.lastSeen === 0
+                // 에이전트 생존은 이벤트가 아니라 서버에 붙은 시각으로 판단해야 한다. lastSeen 으로
+                // 보면 이벤트만 없어도 죽은 것처럼 보인다. 미등록 기기는 agentSeen 이 없어 기존처럼
+                // lastSeen 을 쓴다.
+                const aliveTs = h.enrolled ? h.agentSeen : h.lastSeen
+                const stale = now - aliveTs > STALE_MS
+                return (
+                  <div
+                    key={h.host}
+                    className={`${statusGrid} items-center py-[11px] ${
+                      i === hosts.length - 1 ? '' : 'border-b border-line-2'
                     }`}
                   >
-                    {now - h.lastSeen > STALE_MS ? '연결 끊김' : '연결됨'}
-                  </span>
-                  <span className="font-mono text-[11px] text-faint text-right">
-                    {relativeTime(h.lastSeen)}
-                  </span>
-                </div>
-              ))}
+                    <span className="font-mono text-[13px] text-ink-2">{h.host}</span>
+                    <span className="flex items-center gap-[7px] text-[12.5px] text-mid">
+                      <span
+                        className="h-[7px] w-[7px] rounded-full"
+                        style={{
+                          background: noEvents ? 'var(--faint)' : hostStatusColor(h.status),
+                        }}
+                      />
+                      {noEvents ? '수집 없음' : hostStatusLabel(h.status)}
+                    </span>
+                    <span className={`text-[12.5px] ${stale ? 'text-high' : 'text-mid'}`}>
+                      {stale ? '연결 끊김' : '연결됨'}
+                    </span>
+                    <span className="font-mono text-[11px] text-faint text-right">
+                      {noEvents ? '수집 없음' : relativeTime(h.lastSeen)}
+                    </span>
+                    <span className="font-mono text-[11px] text-faint text-right">
+                      {h.enrolled ? relativeTime(h.agentSeen) : '-'}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </AsyncState>
       </div>
 
       <div className="mt-[14px] text-[12px] text-faint leading-[1.6]">
-        상태는 열린 알림의 심각도로만 매기므로 에이전트가 멈춰도 알림이 없으면 계속 정상으로
-        보입니다. 에이전트가 살아 있는지는 마지막 확인 시각(연결 열)으로 판단하세요.
+        상태는 열린 알림의 심각도로만 매기므로 에이전트가 멈춰도 알림이 없으면 계속 정상으로 보일 수
+        있습니다. 등록됐지만 이벤트가 아직 없는 기기는 상태를 수집 없음으로 표시합니다. 에이전트가
+        살아 있는지는 마지막 이벤트가 아니라 에이전트 연결 시각(연결 열)으로 판단하세요.
       </div>
     </div>
   )
@@ -1063,7 +1077,7 @@ function Onboarding() {
 
   const checklist: ChecklistItem[] = [
     {
-      label: '관측된 기기',
+      label: '등록·관측 기기',
       detail: `${observed.length}대`,
       done: observed.length > 0,
     },
@@ -1240,7 +1254,7 @@ function Onboarding() {
 
       <SectionCard
         title="4. 기기 상태"
-        description="조직에서 관측 중인 기기입니다. 5번에 입력할 정확한 host 이름을 여기서 확인하세요."
+        description="조직에 등록됐거나 관측 중인 기기입니다. 5번에 입력할 정확한 host 이름을 여기서 확인하세요."
       >
         <HostStatusPanel
           hosts={observed}

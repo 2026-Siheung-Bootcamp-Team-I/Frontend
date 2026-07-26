@@ -49,18 +49,26 @@ export type HostStatus = 'healthy' | 'warning' | 'critical'
 
 export type Host = {
   host: string
-  /** epoch millis */
+  /** epoch millis. events 최신 ts. 이벤트가 없으면 0(등록만 되고 아직 수집이 없는 경우) */
   lastSeen: number
   status: HostStatus
   /** 열린 alert 수 */
   threats: number
+  /** 조직에 등록된 기기인가. false 면 예전 관측 데이터뿐 정식 등록은 안 된 기기다. */
+  enrolled: boolean
+  /** epoch millis. osquery 가 서버에 마지막으로 붙은 시각. 미등록이면 0 */
+  agentSeen: number
 }
 
 export type HostSummary = {
+  /** 이벤트가 있고 열린 알림이 없는 기기 */
   healthy: number
   warning: number
   critical: number
+  /** 전체. healthy + warning + critical + noEvents 와 같다. */
   total: number
+  /** 등록됐지만 이벤트가 한 번도 없는 기기 */
+  noEvents: number
 }
 
 /** 내 개인 Slack webhook. 미설정이면 webhookUrl 이 null. */

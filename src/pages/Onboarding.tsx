@@ -210,8 +210,10 @@ function quickInstallStepsWindows(secret: string): Step[] {
   return [
     {
       title: '설치 스크립트 실행',
-      body: '관리자 권한 PowerShell에서 실행합니다. osquery 설치, 서버 인증서 수신, 서비스 등록까지 한 번에 끝납니다.\n서버 인증서는 수집 포트에서 자동으로 받아오므로 따로 받을 필요가 없습니다.',
-      command: `irm ${INSTALL_SCRIPT_URL_WIN} -OutFile edrdog-install.ps1\n.\\edrdog-install.ps1 -TlsHost ${TLS_HOST} -EnrollSecret ${s}`,
+      body: '관리자 권한 PowerShell에서 실행합니다. osquery 설치, 서버 인증서 수신, 서비스 등록까지 한 번에 끝납니다.\n서버 인증서는 수집 포트에서 자동으로 받아오므로 따로 받을 필요가 없습니다.\n내려받은 스크립트는 Windows가 기본적으로 실행을 막으므로 -ExecutionPolicy Bypass로 그 실행만 허용합니다. 시스템 정책은 바뀌지 않습니다.',
+      // .\edrdog-install.ps1 로 바로 부르면 기본 정책(Restricted)과 인터넷 파일 표시(MOTW)에 걸려
+      // 실행 자체가 막힌다. 이 프로세스에만 Bypass 를 주는 형태로 부른다.
+      command: `irm ${INSTALL_SCRIPT_URL_WIN} -OutFile edrdog-install.ps1\npowershell -ExecutionPolicy Bypass -File .\\edrdog-install.ps1 -TlsHost ${TLS_HOST} -EnrollSecret ${s}`,
     },
     {
       title: '수집 확인',
@@ -255,6 +257,14 @@ const STOP_STEPS: Record<OsKey, Step[]> = {
       command: 'sudo osqueryctl stop',
     },
     {
+      title: 'Zeek 수집 중지 (설치 명령에 포함돼 있습니다)',
+      // 설치 스크립트가 com.edrdog.zeek / com.edrdog.zeek-shipper 두 데몬을 등록한다.
+      // 이걸 내리지 않으면 osquery 를 멈춰도 네트워크 이벤트는 계속 올라간다.
+      body: 'osquery만 멈추면 Zeek는 계속 돌면서 연결 기록을 보냅니다. 한 줄 설치 명령을 썼다면 Zeek도 함께 깔려 있으니 이 단계까지 해야 수집이 완전히 멈춥니다.',
+      command:
+        'sudo launchctl unload -w /Library/LaunchDaemons/com.edrdog.zeek-shipper.plist\nsudo launchctl unload -w /Library/LaunchDaemons/com.edrdog.zeek.plist\nsudo rm -f /Library/LaunchDaemons/com.edrdog.zeek*.plist /usr/local/bin/edrdog-zeek-shipper.py\nsudo rm -rf /var/log/edrdog-zeek',
+    },
+    {
       title: '자동 시작 해제 (직접 등록한 경우만)',
       body: 'osqueryctl 대신 plist를 직접 복사해 load 했다면 이 명령으로 내립니다. 1번을 썼다면 이미 내려가 있으므로 건너뛰세요.',
       command: 'sudo launchctl unload -w /Library/LaunchDaemons/io.osquery.agent.plist',
@@ -293,9 +303,11 @@ const STOP_STEPS: Record<OsKey, Step[]> = {
     },
     {
       title: 'enroll secret · 인증서 · 플래그 파일 삭제',
-      body: 'C:\\ProgramData\\osquery\\ 아래에 둔 파일을 지웁니다. 남겨두면 재설치 시 같은 값으로 그대로 재등록됩니다.',
+      // 플래그 파일 이름이 두 가지다. 설치 스크립트는 osquery.flags 로 쓰고,
+      // 아래 수동 안내는 osquery.win.flags 로 쓴다. 어느 쪽으로 깔았든 지워지게 둘 다 넣는다.
+      body: 'C:\\ProgramData\\osquery\\ 아래에 둔 파일을 지웁니다. 남겨두면 재설치 시 같은 값으로 그대로 재등록됩니다.\n설치 방식에 따라 플래그 파일 이름이 달라서 둘 다 지웁니다. 없는 파일은 그냥 넘어갑니다.',
       command:
-        'Remove-Item C:\\ProgramData\\osquery\\enroll.secret, C:\\ProgramData\\osquery\\osquery-server.pem, C:\\ProgramData\\osquery\\osquery.win.flags',
+        'Remove-Item -ErrorAction SilentlyContinue C:\\ProgramData\\osquery\\enroll.secret, C:\\ProgramData\\osquery\\osquery-server.pem, C:\\ProgramData\\osquery\\osquery.flags, C:\\ProgramData\\osquery\\osquery.win.flags',
     },
   ],
 }
@@ -1277,12 +1289,10 @@ function Onboarding() {
         </div>
         <StepList steps={fleetSteps(fleetOs, fleetSecretQ.data?.secret ?? null)} />
 
-        {loggedIn && !fleetSecretQ.loading && !fleetSecretQ.data?.secret && (
-          <div className="mt-[14px] text-[12px] text-high leading-[1.6]">
-            Fleet enroll secret을 가져오지 못했습니다. 위 명령의 --enroll-secret은 자리표시자이니
-            직접 확인해 바꿔 넣으세요.
-          </div>
-        )}
+        {/*
+          값을 못 받으면 위 목록에 "Fleet enroll secret 확인" 단계가 살아나 직접 확인하는 방법을
+          그대로 안내한다. 여기에 경고를 하나 더 띄우면 같은 말을 두 번 하는 셈이라 두지 않는다.
+        */}
 
         {/* --fleet-url 은 미설정이어도 운영 주소가 들어가므로 "예시 값" 경고를 띄우지 않는다. */}
 

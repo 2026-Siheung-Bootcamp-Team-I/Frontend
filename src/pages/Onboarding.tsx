@@ -663,12 +663,12 @@ function EnrollSecretPanel({
             display={revealed ? undefined : '•'.repeat(secret.length)}
           />
         ) : (
-          <div className="text-[13px] text-mid">아직 발급된 enroll secret이 없습니다.</div>
+          <div className="text-[13px] text-mid">불러오는 중…</div>
         )}
       </AsyncState>
       <div className="mt-[12px] flex flex-wrap items-center gap-[12px]">
         <PrimaryButton onClick={rotate} disabled={busy || loading}>
-          {busy ? '발급 중' : secret ? '재발급' : '발급'}
+          {busy ? '재발급 중' : '재발급'}
         </PrimaryButton>
         {secret && (
           <SecondaryButton onClick={() => setRevealed((v) => !v)}>
@@ -1040,11 +1040,6 @@ function Onboarding() {
 
   const checklist: ChecklistItem[] = [
     {
-      label: 'enroll secret 발급',
-      detail: secret ? '발급됨' : '미발급',
-      done: secret !== null,
-    },
-    {
       label: '관측된 기기',
       detail: `${observed.length}대`,
       done: observed.length > 0,
@@ -1084,8 +1079,8 @@ function Onboarding() {
       )}
 
       <SectionCard
-        title="1. enroll secret 발급"
-        description="이 값을 엔드포인트의 osquery enroll.secret에 넣으면 그 기기가 내 조직으로 등록됩니다."
+        title="1. enroll secret"
+        description="기기를 내 조직으로 등록시키는 값입니다. 2번 설치 명령에 이미 들어 있어 따로 옮겨 적을 필요는 없습니다."
       >
         {loggedIn ? (
           <EnrollSecretPanel
@@ -1111,7 +1106,7 @@ function Onboarding() {
               <StepList steps={quickInstallSteps(secret)} />
             ) : (
               <div className="mt-[16px] text-[13px] text-high leading-[1.6]">
-                1번에서 enroll secret을 발급하면 여기에 설치 명령이 나타납니다.
+                로그인하면 내 조직의 enroll secret이 채워진 설치 명령이 나타납니다.
               </div>
             )}
             <details className="mt-[20px] group">
@@ -1129,7 +1124,7 @@ function Onboarding() {
               <StepList steps={quickInstallStepsWindows(secret)} />
             ) : (
               <div className="mt-[16px] text-[13px] text-high leading-[1.6]">
-                1번에서 enroll secret을 발급하면 여기에 설치 명령이 나타납니다.
+                로그인하면 내 조직의 enroll secret이 채워진 설치 명령이 나타납니다.
               </div>
             )}
             <details className="mt-[20px]">

@@ -160,6 +160,40 @@ const INSTALL_STEPS: Record<OsKey, Step[]> = {
   ],
 }
 
+// 네트워크 이벤트는 osquery 가 못 준다. macOS 의 socket_events 는 OpenBSM 기반이라 신형 macOS 에서
+// 비고, Windows 는 실시간 소켓 테이블 자체가 없다. 그래서 Zeek 가 담당한다.
+// 인증은 osquery 와 같다(같은 enroll secret / 서버 인증서 / host 이름) → 대시보드에서 한 기기로 합쳐진다.
+const ZEEK_SHIPPER_URL =
+  'https://raw.githubusercontent.com/2026-Siheung-Bootcamp-Team-I/Backend/main/collector-service/zeek/edrdog-zeek-shipper.py'
+
+const ZEEK_STEPS: Step[] = [
+  {
+    title: 'Zeek 설치',
+    body: '네트워크 트래픽을 분석해 연결 기록(conn.log)을 남기는 도구입니다.',
+    command: 'brew install zeek',
+  },
+  {
+    title: '캡처 시작',
+    body: '로그는 실행한 디렉터리에 생깁니다. 이 터미널은 켜둔 채로 두세요.\n-C 는 빼면 안 됩니다. 맥의 네트워크 카드가 체크섬을 나중에 채우는 방식이라, 없으면 Zeek가 패킷을 전부 버립니다.\n인터페이스가 en0가 아닐 수 있습니다. route get default 로 확인하세요.',
+    command: 'mkdir -p ~/zeek-logs && cd ~/zeek-logs\nsudo zeek -C -i en0 LogAscii::use_json=T local',
+  },
+  {
+    title: '전송기 내려받기',
+    body: 'conn.log 를 읽어 수집 서버로 보내는 스크립트입니다. 위 2번에서 배치한 enroll secret과 서버 인증서를 그대로 씁니다.',
+    command: `curl -fsSL ${ZEEK_SHIPPER_URL} -o ~/edrdog-zeek-shipper.py\nchmod +x ~/edrdog-zeek-shipper.py`,
+  },
+  {
+    title: '전송기 실행',
+    body: '새 터미널에서 실행합니다. enroll secret 파일이 root 전용이라 sudo가 필요합니다.\n"enroll 완료" 다음에 "발행 N건"이 찍히면 정상입니다.',
+    command: `sudo ~/edrdog-zeek-shipper.py --conn-log ~/zeek-logs/conn.log --tls-host ${TLS_HOST}`,
+  },
+  {
+    title: '수집 확인',
+    body: 'Zeek는 연결이 끝난 뒤에 기록합니다. TCP 정상 종료 기준 약 5초 뒤입니다. 진행 중인 연결은 안 찍히니, 웹을 잠깐 쓰고 20초쯤 기다렸다가 확인하세요. 수집되면 위협 지도에 목적지 국가가 나타납니다.',
+    command: 'tail -f ~/zeek-logs/conn.log',
+  },
+]
+
 // 수집 종료. 설치(INSTALL_STEPS)와 대칭 구조이고, 경로는 collector-service의 osquery/*.flags 실측 기준.
 // 1번만 하면 임시 중지, 끝까지 하면 완전 종료.
 const STOP_STEPS: Record<OsKey, Step[]> = {
@@ -1022,6 +1056,26 @@ function Onboarding() {
           <div className="mt-[14px] text-[12px] text-high leading-[1.6]">
             수집 서버 주소가 아직 설정되지 않아 플래그 파일의 --tls_hostname은 예시 값입니다. 실제
             주소는 관리자에게 받아 바꿔서 저장하세요.
+          </div>
+        )}
+
+        <div className="mt-[28px] text-[13px] font-semibold text-ink-2">
+          네트워크 이벤트 수집 (Zeek, 선택)
+        </div>
+        <div className="mt-[8px] text-[12px] text-faint leading-[1.6]">
+          osquery는 네트워크 연결을 실시간으로 주지 못합니다. macOS는 관련 기능이 OS에서 사실상
+          제거됐고, Windows는 해당 테이블 자체가 없습니다. 그래서 연결 기록만 Zeek가 담당합니다.
+          여기까지 하면 위협 지도가 실제 데이터로 채워집니다. 안 해도 프로세스·파일 탐지는 그대로
+          동작합니다.
+        </div>
+        {os === 'macos' ? (
+          <div className="mt-[14px]">
+            <StepList steps={ZEEK_STEPS} />
+          </div>
+        ) : (
+          <div className="mt-[12px] text-[12px] text-high leading-[1.6]">
+            Windows용 안내는 아직 준비되지 않았습니다. 같은 방식으로 붙일 수 있지만 검증되지
+            않았습니다.
           </div>
         )}
       </SectionCard>

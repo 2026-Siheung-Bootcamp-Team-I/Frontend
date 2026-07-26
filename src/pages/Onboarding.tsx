@@ -311,10 +311,13 @@ const FLEET_OS_TABS: { key: FleetOsKey; label: string }[] = [
 
 /**
  * 배포된 Fleet 서버 주소. 백엔드가 내려주는 값이 아직 없어 빌드 시 주입한다.
- * 미설정이면 플레이스홀더를 보여주고 관리자에게 받도록 안내한다.
+ *
+ * 미설정이어도 예시가 아니라 운영 주소를 쓴다. 예시 주소가 그대로 나가면 6번 명령을 복사해도
+ * 동작하지 않는데, 화면만 봐서는 그게 예시인지 알기 어렵다(실제로 배포본이 그 상태였다).
+ * 다른 환경에 올릴 때는 VITE_FLEET_URL 로 덮어쓴다.
  */
-const FLEET_URL_PLACEHOLDER = 'https://fleet.example.com'
-const FLEET_URL: string = import.meta.env.VITE_FLEET_URL || FLEET_URL_PLACEHOLDER
+const FLEET_URL: string =
+  import.meta.env.VITE_FLEET_URL || 'https://fleet.edrdog-i-team.duckdns.org'
 
 /**
  * kill(실제 조치)은 Fleet 의 run-script 로 실행된다. 수집용 osquery 와 별개로 fleetd(orbit) 등록이 필요하다.
@@ -1281,12 +1284,7 @@ function Onboarding() {
           </div>
         )}
 
-        {FLEET_URL === FLEET_URL_PLACEHOLDER && (
-          <div className="mt-[14px] text-[12px] text-high leading-[1.6]">
-            Fleet 서버 주소가 아직 설정되지 않아 명령어의 --fleet-url은 예시 값입니다. 실제 주소는
-            관리자에게 받아 바꿔서 실행하세요.
-          </div>
-        )}
+        {/* --fleet-url 은 미설정이어도 운영 주소가 들어가므로 "예시 값" 경고를 띄우지 않는다. */}
 
         <div className="mt-[24px] text-[13px] font-semibold text-ink-2">kill 가능 조건</div>
         <ul className="mt-[10px] flex flex-col gap-[8px]">

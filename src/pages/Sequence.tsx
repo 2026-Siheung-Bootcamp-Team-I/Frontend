@@ -174,12 +174,14 @@ const execResult: Record<ExecuteStatus, { text: string; tone: 'good' | 'high' | 
   DISABLED: { text: '서버에서 실제 조치가 꺼져 있습니다.', tone: 'mid' },
 }
 
-const toneClass = {
-  good: 'text-good',
-  high: 'text-high',
-  crit: 'text-crit',
-  mid: 'text-mid',
+/** 결과 배지 배경. 작은 글씨 한 줄이면 조치가 됐는지 눈에 안 띈다. */
+const resultBox = {
+  good: 'bg-good/15 text-good border border-good/30',
+  high: 'bg-high/15 text-high border border-high/30',
+  crit: 'bg-crit/15 text-crit border border-crit/30',
+  mid: 'bg-panel text-mid border border-line',
 }
+
 
 /** 실제 조치(kill) 실행. 확인 단계를 거친 뒤 api-service 를 경유해 실행한다. */
 function RealAction({ alert }: { alert: Alert }) {
@@ -232,9 +234,15 @@ function RealAction({ alert }: { alert: Alert }) {
           </div>
           {result && (
             <div
-              className={`mt-[6px] text-[12.5px] font-semibold ${toneClass[execResult[result].tone]}`}
+              className={`mt-[10px] inline-flex items-center gap-[8px] px-[12px] py-[8px] rounded-sm text-[13px] font-semibold ${resultBox[execResult[result].tone]}`}
             >
-              결과: {execResult[result].text}
+              <span>{result === 'KILLED' ? '✓' : '!'}</span>
+              <span>{execResult[result].text}</span>
+            </div>
+          )}
+          {result === 'KILLED' && (
+            <div className="mt-[6px] text-[12px] text-faint leading-[1.5]">
+              이 알림은 처리 완료(confirmed)로 바뀌었습니다. 열린 알림 목록에서는 사라집니다.
             </div>
           )}
           {isDemo && (
@@ -267,10 +275,10 @@ function RealAction({ alert }: { alert: Alert }) {
             <button
               type="button"
               onClick={ask}
-              disabled={!target || phase === 'pending'}
+              disabled={!target || phase === 'pending' || result === 'KILLED'}
               className="flex-1 sm:flex-none whitespace-nowrap text-[13px] font-semibold text-white bg-high px-[18px] py-[10px] rounded-sm cursor-pointer font-sans disabled:opacity-60 disabled:cursor-default"
             >
-              {phase === 'pending' ? '실행 중' : '실제 조치 실행'}
+              {phase === 'pending' ? '실행 중' : result === 'KILLED' ? '조치 완료' : '실제 조치 실행'}
             </button>
           )}
         </div>

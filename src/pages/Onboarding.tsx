@@ -210,10 +210,11 @@ function quickInstallStepsWindows(secret: string): Step[] {
   return [
     {
       title: '설치 스크립트 실행',
-      body: '관리자 권한 PowerShell에서 실행합니다. osquery 설치, 서버 인증서 수신, 서비스 등록까지 한 번에 끝납니다.\n서버 인증서는 수집 포트에서 자동으로 받아오므로 따로 받을 필요가 없습니다.\n내려받은 스크립트는 Windows가 기본적으로 실행을 막으므로 -ExecutionPolicy Bypass로 그 실행만 허용합니다. 시스템 정책은 바뀌지 않습니다.',
-      // .\edrdog-install.ps1 로 바로 부르면 기본 정책(Restricted)과 인터넷 파일 표시(MOTW)에 걸려
-      // 실행 자체가 막힌다. 이 프로세스에만 Bypass 를 주는 형태로 부른다.
-      command: `irm ${INSTALL_SCRIPT_URL_WIN} -OutFile edrdog-install.ps1\npowershell -ExecutionPolicy Bypass -File .\\edrdog-install.ps1 -TlsHost ${TLS_HOST} -EnrollSecret ${s}`,
+      body: '관리자 권한 PowerShell에서 실행합니다. osquery 설치, 서버 인증서 수신, 서비스 등록까지 한 번에 끝납니다.\n서버 인증서는 수집 포트에서 자동으로 받아오므로 따로 받을 필요가 없습니다.\n내려받은 스크립트는 Windows가 기본적으로 실행을 막으므로 -ExecutionPolicy Bypass로 그 실행만 허용합니다. 시스템 정책은 바뀌지 않습니다.\n두 줄을 한 번에 붙여넣으면 줄바꿈이 사라져 붙는 경우가 있습니다. 한 줄씩 실행하세요.',
+      // 상대 경로(.\)를 쓰면 안 된다. 관리자 PowerShell 은 C:\Windows\system32 에서 열리는데
+      // 파일은 사용자 홈에 받아지므로 "파일이 없다"로 막힌다. 실기기에서 그랬다.
+      // Bypass 는 이 실행에만 적용된다(기본 정책과 인터넷 파일 표시에 걸려 실행 자체가 막히는 것을 푼다).
+      command: `irm ${INSTALL_SCRIPT_URL_WIN} -OutFile $HOME\\edrdog-install.ps1\npowershell -ExecutionPolicy Bypass -File $HOME\\edrdog-install.ps1 -TlsHost ${TLS_HOST} -EnrollSecret ${s}`,
     },
     {
       title: '수집 확인',

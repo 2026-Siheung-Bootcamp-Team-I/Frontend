@@ -343,7 +343,7 @@ function fleetSteps(os: FleetOsKey, secret: string | null): Step[] {
     : [
         {
           title: 'Fleet enroll secret 확인',
-          body: '1번의 EDRdog enroll secret과 다른 값입니다. 헷갈리기 쉬우니 주의하세요.\n로그인하면 이 단계 없이 아래 명령에 값이 채워집니다. 아래는 직접 확인하는 방법입니다.\n출력된 문자열을 다음 단계의 --enroll-secret 에 넣으세요.',
+          body: '1번의 EDRdog enroll secret과 다른 값입니다. 헷갈리기 쉬우니 주의하세요.\nEDRdog에 로그인하면 이 단계가 사라지고 다음 명령에 값이 채워집니다. 아래는 직접 확인하는 방법입니다.\n출력된 문자열을 다음 단계의 --enroll-secret 에 넣으세요.',
           command: `fleetctl config set --address ${FLEET_URL}\nfleetctl login\nfleetctl get enroll-secret`,
         },
       ]
@@ -351,7 +351,9 @@ function fleetSteps(os: FleetOsKey, secret: string | null): Step[] {
   return [
     {
       title: 'fleetctl 설치',
-      body: '설치 패키지를 만드는 도구입니다. kill 대상 기기가 아니라 작업용 PC에 설치합니다.',
+      // "대상 기기가 아니라 작업용 PC" 라고만 쓰면 두 PC 가 달라야 하는 것처럼 읽히고,
+      // 이 도구가 조치를 실행한다고 오해하게 된다. 둘 다 아니다.
+      body: '설치 파일을 만드는 도구입니다. 아무 PC에서나 만들면 되고, kill 대상 기기 본인이어도 됩니다.\n이 도구가 조치를 실행하는 건 아닙니다. 조치는 아래에서 만든 파일을 설치한 기기로 전달됩니다.',
       command: 'npm install -g fleetctl',
     },
     ...lookup,

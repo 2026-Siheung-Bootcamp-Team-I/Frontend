@@ -1118,7 +1118,7 @@ function Onboarding() {
 
       <SectionCard
         title="2. 기기 설치 및 로그 수집"
-        description="OS를 선택해 설치·수집 명령어를 확인하세요. 서버 인증서는 관리자에게 받고, 플래그 파일은 화면의 내용을 그대로 저장하면 됩니다."
+        description="OS를 선택해 설치 명령을 확인하세요. 서버 인증서와 enroll secret, 플래그 파일은 명령이 알아서 처리합니다. 명령이 실패했을 때만 아래 수동 설치를 쓰세요."
       >
         <OsTabs tabs={OS_TABS} value={os} onChange={setOs} />
 

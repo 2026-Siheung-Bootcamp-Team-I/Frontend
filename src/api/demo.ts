@@ -148,14 +148,70 @@ const alerts: DemoAlert[] = [
 ]
 
 const hosts: Host[] = [
-  { host: 'WIN-FIN-02', lastSeen: now - 40_000, status: 'critical', threats: 2 },
-  { host: 'WIN-DEV-01', lastSeen: now - 90_000, status: 'critical', threats: 1 },
-  { host: 'WIN-HR-03', lastSeen: now - 3 * MINUTE, status: 'warning', threats: 1 },
-  { host: 'WIN-OPS-01', lastSeen: now - 5 * MINUTE, status: 'warning', threats: 1 },
-  { host: 'WIN-OPS-02', lastSeen: now - 8 * MINUTE, status: 'healthy', threats: 0 },
-  { host: 'WIN-FIN-01', lastSeen: now - 11 * MINUTE, status: 'healthy', threats: 0 },
-  { host: 'WIN-MKT-01', lastSeen: now - 26 * MINUTE, status: 'healthy', threats: 0 },
+  {
+    host: 'WIN-FIN-02',
+    lastSeen: now - 40_000,
+    status: 'critical',
+    threats: 2,
+    enrolled: true,
+    agentSeen: now - 40_000,
+  },
+  {
+    host: 'WIN-DEV-01',
+    lastSeen: now - 90_000,
+    status: 'critical',
+    threats: 1,
+    enrolled: true,
+    agentSeen: now - 90_000,
+  },
+  {
+    host: 'WIN-HR-03',
+    lastSeen: now - 3 * MINUTE,
+    status: 'warning',
+    threats: 1,
+    enrolled: true,
+    agentSeen: now - 3 * MINUTE,
+  },
+  {
+    host: 'WIN-OPS-01',
+    lastSeen: now - 5 * MINUTE,
+    status: 'warning',
+    threats: 1,
+    enrolled: true,
+    agentSeen: now - 5 * MINUTE,
+  },
+  {
+    host: 'WIN-OPS-02',
+    lastSeen: now - 8 * MINUTE,
+    status: 'healthy',
+    threats: 0,
+    enrolled: true,
+    agentSeen: now - 8 * MINUTE,
+  },
+  {
+    host: 'WIN-FIN-01',
+    lastSeen: now - 11 * MINUTE,
+    status: 'healthy',
+    threats: 0,
+    enrolled: true,
+    agentSeen: now - 11 * MINUTE,
+  },
+  // 등록은 됐지만 아직 이벤트가 없는 기기. osquery 는 붙어 있는데 수집된 이벤트가 0건인 상태를
+  // 데모에서도 보여주려고 lastSeen 은 0, agentSeen 은 최근 값으로 둔다.
+  {
+    host: 'WIN-MKT-01',
+    lastSeen: 0,
+    status: 'healthy',
+    threats: 0,
+    enrolled: true,
+    agentSeen: now - 2 * MINUTE,
+  },
 ]
+
+/** 등록은 됐지만 이벤트가 한 번도 없는 기기. healthy 카운트에서 따로 떼어내는 기준이다. */
+function isNoEvents(h: Host): boolean {
+  return h.enrolled && h.lastSeen === 0
+}
 
 /**
  * 지도에 찍는 외부 연결 목적지. 백엔드 GET /api/events/geo 와 같은 국가별 집계 형태다.
@@ -323,9 +379,10 @@ export const demoApi = {
 
   hostSummary: (): Promise<HostSummary> =>
     respond({
-      healthy: hosts.filter((h) => h.status === 'healthy').length,
+      healthy: hosts.filter((h) => h.status === 'healthy' && !isNoEvents(h)).length,
       warning: hosts.filter((h) => h.status === 'warning').length,
       critical: hosts.filter((h) => h.status === 'critical').length,
+      noEvents: hosts.filter(isNoEvents).length,
       total: hosts.length,
     }),
 

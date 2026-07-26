@@ -280,11 +280,16 @@ function HostDonut({ summary }: { summary: HostSummary }) {
   const total = summary.total
   const healthyEnd = total > 0 ? (summary.healthy / total) * 100 : 0
   const warningEnd = total > 0 ? healthyEnd + (summary.warning / total) * 100 : 0
+  const criticalEnd = total > 0 ? warningEnd + (summary.critical / total) * 100 : 0
+  // 나머지(criticalEnd ~ 100%)가 noEvents 조각이다.
 
   const legend = [
     { label: '정상', value: summary.healthy, color: 'bg-good' },
     { label: '주의', value: summary.warning, color: 'bg-high' },
     { label: '위험', value: summary.critical, color: 'bg-crit' },
+    // 등록만 되고 이벤트가 없는 기기다. "정상" 색(초록)을 쓰면 검증 안 된 상태를 좋다고
+    // 말하는 셈이라 중립색으로 따로 둔다.
+    { label: '수집 없음', value: summary.noEvents, color: 'bg-faint' },
   ]
 
   return (
@@ -294,7 +299,7 @@ function HostDonut({ summary }: { summary: HostSummary }) {
         style={{
           background:
             total > 0
-              ? `conic-gradient(var(--good) 0 ${healthyEnd}%, var(--high) ${healthyEnd}% ${warningEnd}%, var(--crit) ${warningEnd}% 100%)`
+              ? `conic-gradient(var(--good) 0 ${healthyEnd}%, var(--high) ${healthyEnd}% ${warningEnd}%, var(--crit) ${warningEnd}% ${criticalEnd}%, var(--faint) ${criticalEnd}% 100%)`
               : 'var(--panel)',
         }}
       >

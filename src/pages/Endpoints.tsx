@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/api'
-import type { HostStatus } from '@/api/types'
+import type { Host, HostStatus } from '@/api/types'
 import Card from '@/components/ui/Card'
 import FilterChips from '@/components/ui/FilterChips'
 import AsyncState from '@/components/ui/AsyncState'
@@ -9,9 +9,16 @@ import ScrollArea from '@/components/ui/ScrollArea'
 import { useApi } from '@/hooks/useApi'
 import { hostStatusColor, hostStatusLabel, relativeTime } from '@/lib/format'
 
-type Filter = 'all' | HostStatus
+// HostStatus 와 별개 축이다. 등록은 됐지만 이벤트가 아직 없는 기기는 열린 알림이 없어
+// status 는 항상 healthy 로 오는데, 그걸 그대로 "정상"에 합치면 검증 안 된 상태를 좋다고
+// 말하는 셈이라 필터·카운트에서 따로 뗀다.
+type Filter = 'all' | HostStatus | 'noEvents'
 
-const rowGrid = 'grid grid-cols-[1fr_110px_140px_70px] gap-[12px]'
+function isNoEvents(h: Host): boolean {
+  return h.enrolled && h.lastSeen === 0
+}
+
+const rowGrid = 'grid grid-cols-[1fr_100px_120px_110px_70px] gap-[12px]'
 
 function Endpoints() {
   const [filter, setFilter] = useState<Filter>('all')
@@ -21,14 +28,20 @@ function Endpoints() {
   const hosts = useMemo(() => data ?? [], [data])
   const counts = useMemo(
     () => ({
-      healthy: hosts.filter((h) => h.status === 'healthy').length,
+      healthy: hosts.filter((h) => h.status === 'healthy' && !isNoEvents(h)).length,
       warning: hosts.filter((h) => h.status === 'warning').length,
       critical: hosts.filter((h) => h.status === 'critical').length,
+      noEvents: hosts.filter(isNoEvents).length,
     }),
     [hosts],
   )
 
-  const rows = filter === 'all' ? hosts : hosts.filter((h) => h.status === filter)
+  const rows =
+    filter === 'all'
+      ? hosts
+      : filter === 'noEvents'
+        ? hosts.filter(isNoEvents)
+        : hosts.filter((h) => h.status === filter && !isNoEvents(h))
 
   const chips = [
     { label: `전체 ${hosts.length}`, active: filter === 'all', onClick: () => setFilter('all') },
@@ -47,6 +60,11 @@ function Endpoints() {
       active: filter === 'critical',
       onClick: () => setFilter('critical'),
     },
+    {
+      label: `수집 없음 ${counts.noEvents}`,
+      active: filter === 'noEvents',
+      onClick: () => setFilter('noEvents'),
+    },
   ]
 
   return (
@@ -57,7 +75,7 @@ function Endpoints() {
             엔드포인트
           </div>
           <div className="mt-[6px] text-[13px] text-faint">
-            에이전트가 관측 중인 호스트의 상태입니다.
+            등록됐거나 에이전트가 관측 중인 호스트의 상태입니다.
           </div>
         </div>
         <FilterChips chips={chips} />
@@ -68,22 +86,24 @@ function Endpoints() {
           loading={loading}
           error={error}
           empty={rows.length === 0}
-          emptyText="관측된 호스트가 없습니다"
+          emptyText="등록되거나 관측된 호스트가 없습니다"
           onRetry={refetch}
         >
           <ScrollArea label="엔드포인트 목록">
-            <div className="min-w-[520px]">
+            <div className="min-w-[580px]">
               <div
                 className={`${rowGrid} py-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
               >
                 <span>호스트</span>
                 <span>상태</span>
                 <span>마지막 활동</span>
+                <span>에이전트 연결</span>
                 <span className="text-right">위협</span>
               </div>
               {rows.map((row, i) => {
                 const clickable = row.threats > 0
                 const goToThreats = () => navigate('/threats?host=' + encodeURIComponent(row.host))
+                const noEvents = isNoEvents(row)
                 return (
                   <div
                     key={row.host}
@@ -107,16 +127,21 @@ function Endpoints() {
                     <span className="font-mono text-[13px] text-ink">{row.host}</span>
                     <span
                       className="inline-flex items-center gap-[7px] text-[12.5px] font-semibold"
-                      style={{ color: hostStatusColor(row.status) }}
+                      style={{ color: noEvents ? 'var(--faint)' : hostStatusColor(row.status) }}
                     >
                       <span
                         className="w-2 h-2 rounded-full"
-                        style={{ background: hostStatusColor(row.status) }}
+                        style={{
+                          background: noEvents ? 'var(--faint)' : hostStatusColor(row.status),
+                        }}
                       />
-                      {hostStatusLabel(row.status)}
+                      {noEvents ? '수집 없음' : hostStatusLabel(row.status)}
                     </span>
                     <span className="font-mono text-[12px] text-faint">
-                      {relativeTime(row.lastSeen)}
+                      {noEvents ? '수집 없음' : relativeTime(row.lastSeen)}
+                    </span>
+                    <span className="font-mono text-[12px] text-faint">
+                      {row.enrolled ? relativeTime(row.agentSeen) : '-'}
                     </span>
                     <span
                       className={`font-mono text-[12.5px] text-right ${

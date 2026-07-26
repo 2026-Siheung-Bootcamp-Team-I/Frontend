@@ -5,9 +5,14 @@ import type { Alert } from '@/api/types'
 import { statusLabel } from '@/lib/format'
 import { useAlertsStore } from '@/store/alerts'
 
-/** detector 가 severity 로 정하는 권고 대응(notify|kill|isolate). dry-run 이라 실행하지 않고 표시만 한다. */
+/**
+ * detector 가 severity 로 정하는 권고 대응(notify|kill|isolate).
+ *
+ * isolate 가 kill 과 같은 문구인 이유: 격리는 아직 구현이 없어 실제로 하는 일은 프로세스 종료뿐이다.
+ * 권고와 실제 조치가 다르면 격리된 줄 알고 넘어가게 된다. 격리를 붙이면 그때 문구를 되돌린다.
+ */
 const actionText: Record<string, string> = {
-  isolate: '를 즉시 격리하세요.',
+  isolate: '에서 해당 프로세스를 종료하세요.',
   kill: '에서 해당 프로세스를 종료하세요.',
   notify: '의 활동을 확인하세요.',
 }

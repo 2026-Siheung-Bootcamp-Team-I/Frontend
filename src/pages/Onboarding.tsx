@@ -175,7 +175,8 @@ const ZEEK_STEPS: Step[] = [
   {
     title: '캡처 시작',
     body: '로그는 실행한 디렉터리에 생깁니다. 이 터미널은 켜둔 채로 두세요.\n-C 는 빼면 안 됩니다. 맥의 네트워크 카드가 체크섬을 나중에 채우는 방식이라, 없으면 Zeek가 패킷을 전부 버립니다.\n인터페이스가 en0가 아닐 수 있습니다. route get default 로 확인하세요.',
-    command: 'mkdir -p ~/zeek-logs && cd ~/zeek-logs\nsudo zeek -C -i en0 LogAscii::use_json=T local',
+    command:
+      'mkdir -p ~/zeek-logs && cd ~/zeek-logs\nsudo zeek -C -i en0 LogAscii::use_json=T local',
   },
   {
     title: '전송기 내려받기',
@@ -209,8 +210,10 @@ function quickInstallStepsWindows(secret: string): Step[] {
   return [
     {
       title: '설치 스크립트 실행',
-      body: '관리자 권한 PowerShell에서 실행합니다. osquery 설치, 서버 인증서 수신, 서비스 등록까지 한 번에 끝납니다.\n서버 인증서는 수집 포트에서 자동으로 받아오므로 따로 받을 필요가 없습니다.',
-      command: `irm ${INSTALL_SCRIPT_URL_WIN} -OutFile edrdog-install.ps1\n.\\edrdog-install.ps1 -TlsHost ${TLS_HOST} -EnrollSecret ${s}`,
+      body: '관리자 권한 PowerShell에서 실행합니다. osquery 설치, 서버 인증서 수신, 서비스 등록까지 한 번에 끝납니다.\n서버 인증서는 수집 포트에서 자동으로 받아오므로 따로 받을 필요가 없습니다.\n내려받은 스크립트는 Windows가 기본적으로 실행을 막으므로 -ExecutionPolicy Bypass로 그 실행만 허용합니다. 시스템 정책은 바뀌지 않습니다.',
+      // .\edrdog-install.ps1 로 바로 부르면 기본 정책(Restricted)과 인터넷 파일 표시(MOTW)에 걸려
+      // 실행 자체가 막힌다. 이 프로세스에만 Bypass 를 주는 형태로 부른다.
+      command: `irm ${INSTALL_SCRIPT_URL_WIN} -OutFile edrdog-install.ps1\npowershell -ExecutionPolicy Bypass -File .\\edrdog-install.ps1 -TlsHost ${TLS_HOST} -EnrollSecret ${s}`,
     },
     {
       title: '수집 확인',
@@ -254,6 +257,14 @@ const STOP_STEPS: Record<OsKey, Step[]> = {
       command: 'sudo osqueryctl stop',
     },
     {
+      title: 'Zeek 수집 중지 (설치 명령에 포함돼 있습니다)',
+      // 설치 스크립트가 com.edrdog.zeek / com.edrdog.zeek-shipper 두 데몬을 등록한다.
+      // 이걸 내리지 않으면 osquery 를 멈춰도 네트워크 이벤트는 계속 올라간다.
+      body: 'osquery만 멈추면 Zeek는 계속 돌면서 연결 기록을 보냅니다. 한 줄 설치 명령을 썼다면 Zeek도 함께 깔려 있으니 이 단계까지 해야 수집이 완전히 멈춥니다.',
+      command:
+        'sudo launchctl unload -w /Library/LaunchDaemons/com.edrdog.zeek-shipper.plist\nsudo launchctl unload -w /Library/LaunchDaemons/com.edrdog.zeek.plist\nsudo rm -f /Library/LaunchDaemons/com.edrdog.zeek*.plist /usr/local/bin/edrdog-zeek-shipper.py\nsudo rm -rf /var/log/edrdog-zeek',
+    },
+    {
       title: '자동 시작 해제 (직접 등록한 경우만)',
       body: 'osqueryctl 대신 plist를 직접 복사해 load 했다면 이 명령으로 내립니다. 1번을 썼다면 이미 내려가 있으므로 건너뛰세요.',
       command: 'sudo launchctl unload -w /Library/LaunchDaemons/io.osquery.agent.plist',
@@ -292,9 +303,11 @@ const STOP_STEPS: Record<OsKey, Step[]> = {
     },
     {
       title: 'enroll secret · 인증서 · 플래그 파일 삭제',
-      body: 'C:\\ProgramData\\osquery\\ 아래에 둔 파일을 지웁니다. 남겨두면 재설치 시 같은 값으로 그대로 재등록됩니다.',
+      // 플래그 파일 이름이 두 가지다. 설치 스크립트는 osquery.flags 로 쓰고,
+      // 아래 수동 안내는 osquery.win.flags 로 쓴다. 어느 쪽으로 깔았든 지워지게 둘 다 넣는다.
+      body: 'C:\\ProgramData\\osquery\\ 아래에 둔 파일을 지웁니다. 남겨두면 재설치 시 같은 값으로 그대로 재등록됩니다.\n설치 방식에 따라 플래그 파일 이름이 달라서 둘 다 지웁니다. 없는 파일은 그냥 넘어갑니다.',
       command:
-        'Remove-Item C:\\ProgramData\\osquery\\enroll.secret, C:\\ProgramData\\osquery\\osquery-server.pem, C:\\ProgramData\\osquery\\osquery.win.flags',
+        'Remove-Item -ErrorAction SilentlyContinue C:\\ProgramData\\osquery\\enroll.secret, C:\\ProgramData\\osquery\\osquery-server.pem, C:\\ProgramData\\osquery\\osquery.flags, C:\\ProgramData\\osquery\\osquery.win.flags',
     },
   ],
 }
@@ -310,65 +323,69 @@ const FLEET_OS_TABS: { key: FleetOsKey; label: string }[] = [
 
 /**
  * 배포된 Fleet 서버 주소. 백엔드가 내려주는 값이 아직 없어 빌드 시 주입한다.
- * 미설정이면 플레이스홀더를 보여주고 관리자에게 받도록 안내한다.
+ *
+ * 미설정이어도 예시가 아니라 운영 주소를 쓴다. 예시 주소가 그대로 나가면 6번 명령을 복사해도
+ * 동작하지 않는데, 화면만 봐서는 그게 예시인지 알기 어렵다(실제로 배포본이 그 상태였다).
+ * 다른 환경에 올릴 때는 VITE_FLEET_URL 로 덮어쓴다.
  */
-const FLEET_URL_PLACEHOLDER = 'https://fleet.example.com'
-const FLEET_URL: string = import.meta.env.VITE_FLEET_URL || FLEET_URL_PLACEHOLDER
+const FLEET_URL: string =
+  import.meta.env.VITE_FLEET_URL || 'https://fleet.edrdog-i-team.duckdns.org'
 
-// kill(실제 조치)은 Fleet 의 run-script 로 실행된다. 수집용 osquery 와 별개로 fleetd(orbit) 등록이 필요하다.
-const FLEET_STEPS: Record<FleetOsKey, Step[]> = {
-  windows: [
+/**
+ * kill(실제 조치)은 Fleet 의 run-script 로 실행된다. 수집용 osquery 와 별개로 fleetd(orbit) 등록이 필요하다.
+ *
+ * Fleet enroll secret 은 서버가 대신 읽어다 준다(GET /api/fleet/enroll-secret). 값을 받았으면
+ * 패키지 생성 명령에 바로 박아 "값을 확인하는 단계" 자체를 없앤다. 못 받았을 때만(비로그인·Fleet 무응답)
+ * fleetctl 로 직접 확인하는 단계를 끼운다.
+ */
+function fleetSteps(os: FleetOsKey, secret: string | null): Step[] {
+  const type = os === 'macos' ? 'pkg' : 'msi'
+  const install: Step =
+    os === 'macos'
+      ? {
+          title: '대상 기기에 설치',
+          body: '만들어진 pkg를 kill 대상 기기로 옮겨 설치합니다.',
+          command: 'sudo installer -pkg fleet-osquery.pkg -target /',
+        }
+      : {
+          title: '대상 기기에 설치',
+          body: '만들어진 msi를 kill 대상 기기로 옮겨 관리자 권한으로 설치합니다.',
+          command: 'msiexec /i fleet-osquery.msi /quiet',
+        }
+
+  const lookup: Step[] = secret
+    ? []
+    : [
+        {
+          title: 'Fleet enroll secret 확인',
+          body: '1번의 EDRdog enroll secret과 다른 값입니다. 헷갈리기 쉬우니 주의하세요.\nEDRdog에 로그인하면 이 단계가 사라지고 다음 명령에 값이 채워집니다. 아래는 직접 확인하는 방법입니다.\n출력된 문자열을 다음 단계의 --enroll-secret 에 넣으세요.',
+          command: `fleetctl config set --address ${FLEET_URL}\nfleetctl login\nfleetctl get enroll-secret`,
+        },
+      ]
+
+  return [
     {
       title: 'fleetctl 설치',
-      body: '설치 패키지를 만드는 도구입니다. kill 대상 기기가 아니라 작업용 PC에 설치합니다.',
+      // "대상 기기가 아니라 작업용 PC" 라고만 쓰면 두 PC 가 달라야 하는 것처럼 읽히고,
+      // 이 도구가 조치를 실행한다고 오해하게 된다. 둘 다 아니다.
+      body: '설치 파일을 만드는 도구입니다. 아무 PC에서나 만들면 되고, kill 대상 기기 본인이어도 됩니다.\n이 도구가 조치를 실행하는 건 아닙니다. 조치는 아래에서 만든 파일을 설치한 기기로 전달됩니다.',
       command: 'npm install -g fleetctl',
     },
-    {
-      title: 'Fleet enroll secret 확인',
-      body: `1번의 EDRdog enroll secret과 다른 값입니다. 헷갈리기 쉬우니 주의하세요.\n아래를 차례로 실행하면 콘솔을 열지 않고 값을 얻습니다. login은 Fleet 계정(관리자에게 문의)으로 한 번만 하면 됩니다.`,
-      command: `fleetctl config set --address ${FLEET_URL}\nfleetctl login\nfleetctl get enroll-secret`,
-    },
+    ...lookup,
     {
       title: 'fleetd 패키지 생성',
-      body: '실행하면 현재 디렉터리에 fleet-osquery.msi가 생성됩니다.',
-      command: `fleetctl package --type=msi --fleet-url=${FLEET_URL} --enroll-secret=<FLEET_ENROLL_SECRET>`,
+      // --enable-scripts 가 빠지면 등록은 되는데 조치만 조용히 실패한다. 실기기에서 겪은 함정이라 명령에 포함한다.
+      body: `실행하면 현재 디렉터리에 fleet-osquery.${type}가 생성됩니다.\n--enable-scripts가 빠지면 기기는 등록되지만 조치(kill)가 실행되지 않습니다.`,
+      command: `fleetctl package --type=${type} --fleet-url=${FLEET_URL} --enroll-secret=${
+        secret ?? '<FLEET_ENROLL_SECRET>'
+      } --enable-scripts`,
     },
-    {
-      title: '대상 기기에 설치',
-      body: '만들어진 msi를 kill 대상 기기로 옮겨 관리자 권한으로 설치합니다.',
-      command: 'msiexec /i fleet-osquery.msi /quiet',
-    },
+    install,
     {
       title: '등록 확인',
       body: 'Fleet 콘솔 Hosts 목록에 이 기기가 online으로 뜨면 완료입니다. 이때 호스트 이름이 알림에 표시되는 host와 같아야 조치가 그 기기로 전달됩니다.',
     },
-  ],
-  macos: [
-    {
-      title: 'fleetctl 설치',
-      body: '설치 패키지를 만드는 도구입니다. kill 대상 기기가 아니라 작업용 PC에 설치합니다.',
-      command: 'npm install -g fleetctl',
-    },
-    {
-      title: 'Fleet enroll secret 확인',
-      body: `1번의 EDRdog enroll secret과 다른 값입니다. 헷갈리기 쉬우니 주의하세요.\n아래를 차례로 실행하면 콘솔을 열지 않고 값을 얻습니다. login은 Fleet 계정(관리자에게 문의)으로 한 번만 하면 됩니다.\n출력된 문자열을 다음 단계의 --enroll-secret 에 넣으세요.`,
-      command: `fleetctl config set --address ${FLEET_URL}\nfleetctl login\nfleetctl get enroll-secret`,
-    },
-    {
-      title: 'fleetd 패키지 생성',
-      body: '실행하면 현재 디렉터리에 fleet-osquery.pkg가 생성됩니다.',
-      command: `fleetctl package --type=pkg --fleet-url=${FLEET_URL} --enroll-secret=<FLEET_ENROLL_SECRET>`,
-    },
-    {
-      title: '대상 기기에 설치',
-      body: '만들어진 pkg를 kill 대상 기기로 옮겨 설치합니다.',
-      command: 'sudo installer -pkg fleet-osquery.pkg -target /',
-    },
-    {
-      title: '등록 확인',
-      body: 'Fleet 콘솔 Hosts 목록에 이 기기가 online으로 뜨면 완료입니다. 이때 호스트 이름이 알림에 표시되는 host와 같아야 조치가 그 기기로 전달됩니다.',
-    },
-  ],
+  ]
 }
 
 // 하나라도 빠지면 "실행" 버튼이 눌려도 프로세스가 종료되지 않는다.
@@ -1024,6 +1041,11 @@ function Onboarding() {
     [loggedIn],
   )
   const webhookQ = useApi(() => (loggedIn ? api.getWebhook() : Promise.resolve(null)), [loggedIn])
+  // Fleet enroll secret 은 tenant 값이 아니라 Fleet 인스턴스 값이라 조회 경로가 따로다.
+  const fleetSecretQ = useApi(
+    () => (loggedIn ? api.fleetEnrollSecret() : Promise.resolve(null)),
+    [loggedIn],
+  )
 
   // 저장 직후 값. 저장 뒤 재조회하면 폼이 다시 마운트되면서 "저장되었습니다" 가 즉시 사라져서,
   // 체크리스트만 이 값으로 갱신하고 폼은 건드리지 않는다.
@@ -1265,19 +1287,14 @@ function Onboarding() {
         <div className="mt-[18px]">
           <OsTabs tabs={FLEET_OS_TABS} value={fleetOs} onChange={setFleetOs} />
         </div>
-        {fleetOs === 'macos' ? (
-          <StepList steps={FLEET_STEPS.macos} />
-        ) : (
-          <StepList steps={FLEET_STEPS.windows} />
-        )}
+        <StepList steps={fleetSteps(fleetOs, fleetSecretQ.data?.secret ?? null)} />
 
+        {/*
+          값을 못 받으면 위 목록에 "Fleet enroll secret 확인" 단계가 살아나 직접 확인하는 방법을
+          그대로 안내한다. 여기에 경고를 하나 더 띄우면 같은 말을 두 번 하는 셈이라 두지 않는다.
+        */}
 
-        {FLEET_URL === FLEET_URL_PLACEHOLDER && (
-          <div className="mt-[14px] text-[12px] text-high leading-[1.6]">
-            Fleet 서버 주소가 아직 설정되지 않아 명령어의 --fleet-url은 예시 값입니다. 실제 주소는
-            관리자에게 받아 바꿔서 실행하세요.
-          </div>
-        )}
+        {/* --fleet-url 은 미설정이어도 운영 주소가 들어가므로 "예시 값" 경고를 띄우지 않는다. */}
 
         <div className="mt-[24px] text-[13px] font-semibold text-ink-2">kill 가능 조건</div>
         <ul className="mt-[10px] flex flex-col gap-[8px]">

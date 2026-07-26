@@ -109,6 +109,11 @@ export const severityColors: Record<Tone, string> = {
   good: 'var(--good)',
 }
 
+/** 아바타에 넣을 이메일 첫 글자(대문자). 비어 있으면 '?'. */
+export function initial(email: string): string {
+  return email.trim().charAt(0).toUpperCase() || '?'
+}
+
 /** 합계 대비 백분율. 합계가 0이면 0. */
 export function percentOf(value: number, total: number): number {
   return total > 0 ? Math.round((value / total) * 100) : 0

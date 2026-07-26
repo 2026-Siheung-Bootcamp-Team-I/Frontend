@@ -194,6 +194,56 @@ const ZEEK_STEPS: Step[] = [
   },
 ]
 
+const INSTALL_SCRIPT_URL =
+  'https://raw.githubusercontent.com/2026-Siheung-Bootcamp-Team-I/Backend/main/collector-service/scripts/edrdog-install-macos.sh'
+
+const INSTALL_SCRIPT_URL_WIN =
+  'https://raw.githubusercontent.com/2026-Siheung-Bootcamp-Team-I/Backend/main/collector-service/scripts/edrdog-install-windows.ps1'
+
+/**
+ * Windows 빠른 설치. 내려받아 내용을 확인한 뒤 실행하는 2줄 방식이다.
+ * macOS 와 달리 사람이 승인할 권한(FDA)이 없어 서비스 등록까지 자동으로 끝난다.
+ */
+function quickInstallStepsWindows(secret: string): Step[] {
+  const s = secret
+  return [
+    {
+      title: '설치 스크립트 실행',
+      body: '관리자 권한 PowerShell에서 실행합니다. osquery 설치, 서버 인증서 수신, 서비스 등록까지 한 번에 끝납니다.\n서버 인증서는 수집 포트에서 자동으로 받아오므로 따로 받을 필요가 없습니다.',
+      command: `irm ${INSTALL_SCRIPT_URL_WIN} -OutFile edrdog-install.ps1\n.\\edrdog-install.ps1 -TlsHost ${TLS_HOST} -EnrollSecret ${s}`,
+    },
+    {
+      title: '수집 확인',
+      body: '서비스가 Running이면 수집이 시작된 것입니다. 프로세스 감시가 ETW라 별도 권한 승인은 필요 없습니다.\n수집이 시작되면 아래 4번 기기 상태에 이 기기가 나타납니다.',
+      command: 'Get-Service osqueryd',
+    },
+  ]
+}
+
+/**
+ * macOS 한 줄 설치. 화면이 이미 아는 값(수집 서버 주소, enroll secret)을 명령에 채워 넣어
+ * 사용자가 복사만 하면 되게 한다. 수동 절차는 아래 접이식에 그대로 남긴다.
+ */
+function quickInstallSteps(secret: string): Step[] {
+  const s = secret
+  return [
+    {
+      title: '설치 명령 한 줄 실행',
+      body: '프로세스·파일 수집(osquery)과 네트워크 수집(Zeek)을 함께 설치하고 데몬으로 등록합니다.\n서버 인증서는 수집 포트에서 자동으로 받아오므로 따로 받을 필요가 없습니다.',
+      command: `curl -fsSL ${INSTALL_SCRIPT_URL} | sudo bash -s -- \\\n  --tls-host ${TLS_HOST} \\\n  --enroll-secret ${s} \\\n  --with-zeek`,
+    },
+    {
+      title: '전체 디스크 접근(FDA) 승인',
+      body: '이 단계만 사람이 직접 해야 합니다. macOS가 사람 승인만 받도록 막아둔 권한이라 스크립트로 대신할 수 없습니다.\n시스템 설정 → 개인정보 보호 및 보안 → 전체 디스크 접근 → "+" → Cmd+Shift+G 로 아래 경로를 추가하세요. (.app 번들이 아니라 그 안의 유닉스 바이너리입니다)\n/opt/osquery/lib/osquery.app/Contents/MacOS/osqueryd',
+    },
+    {
+      title: '재부팅 후 확인',
+      body: 'FDA 권한은 실행 중인 프로세스에 즉시 반영되지 않습니다. 재부팅하면 수집이 시작되고, 아래 4번 기기 상태에 이 기기가 나타납니다.',
+      command: 'sudo osqueryctl status',
+    },
+  ]
+}
+
 // 수집 종료. 설치(INSTALL_STEPS)와 대칭 구조이고, 경로는 collector-service의 osquery/*.flags 실측 기준.
 // 1번만 하면 임시 중지, 끝까지 하면 완전 종료.
 const STOP_STEPS: Record<OsKey, Step[]> = {
@@ -249,11 +299,13 @@ const STOP_STEPS: Record<OsKey, Step[]> = {
   ],
 }
 
-type FleetOsKey = 'macos' | 'linux'
+type FleetOsKey = 'macos' | 'windows'
 
+// 2·7번과 탭을 맞춘다(macOS/Windows). Windows 는 조치 스크립트가 POSIX sh 라 아직 지원하지 않고,
+// Linux 는 탭 대신 접이식으로 둔다(사내 서버 등 소수 사례).
 const FLEET_OS_TABS: { key: FleetOsKey; label: string }[] = [
   { key: 'macos', label: 'macOS' },
-  { key: 'linux', label: 'Linux' },
+  { key: 'windows', label: 'Windows' },
 ]
 
 /**
@@ -265,6 +317,32 @@ const FLEET_URL: string = import.meta.env.VITE_FLEET_URL || FLEET_URL_PLACEHOLDE
 
 // kill(실제 조치)은 Fleet 의 run-script 로 실행된다. 수집용 osquery 와 별개로 fleetd(orbit) 등록이 필요하다.
 const FLEET_STEPS: Record<FleetOsKey, Step[]> = {
+  windows: [
+    {
+      title: 'fleetctl 설치',
+      body: '설치 패키지를 만드는 도구입니다. kill 대상 기기가 아니라 작업용 PC에 설치합니다.',
+      command: 'npm install -g fleetctl',
+    },
+    {
+      title: 'Fleet enroll secret 확인',
+      body: `1번의 EDRdog enroll secret과 다른 값입니다. 헷갈리기 쉬우니 주의하세요.\n아래를 차례로 실행하면 콘솔을 열지 않고 값을 얻습니다. login은 Fleet 계정(관리자에게 문의)으로 한 번만 하면 됩니다.`,
+      command: `fleetctl config set --address ${FLEET_URL}\nfleetctl login\nfleetctl get enroll-secret`,
+    },
+    {
+      title: 'fleetd 패키지 생성',
+      body: '실행하면 현재 디렉터리에 fleet-osquery.msi가 생성됩니다.',
+      command: `fleetctl package --type=msi --fleet-url=${FLEET_URL} --enroll-secret=<FLEET_ENROLL_SECRET>`,
+    },
+    {
+      title: '대상 기기에 설치',
+      body: '만들어진 msi를 kill 대상 기기로 옮겨 관리자 권한으로 설치합니다.',
+      command: 'msiexec /i fleet-osquery.msi /quiet',
+    },
+    {
+      title: '등록 확인',
+      body: 'Fleet 콘솔 Hosts 목록에 이 기기가 online으로 뜨면 완료입니다. 이때 호스트 이름이 알림에 표시되는 host와 같아야 조치가 그 기기로 전달됩니다.',
+    },
+  ],
   macos: [
     {
       title: 'fleetctl 설치',
@@ -273,7 +351,8 @@ const FLEET_STEPS: Record<FleetOsKey, Step[]> = {
     },
     {
       title: 'Fleet enroll secret 확인',
-      body: 'Fleet 콘솔 → Hosts → Add hosts 에서 확인합니다. 1번의 osquery enroll secret과는 다른 값입니다.',
+      body: `1번의 EDRdog enroll secret과 다른 값입니다. 헷갈리기 쉬우니 주의하세요.\n아래를 차례로 실행하면 콘솔을 열지 않고 값을 얻습니다. login은 Fleet 계정(관리자에게 문의)으로 한 번만 하면 됩니다.\n출력된 문자열을 다음 단계의 --enroll-secret 에 넣으세요.`,
+      command: `fleetctl config set --address ${FLEET_URL}\nfleetctl login\nfleetctl get enroll-secret`,
     },
     {
       title: 'fleetd 패키지 생성',
@@ -290,31 +369,6 @@ const FLEET_STEPS: Record<FleetOsKey, Step[]> = {
       body: 'Fleet 콘솔 Hosts 목록에 이 기기가 online으로 뜨면 완료입니다. 이때 호스트 이름이 알림에 표시되는 host와 같아야 조치가 그 기기로 전달됩니다.',
     },
   ],
-  linux: [
-    {
-      title: 'fleetctl 설치',
-      body: '설치 패키지를 만드는 도구입니다. kill 대상 기기가 아니라 작업용 PC에 설치합니다.',
-      command: 'npm install -g fleetctl',
-    },
-    {
-      title: 'Fleet enroll secret 확인',
-      body: 'Fleet 콘솔 → Hosts → Add hosts 에서 확인합니다. 1번의 osquery enroll secret과는 다른 값입니다.',
-    },
-    {
-      title: 'fleetd 패키지 생성',
-      body: 'RPM 계열(RHEL·Rocky 등)이면 --type=rpm 으로 바꿉니다.',
-      command: `fleetctl package --type=deb --fleet-url=${FLEET_URL} --enroll-secret=<FLEET_ENROLL_SECRET>`,
-    },
-    {
-      title: '대상 기기에 설치',
-      body: 'RPM 계열이면 sudo rpm -Uvh fleet-osquery-*.rpm 로 설치합니다.',
-      command: 'sudo dpkg -i fleet-osquery_*.deb',
-    },
-    {
-      title: '등록 확인',
-      body: 'Fleet 콘솔 Hosts 목록에 이 기기가 online으로 뜨면 완료입니다. 이때 호스트 이름이 알림에 표시되는 host와 같아야 조치가 그 기기로 전달됩니다.',
-    },
-  ],
 }
 
 // 하나라도 빠지면 "실행" 버튼이 눌려도 프로세스가 종료되지 않는다.
@@ -322,7 +376,7 @@ const KILL_REQUIREMENTS = [
   'fleetd(orbit)가 설치돼 Fleet 호스트 목록에 online으로 보일 것',
   'Fleet 서버의 스크립트 실행(run-script)이 켜져 있을 것 (Settings → Organization settings → Advanced)',
   'Fleet 서버가 https이고 인증서가 유효할 것. 자체 서명 인증서면 fleetd가 등록 단계에서 실패합니다.',
-  '대상이 macOS 또는 Linux일 것. 조치 스크립트가 POSIX sh라 Windows는 아직 지원하지 않습니다.',
+  '대상 기기가 macOS 또는 Windows일 것. 플랫폼에 맞는 조치 스크립트(sh / PowerShell)가 자동으로 선택됩니다.',
   '서버의 조치 실행 스위치가 켜져 있을 것. 이 스위치가 꺼져 있으면 위를 다 갖춰도 실제로는 아무것도 실행되지 않습니다(관리자 확인).',
 ]
 
@@ -1050,7 +1104,44 @@ function Onboarding() {
         description="OS를 선택해 설치·수집 명령어를 확인하세요. 서버 인증서는 관리자에게 받고, 플래그 파일은 화면의 내용을 그대로 저장하면 됩니다."
       >
         <OsTabs tabs={OS_TABS} value={os} onChange={setOs} />
-        <StepList steps={INSTALL_STEPS[os]} />
+
+        {os === 'macos' ? (
+          <>
+            {secret ? (
+              <StepList steps={quickInstallSteps(secret)} />
+            ) : (
+              <div className="mt-[16px] text-[13px] text-high leading-[1.6]">
+                1번에서 enroll secret을 발급하면 여기에 설치 명령이 나타납니다.
+              </div>
+            )}
+            <details className="mt-[20px] group">
+              <summary className="cursor-pointer text-[12.5px] text-faint hover:text-mid">
+                수동으로 설치하기 (설치 명령이 실패했을 때)
+              </summary>
+              <div className="mt-[10px]">
+                <StepList steps={INSTALL_STEPS.macos} />
+              </div>
+            </details>
+          </>
+        ) : (
+          <>
+            {secret ? (
+              <StepList steps={quickInstallStepsWindows(secret)} />
+            ) : (
+              <div className="mt-[16px] text-[13px] text-high leading-[1.6]">
+                1번에서 enroll secret을 발급하면 여기에 설치 명령이 나타납니다.
+              </div>
+            )}
+            <details className="mt-[20px]">
+              <summary className="cursor-pointer text-[12.5px] text-faint hover:text-mid">
+                수동으로 설치하기 (설치 스크립트가 실패했을 때)
+              </summary>
+              <div className="mt-[10px]">
+                <StepList steps={INSTALL_STEPS.windows} />
+              </div>
+            </details>
+          </>
+        )}
 
         {TLS_HOST === TLS_HOST_PLACEHOLDER && (
           <div className="mt-[14px] text-[12px] text-high leading-[1.6]">
@@ -1069,9 +1160,14 @@ function Onboarding() {
           동작합니다.
         </div>
         {os === 'macos' ? (
-          <div className="mt-[14px]">
-            <StepList steps={ZEEK_STEPS} />
-          </div>
+          <details className="mt-[14px]">
+            <summary className="cursor-pointer text-[12.5px] text-faint hover:text-mid">
+              수동으로 설치하기 (위 설치 명령이 이미 포함합니다)
+            </summary>
+            <div className="mt-[10px]">
+              <StepList steps={ZEEK_STEPS} />
+            </div>
+          </details>
         ) : (
           <div className="mt-[12px] text-[12px] text-high leading-[1.6]">
             Windows용 안내는 아직 준비되지 않았습니다. 같은 방식으로 붙일 수 있지만 검증되지
@@ -1174,7 +1270,12 @@ function Onboarding() {
         <div className="mt-[18px]">
           <OsTabs tabs={FLEET_OS_TABS} value={fleetOs} onChange={setFleetOs} />
         </div>
-        <StepList steps={FLEET_STEPS[fleetOs]} />
+        {fleetOs === 'macos' ? (
+          <StepList steps={FLEET_STEPS.macos} />
+        ) : (
+          <StepList steps={FLEET_STEPS.windows} />
+        )}
+
 
         {FLEET_URL === FLEET_URL_PLACEHOLDER && (
           <div className="mt-[14px] text-[12px] text-high leading-[1.6]">

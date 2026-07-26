@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as echarts from 'echarts'
 import ReactECharts from 'echarts-for-react'
 import { feature } from 'topojson-client'
@@ -195,7 +195,9 @@ function buildOption(dests: GeoDestination[], p: Palette): echarts.EChartsOption
     },
     geo: {
       map: 'world',
-      roam: false,
+      // 작은 나라(한국·싱가포르 등)를 읽을 수 있게 확대만 허용. 드래그 이동은 막는다.
+      roam: 'scale',
+      scaleLimit: { min: 1, max: 6 },
       silent: true,
       itemStyle: {
         areaColor: p.area,
@@ -246,6 +248,53 @@ function buildOption(dests: GeoDestination[], p: Palette): echarts.EChartsOption
   }
 }
 
+/**
+ * 휠 클릭 드래그로 지도를 이동시킨다.
+ * roam 이 'scale' 이라 좌클릭 드래그는 막혀 있는데, 확대한 뒤 다른 지역을 보려면 이동이 필요하다.
+ */
+function useMiddleDragPan(
+  box: React.RefObject<HTMLDivElement | null>,
+  chart: React.RefObject<ReactECharts | null>,
+  ready: boolean,
+) {
+  useEffect(() => {
+    const dom = box.current
+    if (!dom) return
+
+    let last: { x: number; y: number } | null = null
+
+    const down = (e: MouseEvent) => {
+      if (e.button !== 1) return
+      e.preventDefault() // 크롬 기본 자동 스크롤 방지
+      last = { x: e.clientX, y: e.clientY }
+    }
+    const move = (e: MouseEvent) => {
+      if (!last) return
+      // 차트는 다시 만들어질 수 있으므로 이벤트마다 현재 인스턴스를 집는다.
+      chart.current?.getEchartsInstance()?.dispatchAction({
+        type: 'geoRoam',
+        componentType: 'geo',
+        geoIndex: 0,
+        dx: e.clientX - last.x,
+        dy: e.clientY - last.y,
+      })
+      last = { x: e.clientX, y: e.clientY }
+    }
+    const up = () => {
+      last = null
+    }
+
+    dom.addEventListener('mousedown', down)
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+    return () => {
+      dom.removeEventListener('mousedown', down)
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+  }, [box, chart, ready])
+}
+
 function ThreatMap() {
   const theme = useThemeStore((s) => s.theme)
   const geo = useApi(() => api.geoDestinations())
@@ -264,6 +313,14 @@ function ThreatMap() {
   const empty = byCountry.length === 0
 
   const option = useMemo(() => buildOption(byCountry, p), [byCountry, p])
+
+  const boxRef = useRef<HTMLDivElement | null>(null)
+  const chartRef = useRef<ReactECharts | null>(null)
+  useMiddleDragPan(boxRef, chartRef, !empty)
+
+  // 확대·이동한 지도를 처음 배율과 위치로 되돌린다. 멀리 끌고 간 뒤 돌아올 방법이 이것뿐이다.
+  const resetView = () =>
+    chartRef.current?.getEchartsInstance()?.setOption({ geo: { center: null, zoom: 1 } })
 
   const maxCount = byCountry[0]?.count ?? 0
   const totalCount = useMemo(() => byCountry.reduce((sum, d) => sum + d.count, 0), [byCountry])
@@ -299,12 +356,22 @@ function ThreatMap() {
                 </Link>
               </div>
             ) : (
-              <ReactECharts
-                option={option}
-                notMerge
-                style={{ height: 560, width: '100%' }}
-                opts={{ renderer: 'canvas' }}
-              />
+              <div ref={boxRef} className="relative">
+                <button
+                  type="button"
+                  onClick={resetView}
+                  className="absolute top-[6px] right-[6px] z-[1] text-[12px] font-semibold text-ink-2 border border-line bg-surface px-[10px] py-[5px] rounded-sm cursor-pointer font-sans"
+                >
+                  원위치
+                </button>
+                <ReactECharts
+                  ref={chartRef}
+                  option={option}
+                  notMerge
+                  style={{ height: 560, width: '100%' }}
+                  opts={{ renderer: 'canvas' }}
+                />
+              </div>
             )}
           </AsyncState>
         </Card>

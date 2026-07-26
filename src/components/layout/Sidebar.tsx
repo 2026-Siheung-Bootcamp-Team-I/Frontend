@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { api } from '@/api'
 import LogoMark from '@/components/ui/LogoMark'
 import { useApi } from '@/hooks/useApi'
+import { initial } from '@/lib/format'
 import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
 
@@ -181,7 +182,9 @@ function NavRow({ item, openCount }: { item: NavItem; openCount: number }) {
       to={item.to}
       className={({ isActive }) =>
         `flex items-center gap-[11px] px-[11px] py-[8px] rounded-sm text-[13px] font-semibold cursor-pointer transition-colors ${
-          isActive ? 'bg-[var(--accent-wash)] text-accent' : 'text-mid hover:text-ink-2 hover:bg-panel'
+          isActive
+            ? 'bg-[var(--accent-wash)] text-accent'
+            : 'text-mid hover:text-ink-2 hover:bg-panel'
         }`
       }
     >
@@ -269,17 +272,24 @@ function Sidebar({ open, onClose }: SidebarProps) {
         {/* 대시보드는 로그인 없이도 열리므로 비로그인 상태를 함께 다룬다. */}
         {user ? (
           <div className="mt-auto flex items-center gap-[10px] px-[12px] py-[10px] border-t border-line-2">
-            <div className="w-[30px] h-[30px] rounded-full bg-panel flex items-center justify-center text-[12px] font-semibold text-ink-2">
-              보안
+            <div className="w-[30px] h-[30px] shrink-0 rounded-full bg-panel flex items-center justify-center text-[12px] font-semibold text-ink-2">
+              {initial(user.email)}
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[12.5px] font-semibold text-ink">보안운영팀</span>
-              <span className="text-[11px] text-faint truncate">{user.email}</span>
-            </div>
+            {/*
+              로그인한 계정을 그대로 보여준다. 좁아서 잘릴 수 있으므로 전체 주소는 title 로 남긴다.
+              역할은 표시하지 않는다. 가입하면 전부 admin 이라 누구에게나 같은 값이고,
+              권한 분리가 실제로 생기면 그때 자리를 만든다.
+            */}
+            <span
+              title={user.email}
+              className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-ink"
+            >
+              {user.email}
+            </span>
             <button
               type="button"
               onClick={logout}
-              className="ml-auto text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer font-sans"
+              className="shrink-0 text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer font-sans"
             >
               로그아웃
             </button>

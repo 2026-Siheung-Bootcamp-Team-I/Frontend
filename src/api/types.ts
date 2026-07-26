@@ -84,6 +84,14 @@ export type EnrollSecret = {
   enrollSecret: string | null
 }
 
+/**
+ * Fleet 자체 enroll secret(fleetd 패키지 빌드용). tenant 별 EnrollSecret 과 다른 값이다.
+ * Fleet 이 응답하지 못하면 secret 이 null 이다.
+ */
+export type FleetEnrollSecret = {
+  secret: string | null
+}
+
 /** 내가 소유 등록한 host 목록. 이 host 들의 탐지 알림이 내 webhook 으로 라우팅된다. */
 export type MyHosts = {
   hosts: string[]

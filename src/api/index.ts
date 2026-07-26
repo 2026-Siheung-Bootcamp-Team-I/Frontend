@@ -14,6 +14,7 @@ import type {
   UserWebhook,
   WebhookTestResult,
   EnrollSecret,
+  FleetEnrollSecret,
   MyHosts,
   ExecuteResult,
 } from './types'
@@ -110,6 +111,12 @@ export const api = {
 
   /** /api/tenant/** 는 X-API-Key 가 필요한 경로다(client.ts 가 붙여준다). */
   getEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret'),
+
+  /**
+   * Fleet enroll secret. fleetd 패키지를 만들 때 쓰는 Fleet 자체 값이라 위 tenant enroll secret 과
+   * 다르다. 서버(responder)가 Fleet 관리자 토큰으로 대신 읽어 준다.
+   */
+  fleetEnrollSecret: () => request<FleetEnrollSecret>('/fleet/enroll-secret'),
 
   rotateEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret', { method: 'POST' }),
 

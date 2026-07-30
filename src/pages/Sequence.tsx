@@ -214,8 +214,8 @@ function SequenceDetail({ alert }: { alert: Alert }) {
         실행 가능한 조치는 프로세스 종료 하나뿐이다. notify(MEDIUM)는 조치 대상이 아니라
         버튼을 띄우지 않는다.
 
-        isolate 를 함께 받는 이유: 격리는 아직 구현이 없어(방화벽으로 끊으면 Fleet 연결도
-        끊겨 되돌릴 수단이 사라진다) 당분간 프로세스 종료로 대신한다. detector 는 이미
+        isolate 를 함께 받는 이유: 격리는 아직 구현이 없어(방화벽으로 끊으면 에이전트 연결도
+        끊겨 명령을 내려보낼 수단이 사라진다) 당분간 프로세스 종료로 대신한다. detector 는 이미
         CRITICAL 을 kill 로 권고하도록 바꿨고(Alert.java), isolate 는 데모 데이터에만 남아 있다.
         실제로 격리를 붙이면 이 분기와 함께 권고를 되돌린다.
       */}

@@ -93,11 +93,18 @@ export type EnrollSecret = {
 }
 
 /**
- * Fleet 자체 enroll secret(fleetd 패키지 빌드용). tenant 별 EnrollSecret 과 다른 값이다.
- * Fleet 이 응답하지 못하면 secret 이 null 이다.
+ * 설치 링크 발급 응답.
+ *
+ * 명령줄은 서버가 조립해서 준다. 화면이 주소와 토큰을 이어 붙이면 서버 주소나 경로가 바뀔 때
+ * 프론트도 같이 고쳐야 하고, 어긋나면 사용자가 붙여넣은 명령이 조용히 틀린 곳을 가리킨다.
+ * 그래서 macosCommand/windowsCommand 는 손대지 않고 그대로 보여준다.
  */
-export type FleetEnrollSecret = {
-  secret: string | null
+export type InstallLink = {
+  token: string
+  /** ISO-8601. 기본 24시간이라 화면에 남은 시간을 알려줘야 한다. */
+  expiresAt: string
+  macosCommand: string
+  windowsCommand: string
 }
 
 /** 내가 소유 등록한 host 목록. 이 host 들의 탐지 알림이 내 webhook 으로 라우팅된다. */
@@ -132,7 +139,7 @@ export type ExecuteResult = {
   host: string
   target: string
   status: ExecuteStatus
-  /** Fleet 실행 id. 없으면 null. */
+  /** 에이전트에 내려보낸 명령 id. 실행 전에 끝난 DISABLED/COOLDOWN 이면 null. */
   executionId: string | null
 }
 

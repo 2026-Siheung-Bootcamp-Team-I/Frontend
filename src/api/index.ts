@@ -14,7 +14,7 @@ import type {
   UserWebhook,
   WebhookTestResult,
   EnrollSecret,
-  FleetEnrollSecret,
+  InstallLink,
   MyHosts,
   ExecuteResult,
 } from './types'
@@ -113,10 +113,10 @@ export const api = {
   getEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret'),
 
   /**
-   * Fleet enroll secret. fleetd 패키지를 만들 때 쓰는 Fleet 자체 값이라 위 tenant enroll secret 과
-   * 다르다. 서버(responder)가 Fleet 관리자 토큰으로 대신 읽어 준다.
+   * 설치 링크 발급. 붙여넣을 한 줄 명령까지 서버가 만들어 준다.
+   * 토큰이 짧게 살기 때문에(기본 24시간) 화면을 열 때가 아니라 사용자가 누를 때 부른다.
    */
-  fleetEnrollSecret: () => request<FleetEnrollSecret>('/fleet/enroll-secret'),
+  issueInstallLink: () => request<InstallLink>('/tenant/install-link', { method: 'POST' }),
 
   rotateEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret', { method: 'POST' }),
 

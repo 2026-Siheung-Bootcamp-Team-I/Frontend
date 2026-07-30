@@ -139,7 +139,7 @@ export type ExecuteResult = {
   host: string
   target: string
   status: ExecuteStatus
-  /** Fleet 실행 id. 없으면 null. */
+  /** 에이전트에 내려보낸 명령 id. 실행 전에 끝난 DISABLED/COOLDOWN 이면 null. */
   executionId: string | null
 }
 

@@ -26,8 +26,8 @@ export type SourceEvent = {
   detail: string
   sha256: string
   /**
-   * 이 이벤트를 무엇으로 특정했는지. 확신이 강한 순서다.
-   * summary(프로세스명·부모·경로까지 일치) > destination(목적지 일치) > rule_type(이벤트 종류만 일치).
+   * 이 이벤트를 무엇으로 특정했는지. 확신이 강한 순서로 summary > rule_type 둘뿐이다.
+   * 둘 다 못 짚으면 시각으로 추측하지 않고 sourceEvent 자체가 null 로 온다.
    * 백엔드가 단계를 늘릴 수 있어 유니온으로 좁히지 않는다.
    */
   matchedBy: string
@@ -111,6 +111,12 @@ export type Host = {
   agentSeen: number
   /** 에이전트가 보고한 OS. darwin | windows. 미등록이면 빈 문자열. */
   platform: string
+  /**
+   * 0..100. 기간 내 열린 알림을 severity 로 가중합한 값이다.
+   * 알림이 없으면 0 이고 null 이 아니다. 관측하지 못한 게 아니라 열린 알림이 없다는 실제 결과다.
+   * 토폴로지 엔드포인트 노드의 riskScore 와 같은 계산이라 두 화면이 같은 숫자를 낸다.
+   */
+  riskScore: number
 }
 
 export type HostSummary = {

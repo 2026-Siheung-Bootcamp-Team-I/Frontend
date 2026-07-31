@@ -29,6 +29,13 @@ type AlertFilter = {
   host?: string
   severity?: string
   status?: AlertStatus
+  /**
+   * 목적지로 거른다. 대소문자는 서버가 맞춘다.
+   * 서버는 빈 문자열을 "목적지를 관측하지 못한 알림만" 이라는 별도 질문으로 받지만,
+   * queryString 이 빈 값을 빼기 때문에 여기로는 그 질문을 보낼 수 없다. 필요해지면 그때 연다.
+   */
+  domain?: string
+  destIp?: string
   /** epoch millis */
   from?: number
   to?: number
@@ -183,6 +190,15 @@ export const api = {
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 
   hostSummary: () => (isDemo() ? demoApi.hostSummary() : request<HostSummary>('/hosts/summary')),
+
+  /**
+   * 이벤트 한 건. id 는 저장된 값이 아니라 내용을 접은 것이라 서버가 훑지 않으려면 host·ts 가 필요하다.
+   * 서버는 id 가 실제로 맞는 행만 돌려준다. 링크가 조작되면 아무 이벤트나 열리지 않고 404 다.
+   */
+  event: (id: string, host: string, ts: number) =>
+    isDemo()
+      ? demoApi.event(id)
+      : request<EdrEvent>(`/events/${encodeURIComponent(id)}${queryString({ host, ts })}`),
 
   /** 수집된 개별 이벤트를 최신순으로. 유형 필터는 서버가 아니라 화면에서 거른다(아래 Events 페이지 주석). */
   events: (filter: EventFilter = {}) =>

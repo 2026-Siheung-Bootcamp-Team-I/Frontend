@@ -18,7 +18,7 @@ function isNoEvents(h: Host): boolean {
   return h.enrolled && h.lastSeen === 0
 }
 
-const rowGrid = 'grid grid-cols-[1fr_90px_100px_120px_110px_70px] gap-[12px]'
+const rowGrid = 'grid grid-cols-[1fr_90px_100px_120px_120px_110px_70px] gap-[12px]'
 
 function Endpoints() {
   const [filter, setFilter] = useState<Filter>('all')
@@ -90,13 +90,14 @@ function Endpoints() {
           onRetry={refetch}
         >
           <ScrollArea label="엔드포인트 목록">
-            <div className="min-w-[660px]">
+            <div className="min-w-[800px]">
               <div
                 className={`${rowGrid} py-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
               >
                 <span>호스트</span>
                 <span>OS</span>
                 <span>상태</span>
+                <span>위험도</span>
                 <span>마지막 활동</span>
                 <span>에이전트 연결</span>
                 <span className="text-right">위협</span>
@@ -138,6 +139,20 @@ function Endpoints() {
                         }}
                       />
                       {noEvents ? '수집 없음' : hostStatusLabel(row.status)}
+                    </span>
+                    <span className="flex items-center gap-[8px]">
+                      <span className="w-[22px] text-right font-mono text-[12px] text-ink tabular-nums">
+                        {row.riskScore}
+                      </span>
+                      <span className="h-[5px] flex-1 overflow-hidden rounded-xs bg-panel">
+                        <span
+                          className="block h-full rounded-xs"
+                          style={{
+                            width: `${row.riskScore}%`,
+                            background: noEvents ? 'var(--faint)' : hostStatusColor(row.status),
+                          }}
+                        />
+                      </span>
                     </span>
                     <span className="font-mono text-[12px] text-faint">
                       {noEvents ? '수집 없음' : relativeTime(row.lastSeen)}

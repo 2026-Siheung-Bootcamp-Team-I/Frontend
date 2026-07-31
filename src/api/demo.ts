@@ -291,6 +291,8 @@ const hosts: Host[] = [
     enrolled: true,
     agentSeen: now - 40_000,
     platform: 'windows',
+    // 토폴로지 host:WIN-FIN-02 노드와 같은 값(CRITICAL+HIGH 열린 알림 2건).
+    riskScore: 92,
   },
   {
     host: 'WIN-DEV-01',
@@ -300,6 +302,8 @@ const hosts: Host[] = [
     enrolled: true,
     agentSeen: now - 90_000,
     platform: 'windows',
+    // 토폴로지 host:WIN-DEV-01 노드와 같은 값(CRITICAL 열린 알림 1건).
+    riskScore: 78,
   },
   {
     host: 'WIN-HR-03',
@@ -309,6 +313,8 @@ const hosts: Host[] = [
     enrolled: true,
     agentSeen: now - 3 * MINUTE,
     platform: 'windows',
+    // 토폴로지 host:WIN-HR-03 노드와 같은 값(HIGH 열린 알림 1건).
+    riskScore: 65,
   },
   {
     host: 'WIN-OPS-01',
@@ -318,6 +324,8 @@ const hosts: Host[] = [
     enrolled: true,
     agentSeen: now - 5 * MINUTE,
     platform: 'windows',
+    // WIN-HR-03 과 같은 조건(HIGH 열린 알림 1건)이라 같은 값.
+    riskScore: 65,
   },
   {
     host: 'WIN-OPS-02',
@@ -327,6 +335,7 @@ const hosts: Host[] = [
     enrolled: true,
     agentSeen: now - 8 * MINUTE,
     platform: 'windows',
+    riskScore: 0,
   },
   {
     host: 'WIN-FIN-01',
@@ -336,6 +345,8 @@ const hosts: Host[] = [
     enrolled: true,
     agentSeen: now - 11 * MINUTE,
     platform: 'windows',
+    // 토폴로지 host:WIN-FIN-01 노드와 같은 값(열린 알림 없음).
+    riskScore: 0,
   },
   // 등록은 됐지만 아직 이벤트가 없는 기기. osquery 는 붙어 있는데 수집된 이벤트가 0건인 상태를
   // 데모에서도 보여주려고 lastSeen 은 0, agentSeen 은 최근 값으로 둔다.
@@ -347,6 +358,7 @@ const hosts: Host[] = [
     enrolled: true,
     agentSeen: now - 2 * MINUTE,
     platform: 'windows',
+    riskScore: 0,
   },
   // OS 구분이 화면에 드러나야 해서 하나는 macOS 로 둔다.
   {
@@ -357,6 +369,8 @@ const hosts: Host[] = [
     enrolled: true,
     agentSeen: now - 5 * MINUTE,
     platform: 'darwin',
+    // 토폴로지 host:MAC-DESIGN-01 노드와 같은 값(열린 알림 없음).
+    riskScore: 0,
   },
 ]
 
@@ -627,14 +641,15 @@ function toSourceEvent(e: EdrEvent, matchedBy: SourceEvent['matchedBy']): Source
  * 알림 상세에서만 채워지는 원본 이벤트. demo-6~9 는 events 배열에 짝이 되는 이벤트가 없어서
  * null 로 둔다(원본을 못 찾은 경우를 화면이 어떻게 그리는지 보여주는 데도 쓰인다).
  *
- * matchedBy 는 확신이 강한 순서대로 세 단계를 섞어 둔다. summary(프로세스·부모·경로까지 일치) >
- * destination(목적지 일치) > rule_type(이벤트 종류만 일치).
+ * matchedBy 는 확신이 강한 순서대로 두 단계를 섞어 둔다. summary(프로세스·부모·목적지 등 구체적 값까지 일치) >
+ * rule_type(이벤트 종류만 일치).
  */
 const sourceEvents: Record<string, SourceEvent | null> = {
   'demo-1': toSourceEvent(findEvent('WIN-FIN-02', 'file'), 'summary'),
   'demo-2': toSourceEvent(findEvent('WIN-DEV-01', 'file'), 'summary'),
   // 판정 근거는 명령행이지만, 원본을 특정한 건 그 사건에서 관측된 목적지(telemetry-sync.io)다.
-  'demo-3': toSourceEvent(findEvent('WIN-HR-03', 'l7'), 'destination'),
+  // domain/destIp 가 alert 의 값과 정확히 일치하니(37 회 중 하나로 추정한 demo-4와 달리) summary 급 확신이다.
+  'demo-3': toSourceEvent(findEvent('WIN-HR-03', 'l7'), 'summary'),
   // c2_beacon 은 37 회 중 하나로 특정한 것이라 종류만 맞은 rule_type 이다.
   'demo-4': toSourceEvent(findEvent('WIN-FIN-02', 'l7'), 'rule_type'),
   'demo-5': toSourceEvent(findEvent('WIN-OPS-01', 'process'), 'summary'),
@@ -1032,7 +1047,8 @@ const topologyNodes: TopologyNode[] = [
     label: 'WIN-FIN-01',
     destKind: null,
     group: null,
-    riskScore: 8,
+    // 열린 알림이 없어 0. Host.riskScore 와 같은 계산이라 값도 같아야 한다.
+    riskScore: 0,
     openAlerts: 0,
     members: null,
   },
@@ -1042,7 +1058,8 @@ const topologyNodes: TopologyNode[] = [
     label: 'MAC-DESIGN-01',
     destKind: null,
     group: null,
-    riskScore: 5,
+    // 열린 알림이 없어 0. Host.riskScore 와 같은 계산이라 값도 같아야 한다.
+    riskScore: 0,
     openAlerts: 0,
     members: null,
   },
@@ -1423,6 +1440,13 @@ export const demoApi = {
     return respond(
       toAlert(target, sourceEvents[target.id] ?? null, incidentIdByAlertId[target.id] ?? null),
     )
+  },
+
+  /** 이벤트 한 건. 실제 서버는 없는 id 에 404 를 주니 여기서도 못 찾으면 던진다. */
+  event: (id: string) => {
+    const target = events.find((e) => e.id === id)
+    if (!target) throw new Error(`no demo event for ${id}`)
+    return respond<EdrEvent>(target)
   },
 
   /** 백엔드와 같은 조건·같은 순서(최신순). limit 기본값도 서버(100)와 맞춘다. */

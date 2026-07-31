@@ -438,24 +438,15 @@ function PickedAlert({
 }
 
 /**
- * matchedBy 별 확신 문구. 확신이 강한 순서로 summary > destination > rule_type 이다.
- * summary 는 프로세스명·부모·경로까지 맞춘 것이라 확신이 강하고, destination 은 목적지만 맞은 것이며,
- * rule_type 은 이벤트 종류만 맞아 같은 종류가 여럿이면 시각으로 갈린 것이라 확신이 가장 약하다.
- * 셋의 배지 색과 문구를 모두 다르게 둬서 추정을 사실처럼 보이지 않게 한다.
+ * matchedBy 별 확신 문구. 백엔드가 주는 값은 summary 와 rule_type 둘뿐이고 그 순으로 확신이 약해진다.
+ * 둘 다 못 짚으면 시각으로 추측하지 않고 sourceEvent 자체를 null 로 준다.
+ * 배지 색과 문구를 갈라 둬서 추정이 사실처럼 보이지 않게 한다.
  */
-const matchedByInfo: Record<
-  string,
-  { label: string; tone: 'good' | 'accent' | 'high'; note: string }
-> = {
+const matchedByInfo: Record<string, { label: string; tone: 'good' | 'high'; note: string }> = {
   summary: {
     label: '근거 확실',
     tone: 'good',
     note: '프로세스명·부모·경로까지 일치해 이 이벤트가 판정 근거임을 확인했습니다.',
-  },
-  destination: {
-    label: '목적지 일치',
-    tone: 'accent',
-    note: '목적지(도메인·IP)가 일치합니다. 프로세스까지 맞춘 것은 아니라 같은 곳에 붙은 다른 이벤트일 수 있습니다.',
   },
   rule_type: {
     label: '근거 추정',

@@ -28,26 +28,27 @@ const INSTALL_NOTES: Record<OsKey, Step[]> = {
   macos: [
     {
       title: '터미널에서 명령 실행',
-      body: '위에서 발급한 한 줄을 터미널에 붙여넣습니다. 서버 주소와 enroll secret은 이미 들어 있어 따로 넣을 값이 없습니다.\n스크립트가 권한 승인을 기다려야 하므로 터미널에서 직접 실행해야 합니다. 다른 프로그램이 대신 실행하면 승인 단계에서 멈춥니다.',
+      body: '위에서 발급한 한 줄을 터미널에 붙여넣습니다.\n중간에 권한 승인을 기다리므로 터미널에서 직접 실행해야 합니다. 다른 프로그램이 대신 실행하면 그 단계에서 멈춥니다.',
     },
     {
       title: '전체 디스크 접근(FDA) 승인',
       body: '이 단계만 사람이 직접 해야 합니다. macOS의 TCC는 사람 승인이나 MDM 프로파일로만 켤 수 있어 스크립트가 대신할 수 없습니다.\n스크립트가 설정 창을 열어 줍니다. "+"를 누르고 아래 경로를 추가한 뒤 켜고 Enter를 누르면 이어서 진행합니다.\n/usr/local/bin/edrdog-agent',
     },
     {
-      title: '등록 확인',
-      body: '승인 후 스크립트가 에이전트를 재시작하고 등록 로그를 30초까지 기다립니다. "등록 완료"가 보이면 끝난 것이고, 아래 3번 기기 상태에도 이 기기가 나타납니다.\n권한이 아직 안 켜졌으면 ERR_NOT_PERMITTED로 알려 줍니다. 그때는 전체 디스크 접근에서 껐다 다시 켠 뒤 재시작하세요.',
-      command: 'sudo launchctl kickstart -k system/com.edrdog.agent',
+      title: '결과 확인',
+      body: '스크립트가 끝나면서 결과를 알려줍니다. "등록 완료"가 보이면 끝난 것이고, 아래 3번 기기 상태에도 이 기기가 나타납니다.\nERR_NOT_PERMITTED가 보이면 권한이 아직 안 켜진 것입니다. 전체 디스크 접근에서 껐다 다시 켠 뒤 아래로 재시작하고 로그를 확인하세요.',
+      command:
+        'sudo launchctl kickstart -k system/com.edrdog.agent\ntail -n 50 /var/log/edrdog/agent.log',
     },
   ],
   windows: [
     {
       title: '관리자 PowerShell에서 명령 실행',
-      body: '위에서 발급한 한 줄을 관리자 권한 PowerShell에 붙여넣습니다. 서버 주소와 enroll secret은 이미 들어 있습니다.\n바이너리 수신, 서버 인증서 고정, 설정 작성, 서비스 등록까지 한 번에 끝납니다.',
+      body: '위에서 발급한 한 줄을 관리자 권한 PowerShell에 붙여넣습니다.\n바이너리 수신, 서버 인증서 고정, 설정 작성, 서비스 등록까지 한 번에 끝납니다. macOS와 달리 사람이 승인할 권한 단계가 없습니다.',
     },
     {
-      title: '등록 확인',
-      body: '서비스가 Running이면 수집이 시작된 것입니다. 프로세스 감시가 ETW라 macOS와 달리 사람이 승인할 권한 단계가 없습니다.\n등록되면 아래 3번 기기 상태에 이 기기가 먼저 나타나고, 이벤트가 아직 없으면 수집 없음으로 표시됩니다.',
+      title: '결과 확인',
+      body: '서비스가 Running이면 수집이 시작된 것입니다.\n등록되면 아래 3번 기기 상태에 이 기기가 먼저 나타나고, 이벤트가 아직 없으면 수집 없음으로 표시됩니다.',
       command: 'Get-Service edrdog-agent',
     },
   ],

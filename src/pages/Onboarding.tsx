@@ -861,7 +861,7 @@ function Onboarding() {
 
       <SectionCard
         title="1. enroll secret"
-        description="기기를 내 조직으로 등록시키는 값입니다. 2번 설치 명령에 이미 들어 있어 따로 옮겨 적을 필요는 없습니다."
+        description="기기를 내 조직으로 등록시키는 값입니다."
       >
         {loggedIn ? (
           <EnrollSecretPanel
@@ -877,7 +877,7 @@ function Onboarding() {
 
       <SectionCard
         title="2. 기기 설치 및 로그 수집"
-        description="설치 링크를 발급해 나온 한 줄을 대상 기기에서 실행하세요. 서버 주소와 enroll secret은 링크가 내려주는 스크립트에 이미 들어 있어 따로 넣을 값이 없습니다. 프로세스·파일·네트워크를 한 에이전트가 모두 수집합니다."
+        description="설치 링크를 발급해 나온 한 줄을 대상 기기에서 실행하세요. 프로세스·파일·네트워크를 한 에이전트가 모두 수집합니다."
       >
         <OsTabs tabs={OS_TABS} value={os} onChange={setOs} />
 

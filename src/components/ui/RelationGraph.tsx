@@ -170,10 +170,35 @@ type Card = GraphNode & {
 
 type Layout = { cards: Card[]; width: number; height: number }
 
+/**
+ * 한 열에 세울 최대 개수.
+ *
+ * 실데이터는 균형 잡힌 그래프가 아니다. 엔드포인트 하나가 목적지 수백 곳으로 뻗는 별 모양이라
+ * 깊이대로만 세우면 한 열에 전부 쌓여 높이가 수만 픽셀이 된다. 넘치면 옆으로 접는다.
+ * 가로는 ScrollArea 가 받아 주지만 세로로 길어지면 화면 밖으로 나가 훑을 수가 없다.
+ */
+const MAX_ROWS = 8
+
+/** 긴 열을 옆 열로 접는다. 같은 깊이가 여러 열이 되지만 좌표는 노드별이라 선은 그대로 이어진다. */
+function foldColumns(columns: string[][]): string[][] {
+  return columns.flatMap((column) => {
+    if (column.length <= MAX_ROWS) return [column]
+    const folded: string[][] = []
+    for (let i = 0; i < column.length; i += MAX_ROWS) folded.push(column.slice(i, i + MAX_ROWS))
+    return folded
+  })
+}
+
 /** 열 배치를 픽셀 좌표로. 카드마다 높이가 달라서 한 열 안에서는 쌓고, 열을 세로 가운데에 맞춘다. */
-function positionsOf(nodes: GraphNode[], columns: string[][], fonts: Fonts, minHeight: number): Layout {
+function positionsOf(
+  nodes: GraphNode[],
+  rawColumns: string[][],
+  fonts: Fonts,
+  minHeight: number,
+): Layout {
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const inner = CARD_W - CARD_PAD * 2
+  const columns = foldColumns(rawColumns)
 
   const sized = columns.map((column) =>
     column.flatMap((id) => {

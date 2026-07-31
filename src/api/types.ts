@@ -86,12 +86,6 @@ export type WebhookTestResult = {
   status: number
 }
 
-/** tenant enroll secret. 미발급이면 enrollSecret 이 null. */
-export type EnrollSecret = {
-  tenantId: number
-  enrollSecret: string | null
-}
-
 /**
  * 설치 링크 발급 응답.
  *

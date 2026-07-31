@@ -36,7 +36,7 @@ const INSTALL_NOTES: Record<OsKey, Step[]> = {
     },
     {
       title: '등록 확인',
-      body: '승인 후 스크립트가 에이전트를 재시작하고 등록 로그를 30초까지 기다립니다. "등록 완료"가 보이면 끝난 것이고, 아래 4번 기기 상태에도 이 기기가 나타납니다.\n권한이 아직 안 켜졌으면 ERR_NOT_PERMITTED로 알려 줍니다. 그때는 전체 디스크 접근에서 껐다 다시 켠 뒤 재시작하세요.',
+      body: '승인 후 스크립트가 에이전트를 재시작하고 등록 로그를 30초까지 기다립니다. "등록 완료"가 보이면 끝난 것이고, 아래 3번 기기 상태에도 이 기기가 나타납니다.\n권한이 아직 안 켜졌으면 ERR_NOT_PERMITTED로 알려 줍니다. 그때는 전체 디스크 접근에서 껐다 다시 켠 뒤 재시작하세요.',
       command: 'sudo launchctl kickstart -k system/com.edrdog.agent',
     },
   ],
@@ -47,7 +47,7 @@ const INSTALL_NOTES: Record<OsKey, Step[]> = {
     },
     {
       title: '등록 확인',
-      body: '서비스가 Running이면 수집이 시작된 것입니다. 프로세스 감시가 ETW라 macOS와 달리 사람이 승인할 권한 단계가 없습니다.\n등록되면 아래 4번 기기 상태에 이 기기가 먼저 나타나고, 이벤트가 아직 없으면 수집 없음으로 표시됩니다.',
+      body: '서비스가 Running이면 수집이 시작된 것입니다. 프로세스 감시가 ETW라 macOS와 달리 사람이 승인할 권한 단계가 없습니다.\n등록되면 아래 3번 기기 상태에 이 기기가 먼저 나타나고, 이벤트가 아직 없으면 수집 없음으로 표시됩니다.',
       command: 'Get-Service edrdog-agent',
     },
   ],
@@ -77,10 +77,6 @@ const SLACK_STEPS = [
   'Add New Webhook to Workspace → 알림 받을 채널 선택 → Allow',
   '생성된 Webhook URL(https://hooks.slack.com/services/...) 복사 후 아래 입력칸에 붙여넣기',
 ]
-
-// enroll secret 재발급 경고. 백엔드는 config/log 요청에서 node_key 만 검증하므로 기존 기기는 영향이 없다.
-const ROTATE_WARNING =
-  '이미 등록된 기기는 계속 수집됩니다. 아직 설치하지 않은 기기의 enroll.secret 파일을 모두 새 값으로 바꿔야 합니다.'
 
 // lastSeen 이 이 시간을 넘으면 에이전트가 멈춘 것으로 본다. status(열린 alert 기준)와는 다른 축이다.
 const STALE_MS = 10 * 60_000
@@ -370,69 +366,6 @@ function Checklist({ items }: { items: ChecklistItem[] }) {
   )
 }
 
-// enroll secret 발급/조회. 이 값을 엔드포인트 osquery enroll.secret 에 넣으면 그 기기가 내 조직으로 등록된다.
-// AsyncState 를 secret 표시 영역에만 두는 이유: 재발급 후 refetch 로 로딩에 들어가도 이 패널이
-// 언마운트되지 않아야 busy·에러 문구가 유지된다.
-function EnrollSecretPanel({
-  secret,
-  loading,
-  error,
-  refetch,
-}: {
-  secret: string | null
-  loading: boolean
-  error: string | null
-  refetch: () => void
-}) {
-  const [busy, setBusy] = useState(false)
-  const [revealed, setRevealed] = useState(false)
-  const [mutErr, setMutErr] = useState<string | null>(null)
-
-  const rotate = async () => {
-    // 재발급은 되돌릴 수 없고 미설치 기기의 enroll.secret 을 전부 갈아야 해서 한 번 확인받는다.
-    if (secret && !window.confirm(`enroll secret을 재발급할까요?\n\n${ROTATE_WARNING}`)) return
-    setBusy(true)
-    setMutErr(null)
-    try {
-      await api.rotateEnrollSecret()
-      setRevealed(false)
-      refetch()
-    } catch (e) {
-      setMutErr((e as Error).message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div>
-      <AsyncState loading={loading} error={error} onRetry={refetch}>
-        {secret ? (
-          // 기본은 마스킹. 화면 공유 중에 노출되면 조직 전체의 기기 등록 권한이 새어 나간다.
-          <CommandBlock
-            command={secret}
-            display={revealed ? undefined : '•'.repeat(secret.length)}
-          />
-        ) : (
-          <div className="text-[13px] text-mid">불러오는 중…</div>
-        )}
-      </AsyncState>
-      <div className="mt-[12px] flex flex-wrap items-center gap-[12px]">
-        <PrimaryButton onClick={rotate} disabled={busy || loading}>
-          {busy ? '재발급 중' : '재발급'}
-        </PrimaryButton>
-        {secret && (
-          <SecondaryButton onClick={() => setRevealed((v) => !v)}>
-            {revealed ? '가리기' : '보기'}
-          </SecondaryButton>
-        )}
-      </div>
-      {secret && <div className="mt-[10px] text-[12px] text-faint">재발급 시 {ROTATE_WARNING}</div>}
-      {mutErr && <div className="mt-[8px] text-[12px] text-crit">{mutErr}</div>}
-    </div>
-  )
-}
-
 /** 개인·조직 webhook 이 저장 방식만 다르고 입력·검증은 같아서 onSave 로만 갈라 쓴다. */
 function WebhookForm({
   initial,
@@ -633,7 +566,7 @@ function MyHostsPanel({
 
       {candidates.length === 0 && choice !== MANUAL_OPTION && (
         <div className="mt-[8px] text-[12px] text-faint">
-          아직 선택할 수 있는 관측 기기가 없습니다. 위 2번 설치를 마치면 목록에 나타납니다.
+          아직 선택할 수 있는 관측 기기가 없습니다. 위 1번 설치를 마치면 목록에 나타납니다.
         </div>
       )}
       {unobserved && (
@@ -695,7 +628,7 @@ function HostStatusPanel({
     <div>
       <div className="flex items-center justify-between gap-[12px]">
         <span className="text-[12px] text-faint">
-          여기 표시된 이름이 알림 라우팅이 대조하는 값입니다. 5번에서 이 이름 그대로 등록하세요.
+          여기 표시된 이름이 알림 라우팅이 대조하는 값입니다. 4번에서 이 이름 그대로 등록하세요.
         </span>
         <SecondaryButton onClick={refetch} disabled={loading}>
           {loading ? '불러오는 중' : '새로고침'}
@@ -782,10 +715,6 @@ function Onboarding() {
   // 비로그인 상태의 개인 설정 API 는 401 이라 아예 부르지 않는다(화면은 LoginHint 로 대체된다).
   const observedQ = useApi(() => api.hosts())
   const myHostsQ = useApi(() => (loggedIn ? api.myHosts() : Promise.resolve(null)), [loggedIn])
-  const secretQ = useApi(
-    () => (loggedIn ? api.getEnrollSecret() : Promise.resolve(null)),
-    [loggedIn],
-  )
   const webhookQ = useApi(() => (loggedIn ? api.getWebhook() : Promise.resolve(null)), [loggedIn])
 
   // 저장 직후 값. 저장 뒤 재조회하면 폼이 다시 마운트되면서 "저장되었습니다" 가 즉시 사라져서,
@@ -813,7 +742,6 @@ function Onboarding() {
   const observed = observedQ.data ?? []
   const observedNames = observed.map((h) => h.host)
   const myHosts = myHostsQ.data?.hosts ?? []
-  const secret = secretQ.data?.enrollSecret ?? null
   const webhookUrl = justSavedWebhook ?? webhookQ.data?.webhookUrl ?? null
 
   // 등록했지만 그 이름으로 관측된 적이 없는 기기. 오타로 알림이 사라지고 있다는 신호다.
@@ -860,23 +788,7 @@ function Onboarding() {
       )}
 
       <SectionCard
-        title="1. enroll secret"
-        description="기기를 내 조직으로 등록시키는 값입니다."
-      >
-        {loggedIn ? (
-          <EnrollSecretPanel
-            secret={secret}
-            loading={secretQ.loading}
-            error={secretQ.error}
-            refetch={secretQ.refetch}
-          />
-        ) : (
-          <LoginHint />
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="2. 기기 설치 및 로그 수집"
+        title="1. 기기 설치 및 로그 수집"
         description="설치 링크를 발급해 나온 한 줄을 대상 기기에서 실행하세요. 프로세스·파일·네트워크를 한 에이전트가 모두 수집합니다."
       >
         <OsTabs tabs={OS_TABS} value={os} onChange={setOs} />
@@ -915,12 +827,12 @@ function Onboarding() {
       </SectionCard>
 
       <SectionCard
-        title="3. Slack 알림 연결"
+        title="2. Slack 알림 연결"
         description="Slack Incoming Webhook을 발급받아 등록하면 탐지 알림이 이 채널로 전달됩니다."
       >
         <NoteBox>
           webhook만 등록하면 알림은 오지 않습니다. 아래{' '}
-          <span className="text-ink-2">5번 내 기기 등록</span>
+          <span className="text-ink-2">4번 내 기기 등록</span>
           까지 마쳐야 그 기기의 알림이 이 채널로 전달됩니다.
         </NoteBox>
 
@@ -936,7 +848,7 @@ function Onboarding() {
 
         <div className="mt-[18px] text-[13px] font-semibold text-ink-2">내 Webhook URL</div>
         <div className="mt-[6px] text-[12px] text-faint leading-[1.6]">
-          5번에서 내가 등록한 host의 알림이 이 채널로 갑니다.
+          4번에서 내가 등록한 host의 알림이 이 채널로 갑니다.
         </div>
         <div className="mt-[10px]">
           {loggedIn ? (
@@ -959,8 +871,8 @@ function Onboarding() {
       </SectionCard>
 
       <SectionCard
-        title="4. 기기 상태"
-        description="조직에 등록됐거나 관측 중인 기기입니다. 5번에 입력할 정확한 host 이름을 여기서 확인하세요."
+        title="3. 기기 상태"
+        description="조직에 등록됐거나 관측 중인 기기입니다. 4번에 입력할 정확한 host 이름을 여기서 확인하세요."
       >
         <HostStatusPanel
           hosts={observed}
@@ -971,13 +883,13 @@ function Onboarding() {
       </SectionCard>
 
       <SectionCard
-        title="5. 내 기기 등록"
+        title="4. 내 기기 등록"
         description="등록한 host의 탐지 알림이 내 Slack Webhook으로 전달됩니다."
       >
         <NoteBox>
-          알림 라우팅은 host 이름 <span className="text-ink-2">완전 일치</span>로 동작합니다. 4번
+          알림 라우팅은 host 이름 <span className="text-ink-2">완전 일치</span>로 동작합니다. 3번
           목록에서 고르면 항상 일치하고, 직접 입력한 이름이 한 글자라도 다르면 알림이 조용히
-          사라집니다. 3번의 webhook도 함께 등록해야 알림이 옵니다.
+          사라집니다. 2번의 webhook도 함께 등록해야 알림이 옵니다.
         </NoteBox>
 
         <div className="mt-[16px]">

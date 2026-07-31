@@ -13,7 +13,6 @@ import type {
   Lineage,
   UserWebhook,
   WebhookTestResult,
-  EnrollSecret,
   InstallLink,
   MyHosts,
   ExecuteResult,
@@ -109,16 +108,11 @@ export const api = {
   /** 저장된 개인 webhook 으로 실제 발송을 시도한다. 등록이 됐는지 확인할 유일한 수단이다. */
   testWebhook: () => request<WebhookTestResult>('/me/webhook/test', { method: 'POST' }),
 
-  /** /api/tenant/** 는 X-API-Key 가 필요한 경로다(client.ts 가 붙여준다). */
-  getEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret'),
-
   /**
    * 설치 링크 발급. 붙여넣을 한 줄 명령까지 서버가 만들어 준다.
    * 토큰이 짧게 살기 때문에(기본 24시간) 화면을 열 때가 아니라 사용자가 누를 때 부른다.
    */
   issueInstallLink: () => request<InstallLink>('/tenant/install-link', { method: 'POST' }),
-
-  rotateEnrollSecret: () => request<EnrollSecret>('/tenant/enroll-secret', { method: 'POST' }),
 
   myHosts: () => request<MyHosts>('/me/hosts'),
 

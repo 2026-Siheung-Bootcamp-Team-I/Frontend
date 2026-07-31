@@ -22,7 +22,12 @@ const LIMITS = [
 ]
 
 /** 서버 기본값과 맞춘다. */
-const DEFAULT_LIMIT = '200'
+/**
+ * 서버 기본값은 200 이지만 그만큼을 한 그림에 넣으면 읽을 수가 없다.
+ * 실제로 엔드포인트 하나가 목적지 200곳으로 뻗어 카드가 200장 깔린다. 좁혀서 보는 게 조사에 맞다.
+ * 더 봐야 하면 관계 수를 올리거나 검색으로 범위를 좁히라고 위 배너가 안내한다.
+ */
+const DEFAULT_LIMIT = '50'
 
 type NodeVariant = 'solid' | 'outline' | 'dashed'
 type EdgeLine = 'solid' | 'dashed' | 'dotted'

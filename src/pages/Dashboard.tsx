@@ -10,7 +10,7 @@ import ScrollArea from '@/components/ui/ScrollArea'
 import TopThreats from '@/components/ui/TopThreats'
 import TriageActions from '@/components/ui/TriageActions'
 import { useApi } from '@/hooks/useApi'
-import { absoluteTime, daysAgo, severityLabel, severityTone } from '@/lib/format'
+import { absoluteTime, daysAgo, percentOf, severityLabel, severityTone } from '@/lib/format'
 import { toAttackSteps } from '@/lib/lineagePath'
 import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
@@ -29,6 +29,14 @@ const chartFallback = (
   </Card>
 )
 
+/** collector 가 붙이는 이벤트 type. 미등록 값은 원문 그대로 보여준다. */
+const eventTypeLabels: Record<string, string> = {
+  process: '프로세스 실행',
+  network: '네트워크 연결',
+  file: '파일 생성·수정',
+  script: '스크립트 실행',
+}
+
 function Dashboard() {
   // 트리아지가 일어나면 알림 관련 조회를 다시 돈다.
   const alertsVersion = useAlertsStore((s) => s.version)
@@ -39,6 +47,7 @@ function Dashboard() {
   const week = useApi(() => api.alertSummary({ from: daysAgo(7) }))
   const prevWeek = useApi(() => api.alertSummary({ from: daysAgo(14), to: daysAgo(7) }))
   const hosts = useApi(() => api.hostSummary())
+  const events = useApi(() => api.eventSummary({ from: daysAgo(1) }))
 
   const openAlerts = open.data ?? []
   const openCritical = openAlerts.filter((a) => a.severity === 'CRITICAL').length
@@ -198,6 +207,26 @@ function Dashboard() {
       <Suspense fallback={chartFallback}>
         <ThreatTrendChart />
       </Suspense>
+
+      {/* 요약 보기에서 흡수: 대시보드에 없던 이벤트 상세만 남긴다 */}
+      <div className="text-[13px] font-bold text-ink-2 pt-[4px] border-t border-line-2">
+        이벤트 상세
+      </div>
+      <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
+        <div className="flex justify-between items-center mb-[18px]">
+          <span className="text-[14px] font-bold text-ink">이벤트 유형별 건수</span>
+          <span className="text-[11.5px] text-faint">최근 24시간</span>
+        </div>
+        <AsyncState
+          loading={events.loading}
+          error={events.error}
+          empty={(events.data?.byType ?? []).length === 0}
+          emptyText="수집된 이벤트가 없습니다"
+          onRetry={events.refetch}
+        >
+          <EventCounts byType={events.data?.byType ?? []} />
+        </AsyncState>
+      </Card>
     </div>
   )
 }
@@ -271,7 +300,7 @@ function FeaturedPath({ alert }: { alert: Alert }) {
       >
         <AttackPath host={alert.host} label={`${alert.threatName} 시퀀스`} steps={steps} />
       </AsyncState>
-      <TriageActions alert={alert} detailTo={`/sequence?alert=${encodeURIComponent(alert.id)}`} />
+      <TriageActions alert={alert} detailTo="/threats" />
     </>
   )
 }
@@ -334,6 +363,33 @@ function HostDonut({ summary }: { summary: HostSummary }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** 막대 길이는 가장 많은 type 을 100%로 잡은 상대 비율. 백엔드가 cnt 내림차순으로 준다. */
+function EventCounts({ byType }: { byType: { type: string; cnt: number | string }[] }) {
+  const counts = byType.map((row) => ({ type: row.type, count: Number(row.cnt) }))
+  const max = Math.max(...counts.map((c) => c.count))
+
+  return (
+    <div className="flex flex-col gap-[15px]">
+      {counts.map((row) => (
+        <div key={row.type} className="flex flex-col gap-[7px]">
+          <div className="flex justify-between gap-[10px] text-[13px]">
+            <span className="text-ink-2 truncate">{eventTypeLabels[row.type] ?? row.type}</span>
+            <span className="font-mono tabular-nums text-ink flex-shrink-0">
+              {row.count.toLocaleString()}
+            </span>
+          </div>
+          <div className="h-[7px] rounded-xs bg-panel overflow-hidden">
+            <div
+              className="h-full rounded-xs bg-good"
+              style={{ width: `${percentOf(row.count, max)}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

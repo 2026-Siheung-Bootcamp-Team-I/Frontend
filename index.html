@@ -2,7 +2,13 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <!--
+      탭 아이콘은 실제로 16~32px 로 그려진다. 큰 이미지 하나만 주면 브라우저가 알아서 줄이는데
+      그 결과가 뭉개져 강아지 얼굴이 사라진다. 크기별로 미리 줄여 둔 것을 주고 고르게 한다.
+      ?v 는 캐시 때문이다. 브라우저는 파비콘을 이름 단위로 오래 붙들고 있어 파일만 바꾸면 안 바뀐다.
+    -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png?v=2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link
       rel="stylesheet"

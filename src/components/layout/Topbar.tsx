@@ -7,13 +7,47 @@ import { useApi } from '@/hooks/useApi'
 import { api } from '@/api'
 import { searchAll } from '@/lib/search'
 import { severityColors, severityTone, hostStatusColor, hostStatusLabel } from '@/lib/format'
+import { useRefreshStore, INTERVALS, type RefreshInterval } from '@/store/refresh'
+
+const intervalLabels: Record<RefreshInterval, string> = {
+  0: '끄기',
+  10: '10초',
+  30: '30초',
+  60: '1분',
+  300: '5분',
+}
 
 const titles: Record<string, string> = {
   '/dashboard': '대시보드',
   '/threats': '위협',
+  '/incidents': '사건',
   '/endpoints': '엔드포인트',
-  '/sequence': '시퀀스 분석',
-  '/report': '요약 보기',
+  '/events': '수집 로그',
+  '/map': '위협 지도',
+  '/intelligence': '관계 분석',
+  '/lookup': 'IP·도메인 조회',
+  '/onboarding': '수집 알림 연동',
+}
+
+type Crumb = { label: string; to?: string }
+
+/**
+ * 화면이 깊어지면(사건 상세) 제목만으로는 어디에 있는지 알 수 없다.
+ * 제목 위에 경로를 한 줄 깔아 위치와 돌아갈 곳을 같이 보여준다.
+ */
+function trailOf(pathname: string): Crumb[] {
+  if (pathname.startsWith('/incidents/')) {
+    return [{ label: '사건', to: '/incidents' }, { label: '사건 상세' }]
+  }
+  if (pathname.startsWith('/endpoints/')) {
+    // 호스트명을 그대로 마지막 칸에 둔다. 어느 기기를 보고 있는지가 제목이어야 한다.
+    return [
+      { label: '엔드포인트', to: '/endpoints' },
+      { label: decodeURIComponent(pathname.slice('/endpoints/'.length)) },
+    ]
+  }
+  const title = titles[pathname]
+  return title ? [{ label: title }] : []
 }
 
 type TopbarProps = {
@@ -24,7 +58,8 @@ function Topbar({ onMenuOpen }: TopbarProps) {
   const { theme, toggle } = useThemeStore()
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const pageTitle = titles[pathname] ?? 'EDRdog'
+  const trail = trailOf(pathname)
+  const pageTitle = trail.at(-1)?.label ?? 'EDRdog'
   const themeLabel = theme === 'dark' ? '라이트' : '다크'
   const isDemo = useAuthStore((s) => s.token) === null
 
@@ -32,6 +67,21 @@ function Topbar({ onMenuOpen }: TopbarProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+
+  const refreshInterval = useRefreshStore((s) => s.interval)
+  const lastRefreshAt = useRefreshStore((s) => s.lastAt)
+  const refresh = useRefreshStore((s) => s.refresh)
+  const setRefreshInterval = useRefreshStore((s) => s.setInterval)
+
+  useEffect(() => {
+    if (refreshInterval === 0) return
+    const id = window.setInterval(() => {
+      // 백그라운드 탭까지 계속 받을 필요는 없다.
+      if (document.visibilityState === 'hidden') return
+      refresh()
+    }, refreshInterval * 1000)
+    return () => window.clearInterval(id)
+  }, [refreshInterval, refresh])
 
   // 검색은 클라이언트 부분 일치라 전체 목록이 필요하다. 검색창을 열기 전에는 받지 않는다.
   const alerts = useApi(
@@ -93,8 +143,28 @@ function Topbar({ onMenuOpen }: TopbarProps) {
         </button>
         <div className="flex items-center gap-[10px] min-w-0">
           {/* 좁은 화면에서 제목이 줄어들 수 있어야 우측 묶음이 자리를 뺏지 않는다. */}
-          <span className="text-[16px] font-bold text-ink tracking-[-0.01em] truncate">
-            {pageTitle}
+          <span className="flex min-w-0 flex-col">
+            {/* 좁은 화면에서는 접는다. 한 줄뿐인 화면에서는 제목과 같은 말이라 잃는 정보가 없다. */}
+            <span className="hidden sm:flex items-center gap-[5px] text-[11px] text-faint">
+              <Link to="/dashboard" className="!text-faint hover:!text-mid">
+                EDRdog
+              </Link>
+              {trail.map((crumb) => (
+                <span key={crumb.label} className="flex items-center gap-[5px]">
+                  <span aria-hidden>/</span>
+                  {crumb.to ? (
+                    <Link to={crumb.to} className="!text-faint hover:!text-mid">
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className="truncate">{crumb.label}</span>
+                  )}
+                </span>
+              ))}
+            </span>
+            <span className="text-[16px] font-bold text-ink tracking-[-0.01em] truncate">
+              {pageTitle}
+            </span>
           </span>
           {/* 같은 이유로 배지는 sm 부터. 데모라는 사실은 사이드바 하단에도 적혀 있다. */}
           {isDemo && (
@@ -102,13 +172,6 @@ function Topbar({ onMenuOpen }: TopbarProps) {
               예시 데이터
             </span>
           )}
-          <span className="hidden md:inline-flex items-center gap-[6px] text-[12px] text-mid ml-2">
-            <span
-              className="w-[6px] h-[6px] rounded-full bg-good"
-              style={{ animation: 'edrPulse 2s ease-in-out infinite' }}
-            />
-            실시간 동기화 중
-          </span>
         </div>
         <div className="flex items-center gap-[8px] sm:gap-[12px] min-w-0">
           <div
@@ -205,6 +268,61 @@ function Topbar({ onMenuOpen }: TopbarProps) {
               </div>
             )}
           </div>
+          {lastRefreshAt && (
+            <span className="hidden md:inline-flex flex-shrink-0 text-[11px] text-faint whitespace-nowrap">
+              {new Date(lastRefreshAt).toLocaleTimeString('ko-KR', { hour12: false })} 갱신
+            </span>
+          )}
+          <span className="relative flex-shrink-0">
+            <select
+              value={refreshInterval}
+              onChange={(e) => setRefreshInterval(Number(e.target.value) as RefreshInterval)}
+              aria-label="자동 새로고침 간격"
+              className="h-[34px] cursor-pointer appearance-none rounded-sm border border-line bg-surface pl-[10px] pr-[26px] font-sans text-[12px] text-ink"
+            >
+              {INTERVALS.map((sec) => (
+                <option key={sec} value={sec}>
+                  {intervalLabels[sec]}
+                </option>
+              ))}
+            </select>
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className="pointer-events-none absolute right-[9px] top-1/2 -translate-y-1/2 text-faint"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </span>
+          <button
+            type="button"
+            onClick={refresh}
+            aria-label="새로고침"
+            className="inline-flex flex-shrink-0 items-center justify-center w-[34px] h-[34px] rounded-sm border border-line bg-surface text-ink-2 cursor-pointer"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M8 16H3v5" />
+            </svg>
+          </button>
           <button
             onClick={toggle}
             className="inline-flex flex-shrink-0 items-center gap-[7px] h-[34px] pl-[11px] pr-[11px] sm:pr-[14px] rounded-sm border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer"

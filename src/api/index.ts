@@ -1,4 +1,4 @@
-import { queryString, request } from './client'
+import { listRequest, queryString, request } from './client'
 import { demoApi } from './demo'
 import { useAuthStore } from '@/store/auth'
 import type {
@@ -6,11 +6,18 @@ import type {
   AlertStatus,
   AlertSummary,
   AuthResponse,
+  Correlation,
+  DnsLookup,
+  EdrEvent,
   EventSummary,
   GeoDestination,
   Host,
   HostSummary,
+  Incident,
+  IncidentTimeline,
   Lineage,
+  RuleCatalogEntry,
+  Topology,
   UserWebhook,
   WebhookTestResult,
   InstallLink,
@@ -22,13 +29,61 @@ type AlertFilter = {
   host?: string
   severity?: string
   status?: AlertStatus
+  /**
+   * 목적지로 거른다. 대소문자는 서버가 맞춘다.
+   * 서버는 빈 문자열을 "목적지를 관측하지 못한 알림만" 이라는 별도 질문으로 받지만,
+   * queryString 이 빈 값을 빼기 때문에 여기로는 그 질문을 보낼 수 없다. 필요해지면 그때 연다.
+   */
+  domain?: string
+  destIp?: string
   /** epoch millis */
   from?: number
   to?: number
   limit?: number
 }
 
+type EventFilter = {
+  host?: string
+  type?: string
+  /** 파일 해시 완전일치. 대소문자는 서버가 맞춘다. */
+  sha256?: string
+  /** epoch millis */
+  from?: number
+  to?: number
+  /** 서버 기본 100, 상한 1000. */
+  limit?: number
+}
+
 type Period = { from?: number; to?: number }
+
+type TopologyFilter = Period & {
+  /** 호스트·목적지 부분 일치. */
+  q?: string
+  /** 관계 수. 기본 200, 상한 1000. */
+  limit?: number
+}
+
+type CorrelateOptions = Period & {
+  limit?: number
+  /** false 면 실시간 DNS 를 묻지 않는다(응답의 liveDns 가 null). */
+  liveDns?: boolean
+}
+
+type IncidentFilter = Period & {
+  status?: AlertStatus
+  host?: string
+  limit?: number
+}
+
+/**
+ * 쪽 나눔. 첫 쪽에서 받은 from/to 를 다음 쪽에 그대로 되돌려줘야 행이 밀리지 않는다.
+ * withTotal 은 첫 쪽에만 준다. 전체 건수를 세려면 서버가 count 를 한 번 더 도는데
+ * 두 번째 쪽부터는 그 값이 필요 없다.
+ */
+type PageOptions = {
+  offset?: number
+  withTotal?: boolean
+}
 
 /**
  * 로그인 전에는 서버를 부르지 않고 데모 데이터를 돌려준다.
@@ -63,8 +118,24 @@ export const api = {
       ? demoApi.alertSummary(period)
       : request<AlertSummary>(`/alerts/summary${queryString(period)}`),
 
+  /**
+   * 탐지 룰 카탈로그. tenant 와 무관한 정적 참조 데이터라 화면이 한 번 받아 두고 쓴다.
+   * 알림마다 룰 설명을 실어 보내지 않기 위해 백엔드가 따로 뺀 엔드포인트다.
+   */
+  rules: () => (isDemo() ? demoApi.rules() : request<RuleCatalogEntry[]>('/alerts/rules')),
+
+  /** 알림 상세. 목록에 없는 sourceEvent 와 incidentId 가 여기서만 채워진다. */
+  alert: (id: string) =>
+    isDemo() ? demoApi.alert(id) : request<Alert>(`/alerts/${encodeURIComponent(id)}`),
+
   lineage: (id: string) =>
     isDemo() ? demoApi.lineage(id) : request<Lineage>(`/alerts/${encodeURIComponent(id)}/lineage`),
+
+  /** 호스트 단위 프로세스 트리. 응답이 lineage 와 같아 같은 렌더러를 쓴다. */
+  processTree: (host: string, period: Period = {}) =>
+    isDemo()
+      ? demoApi.processTree(host)
+      : request<Lineage>(`/hosts/${encodeURIComponent(host)}/process-tree${queryString(period)}`),
 
   triage: (id: string, status: Extract<AlertStatus, 'confirmed' | 'false_positive'>) =>
     isDemo()
@@ -89,9 +160,72 @@ export const api = {
           body: { target },
         }),
 
+  /** egress 토폴로지. 기본 최근 24시간, 관계 수 기본 200·상한 1000. */
+  topology: (filter: TopologyFilter = {}) =>
+    isDemo()
+      ? demoApi.topology(filter)
+      : request<Topology>(`/intelligence/topology${queryString(filter)}`),
+
+  /** 도메인·IP 상관 분석. liveDns=false 면 실시간 조회를 건너뛴다. */
+  correlate: (target: string, options: CorrelateOptions = {}) =>
+    isDemo()
+      ? demoApi.correlate(target)
+      : request<Correlation>(`/intelligence/correlate${queryString({ target, ...options })}`),
+
+  /** 지금 DNS 서버에 물어본다. 우리 이벤트와 무관한 조회 시점 값이다. */
+  dnsLookup: (target: string) =>
+    isDemo()
+      ? demoApi.dnsLookup(target)
+      : request<DnsLookup>(`/intelligence/dns-lookup${queryString({ target })}`),
+
+  /** 사건 목록. 기본 최근 7일. alerts·lineage 는 여기서 null 이고 상세에서만 온다. */
+  incidents: (filter: IncidentFilter = {}) =>
+    isDemo() ? demoApi.incidents(filter) : request<Incident[]>(`/incidents${queryString(filter)}`),
+
+  /** 쪽 단위 목록. 더 받아 이어 붙이는 화면이 쓴다. */
+  alertPage: (filter: AlertFilter & PageOptions = {}) =>
+    isDemo() ? demoApi.alertPage(filter) : listRequest<Alert>(`/alerts${queryString(filter)}`),
+
+  eventPage: (filter: EventFilter & PageOptions = {}) =>
+    isDemo() ? demoApi.eventPage(filter) : listRequest<EdrEvent>(`/events${queryString(filter)}`),
+
+  incidentPage: (filter: IncidentFilter & PageOptions = {}) =>
+    isDemo()
+      ? demoApi.incidentPage(filter)
+      : listRequest<Incident>(`/incidents${queryString(filter)}`),
+
+  incident: (id: string) =>
+    isDemo() ? demoApi.incident(id) : request<Incident>(`/incidents/${encodeURIComponent(id)}`),
+
+  incidentTimeline: (id: string) =>
+    isDemo()
+      ? demoApi.incidentTimeline(id)
+      : request<IncidentTimeline>(`/incidents/${encodeURIComponent(id)}/timeline`),
+
+  triageIncident: (id: string, status: Extract<AlertStatus, 'confirmed' | 'false_positive'>) =>
+    isDemo()
+      ? demoApi.triageIncident(id, status)
+      : request<Incident>(`/incidents/${encodeURIComponent(id)}/status`, {
+          method: 'PATCH',
+          body: { status },
+        }),
+
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 
   hostSummary: () => (isDemo() ? demoApi.hostSummary() : request<HostSummary>('/hosts/summary')),
+
+  /**
+   * 이벤트 한 건. id 는 저장된 값이 아니라 내용을 접은 것이라 서버가 훑지 않으려면 host·ts 가 필요하다.
+   * 서버는 id 가 실제로 맞는 행만 돌려준다. 링크가 조작되면 아무 이벤트나 열리지 않고 404 다.
+   */
+  event: (id: string, host: string, ts: number) =>
+    isDemo()
+      ? demoApi.event(id)
+      : request<EdrEvent>(`/events/${encodeURIComponent(id)}${queryString({ host, ts })}`),
+
+  /** 수집된 개별 이벤트를 최신순으로. 유형 필터는 서버가 아니라 화면에서 거른다(아래 Events 페이지 주석). */
+  events: (filter: EventFilter = {}) =>
+    isDemo() ? demoApi.events(filter) : request<EdrEvent[]>(`/events${queryString(filter)}`),
 
   eventSummary: (period: Period = {}) =>
     isDemo()

@@ -7,7 +7,7 @@ import FilterChips from '@/components/ui/FilterChips'
 import AsyncState from '@/components/ui/AsyncState'
 import ScrollArea from '@/components/ui/ScrollArea'
 import { useApi } from '@/hooks/useApi'
-import { hostStatusColor, hostStatusLabel, relativeTime } from '@/lib/format'
+import { hostStatusColor, hostStatusLabel, platformLabel, relativeTime } from '@/lib/format'
 
 // HostStatus 와 별개 축이다. 등록은 됐지만 이벤트가 아직 없는 기기는 열린 알림이 없어
 // status 는 항상 healthy 로 오는데, 그걸 그대로 "정상"에 합치면 검증 안 된 상태를 좋다고
@@ -18,7 +18,7 @@ function isNoEvents(h: Host): boolean {
   return h.enrolled && h.lastSeen === 0
 }
 
-const rowGrid = 'grid grid-cols-[1fr_100px_120px_110px_70px] gap-[12px]'
+const rowGrid = 'grid grid-cols-[1fr_90px_100px_120px_120px_110px_70px] gap-[12px]'
 
 function Endpoints() {
   const [filter, setFilter] = useState<Filter>('all')
@@ -90,41 +90,40 @@ function Endpoints() {
           onRetry={refetch}
         >
           <ScrollArea label="엔드포인트 목록">
-            <div className="min-w-[580px]">
+            <div className="min-w-[800px]">
               <div
                 className={`${rowGrid} py-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
               >
                 <span>호스트</span>
+                <span>OS</span>
                 <span>상태</span>
+                <span>위험도</span>
                 <span>마지막 활동</span>
                 <span>에이전트 연결</span>
                 <span className="text-right">위협</span>
               </div>
               {rows.map((row, i) => {
-                const clickable = row.threats > 0
-                const goToThreats = () => navigate('/threats?host=' + encodeURIComponent(row.host))
+                // 위협 0건인 기기도 상세에서 볼 게 있어 모든 줄이 상세로 간다.
+                const goToDetail = () => navigate('/endpoints/' + encodeURIComponent(row.host))
                 const noEvents = isNoEvents(row)
                 return (
                   <div
                     key={row.host}
-                    className={`${rowGrid} items-center py-[13px] ${
+                    className={`${rowGrid} items-center py-[13px] cursor-pointer hover:bg-panel ${
                       i === rows.length - 1 ? '' : 'border-b border-line-2'
-                    } ${clickable ? 'cursor-pointer hover:bg-panel' : ''}`}
-                    role={clickable ? 'button' : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onClick={clickable ? goToThreats : undefined}
-                    onKeyDown={
-                      clickable
-                        ? (e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              if (e.key === ' ') e.preventDefault()
-                              goToThreats()
-                            }
-                          }
-                        : undefined
-                    }
+                    }`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={goToDetail}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        if (e.key === ' ') e.preventDefault()
+                        goToDetail()
+                      }
+                    }}
                   >
                     <span className="font-mono text-[13px] text-ink">{row.host}</span>
+                    <span className="text-[12px] text-faint">{platformLabel(row.platform)}</span>
                     <span
                       className="inline-flex items-center gap-[7px] text-[12.5px] font-semibold"
                       style={{ color: noEvents ? 'var(--faint)' : hostStatusColor(row.status) }}
@@ -136,6 +135,20 @@ function Endpoints() {
                         }}
                       />
                       {noEvents ? '수집 없음' : hostStatusLabel(row.status)}
+                    </span>
+                    <span className="flex items-center gap-[8px]">
+                      <span className="w-[22px] text-right font-mono text-[12px] text-ink tabular-nums">
+                        {row.riskScore}
+                      </span>
+                      <span className="h-[5px] flex-1 overflow-hidden rounded-xs bg-panel">
+                        <span
+                          className="block h-full rounded-xs"
+                          style={{
+                            width: `${row.riskScore}%`,
+                            background: noEvents ? 'var(--faint)' : hostStatusColor(row.status),
+                          }}
+                        />
+                      </span>
                     </span>
                     <span className="font-mono text-[12px] text-faint">
                       {noEvents ? '수집 없음' : relativeTime(row.lastSeen)}

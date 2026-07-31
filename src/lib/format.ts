@@ -81,6 +81,37 @@ export function statusLabel(status: string): string {
   return statusLabels[status as AlertStatus] ?? status
 }
 
+/**
+ * 관측하지 못한 수치. null 이면 0 으로 대신 그리지 않는다.
+ * lag 0 은 "밀리지 않았다"이고 null 은 "얼마나 밀렸는지 모른다"라 뜻이 정반대다.
+ */
+export function unknownable(value: number | null, unit = ''): string {
+  return value === null ? '확인 불가' : `${value.toLocaleString()}${unit}`
+}
+
+const platformLabels: Record<string, string> = {
+  darwin: 'macOS',
+  windows: 'Windows',
+}
+
+/** 아이콘을 쓰지 않으므로 OS 는 글자로 밝힌다. 미등록 기기는 빈 문자열로 온다. */
+export function platformLabel(platform: string): string {
+  return platformLabels[platform] ?? (platform || '미확인')
+}
+
+const eventTypeLabels: Record<string, string> = {
+  process: '프로세스',
+  network: '네트워크',
+  file: '파일',
+  dns: 'DNS',
+  l7: 'L7',
+}
+
+/** 수집 요소는 계속 늘어난다. 모르는 유형은 감추지 말고 원문 그대로 보여준다. */
+export function eventTypeLabel(type: string): string {
+  return eventTypeLabels[type] ?? type
+}
+
 const hostStatusLabels: Record<HostStatus, string> = {
   healthy: '정상',
   warning: '주의',

@@ -68,6 +68,26 @@ const items: NavItem[] = [
     ),
   },
   {
+    to: '/incidents',
+    group: 'TRIAGE',
+    label: '사건',
+    icon: (
+      <svg
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 3l7.5 3v6c0 4.2-3 7.6-7.5 9-4.5-1.4-7.5-4.8-7.5-9V6z" />
+        <path d="M9.5 12l1.8 1.8 3.4-3.6" />
+      </svg>
+    ),
+  },
+  {
     to: '/endpoints',
     group: 'EVIDENCE',
     label: '엔드포인트',
@@ -85,6 +105,26 @@ const items: NavItem[] = [
         <rect x="3" y="4" width="18" height="12" rx="2" />
         <path d="M8 20h8" />
         <path d="M12 16v4" />
+      </svg>
+    ),
+  },
+  {
+    to: '/events',
+    group: 'EVIDENCE',
+    // 한국어로 사건(Incident)과 이벤트(Event)가 같은 말로 읽혀 사이드바에서 구분이 안 됐다.
+    label: '수집 로그',
+    icon: (
+      <svg
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 12h4l2.5-6 5 12L17 12h4" />
       </svg>
     ),
   },
@@ -110,9 +150,9 @@ const items: NavItem[] = [
     ),
   },
   {
-    to: '/sequence',
+    to: '/intelligence',
     group: 'ANALYSIS',
-    label: '시퀀스 분석',
+    label: '관계 분석',
     icon: (
       <svg
         width="17"
@@ -124,16 +164,18 @@ const items: NavItem[] = [
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M9 15l6-6" />
-        <path d="M10.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-1 1" />
-        <path d="M13.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l1-1" />
+        <circle cx="6" cy="7" r="2.5" />
+        <circle cx="18" cy="7" r="2.5" />
+        <circle cx="12" cy="18" r="2.5" />
+        <path d="M8 8.5l3 7.5" />
+        <path d="M16 8.5l-3 7.5" />
       </svg>
     ),
   },
   {
-    to: '/report',
+    to: '/lookup',
     group: 'ANALYSIS',
-    label: '요약 보기',
+    label: 'IP·도메인 조회',
     icon: (
       <svg
         width="17"
@@ -145,10 +187,8 @@ const items: NavItem[] = [
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-        <path d="M14 3v5h5" />
-        <path d="M9 13h6" />
-        <path d="M9 17h4" />
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="M16 16l4.5 4.5" />
       </svg>
     ),
   },

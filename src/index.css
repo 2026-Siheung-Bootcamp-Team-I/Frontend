@@ -9,6 +9,8 @@
     콘솔 계열 톤. 채널 편차를 3 이내로 유지해 무채색을 지킨다.
     남색이 섞이면(이전 --bg #0b0f16 은 편차 11) 심각도 색과 경합해 대시보드가 템플릿처럼 읽힌다.
   */
+  /* select 드롭다운·스크롤바 같은 OS 기본 UI 도 테마를 따라가게 한다(그냥 두면 항상 밝게 뜬다). */
+  color-scheme: dark;
   --bg: #0a0a0c;
   --surface: #121215;
   --panel: #1a1a1e;
@@ -42,6 +44,7 @@
      특히 노랑은 사실상 읽을 수 없었다. 라이트 전용으로 어둡게 잡아 5:1 이상으로 올린다.
 */
 :root[data-theme='light'] {
+  color-scheme: light;
   --bg: #f1f1f3;
   --surface: #ffffff;
   --panel: #e9e9ed;

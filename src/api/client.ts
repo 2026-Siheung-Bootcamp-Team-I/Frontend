@@ -26,10 +26,60 @@ type RequestOptions = {
   auth?: boolean
 }
 
-export async function request<T>(
+/**
+ * 목록 한 쪽. 본문은 그냥 배열이고 쪽 정보는 헤더로 온다.
+ *
+ * from/to 는 서버가 실제로 적용한 구간이다. 다음 쪽을 부를 때 그대로 되돌려줘야 한다.
+ * 조회가 최신순이라 그사이 새 데이터가 쌓이면 offset 이 밀려 행이 겹치거나 건너뛰어진다.
+ */
+export type Page<T> = {
+  rows: T[]
+  /** withTotal=true 로 물었을 때만 채워진다. */
+  total: number | null
+  hasMore: boolean
+  from: number | null
+  to: number | null
+}
+
+function headerNumber(res: Response, name: string): number | null {
+  const raw = res.headers.get(name)
+  if (raw === null || raw === '' || raw === 'null') return null
+  const value = Number(raw)
+  return Number.isFinite(value) ? value : null
+}
+
+/**
+ * 목록 조회. 쪽 정보를 함께 돌려준다.
+ *
+ * 헤더는 다른 출처에서 CorsConfig 의 exposedHeaders 에 올라가 있어야 읽힌다.
+ * 안 올라가 있으면 서버는 정상인데 화면에서만 값이 안 보이므로, 못 읽었을 때를 null 로 다룬다.
+ */
+export async function listRequest<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<Page<T>> {
+  const res = await send(path, options)
+  const rows = res.status === 204 ? [] : ((await res.json()) as T[])
+  return {
+    rows,
+    total: headerNumber(res, 'X-Total-Count'),
+    hasMore: res.headers.get('X-Has-More') === 'true',
+    from: headerNumber(res, 'X-Time-From'),
+    to: headerNumber(res, 'X-Time-To'),
+  }
+}
+
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const res = await send(path, options)
+  if (res.status === 204) return undefined as T
+  return (await res.json()) as T
+}
+
+/** 요청과 오류 처리만. 본문을 어떻게 읽을지는 부르는 쪽이 정한다. */
+async function send(
   path: string,
   { method = 'GET', body, auth = true }: RequestOptions = {},
-): Promise<T> {
+): Promise<Response> {
   const headers: Record<string, string> = {}
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (auth) {
@@ -61,8 +111,7 @@ export async function request<T>(
     if (res.status === 401 && auth && !isTenantPath) useAuthStore.getState().clear()
     throw new ApiError(res.status, await errorMessage(res))
   }
-  if (res.status === 204) return undefined as T
-  return (await res.json()) as T
+  return res
 }
 
 export const UNREACHABLE = '서버에 연결하지 못했습니다'
@@ -80,7 +129,7 @@ async function errorMessage(res: Response): Promise<string> {
   return `요청에 실패했습니다 (${res.status})`
 }
 
-type QueryValue = string | number | undefined | null
+type QueryValue = string | number | boolean | undefined | null
 
 /** undefined/null/빈 문자열 파라미터는 빼고 쿼리스트링을 만든다. */
 export function queryString(params: Record<string, QueryValue>): string {

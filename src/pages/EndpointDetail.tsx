@@ -25,7 +25,6 @@ import { toAttackSteps } from '@/lib/lineagePath'
 
 const ALERT_LIMIT = 50
 
-/** 사건은 서버에 host 필터가 없어 받아 온 뒤 화면에서 거른다. 상한이 곧 조회 범위다. */
 const INCIDENT_LIMIT = 200
 
 const EVENT_LIMIT = 20
@@ -284,20 +283,15 @@ function HostAlerts({ host }: { host: string }) {
 function HostIncidents({ host }: { host: string }) {
   const navigate = useNavigate()
   const { data, loading, error, refetch } = useApi(
-    () => api.incidents({ limit: INCIDENT_LIMIT }),
-    [],
+    () => api.incidents({ host, limit: INCIDENT_LIMIT }),
+    [host],
   )
-  const scanned = data ?? []
-  const rows = scanned.filter((incident) => incident.host === host)
+  const rows = data ?? []
 
   return (
     <Section
       title="이 호스트의 사건"
-      /*
-        서버에 host 필터가 없어 받아 온 목록에서 화면이 거른다. 조회 범위 밖의 사건은
-        여기 없는데, 그걸 밝히지 않으면 사용자가 이게 전부라고 읽는다.
-      */
-      note={`서버에 호스트 필터가 아직 없어 최근 사건 ${INCIDENT_LIMIT}건(기본 최근 7일)을 받아 화면에서 골라냅니다. 지금 받은 ${scanned.length}건 밖의 사건은 이 호스트 것이라도 보이지 않습니다.`}
+      note={`최근 사건 ${INCIDENT_LIMIT}건까지 봅니다(기본 최근 7일).`}
       right={<span className="font-mono text-[12px] text-faint">{rows.length}건</span>}
     >
       <AsyncState

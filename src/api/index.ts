@@ -1,4 +1,4 @@
-import { queryString, request } from './client'
+import { listRequest, queryString, request } from './client'
 import { demoApi } from './demo'
 import { useAuthStore } from '@/store/auth'
 import type {
@@ -71,7 +71,18 @@ type CorrelateOptions = Period & {
 
 type IncidentFilter = Period & {
   status?: AlertStatus
+  host?: string
   limit?: number
+}
+
+/**
+ * 쪽 나눔. 첫 쪽에서 받은 from/to 를 다음 쪽에 그대로 되돌려줘야 행이 밀리지 않는다.
+ * withTotal 은 첫 쪽에만 준다. 전체 건수를 세려면 서버가 count 를 한 번 더 도는데
+ * 두 번째 쪽부터는 그 값이 필요 없다.
+ */
+type PageOptions = {
+  offset?: number
+  withTotal?: boolean
 }
 
 /**
@@ -170,6 +181,18 @@ export const api = {
   /** 사건 목록. 기본 최근 7일. alerts·lineage 는 여기서 null 이고 상세에서만 온다. */
   incidents: (filter: IncidentFilter = {}) =>
     isDemo() ? demoApi.incidents(filter) : request<Incident[]>(`/incidents${queryString(filter)}`),
+
+  /** 쪽 단위 목록. 더 받아 이어 붙이는 화면이 쓴다. */
+  alertPage: (filter: AlertFilter & PageOptions = {}) =>
+    isDemo() ? demoApi.alertPage(filter) : listRequest<Alert>(`/alerts${queryString(filter)}`),
+
+  eventPage: (filter: EventFilter & PageOptions = {}) =>
+    isDemo() ? demoApi.eventPage(filter) : listRequest<EdrEvent>(`/events${queryString(filter)}`),
+
+  incidentPage: (filter: IncidentFilter & PageOptions = {}) =>
+    isDemo()
+      ? demoApi.incidentPage(filter)
+      : listRequest<Incident>(`/incidents${queryString(filter)}`),
 
   incident: (id: string) =>
     isDemo() ? demoApi.incident(id) : request<Incident>(`/incidents/${encodeURIComponent(id)}`),

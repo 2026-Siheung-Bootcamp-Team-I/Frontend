@@ -1,6 +1,7 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
+import { ApiError, type Page } from '@/api/client'
 import type { EdrEvent } from '@/api/types'
 import ActiveFilters, { type ActiveFilter } from '@/components/ui/ActiveFilters'
 import AsyncState from '@/components/ui/AsyncState'
@@ -8,11 +9,11 @@ import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
 import ScrollArea from '@/components/ui/ScrollArea'
 import Select from '@/components/ui/Select'
-import { useApi } from '@/hooks/useApi'
 import { absoluteTime, eventTypeLabel } from '@/lib/format'
+import { useRefreshStore } from '@/store/refresh'
 
-/** 서버 상한은 1000 이지만, 한 화면에서 훑는 양으로는 이 정도면 충분하다. */
-const LIMIT = 500
+/** 한 쪽 크기. 더 볼 것은 아래 더 보기로 이어 붙인다. */
+const LIMIT = 50
 
 const HOUR = 3_600_000
 
@@ -168,6 +169,122 @@ function Detail({ event, onFilterHost }: { event: EdrEvent; onFilterHost: () => 
   )
 }
 
+/** 다음 쪽 요청에 실을 값. from/to 는 첫 쪽에서 서버가 알려준 구간 그대로다. */
+type PageRequest = { offset: number; withTotal?: boolean; from?: number; to?: number }
+
+/** offset 상한을 넘으면 400 이다. 다시 눌러도 같으므로 기간을 좁히라고 알린다. */
+function moreErrorText(e: Error): string {
+  if (e instanceof ApiError && e.status === 400) {
+    return '여기서 더 깊이는 한 번에 볼 수 없습니다. 기간을 좁혀서 다시 조회해 주세요.'
+  }
+  return e.message
+}
+
+/**
+ * 쪽 단위로 받아 이어 붙이는 목록. deps 가 바뀌면 쌓아 둔 행과 구간을 버리고 첫 쪽부터 다시 받는다.
+ * 전역 새로고침도 첫 쪽부터 다시 받는다. 덧붙이면 갱신인데 옛 행이 남는다.
+ */
+function usePagedList<T>(fetchPage: (page: PageRequest) => Promise<Page<T>>, deps: unknown[]) {
+  const [state, setState] = useState({
+    rows: [] as T[],
+    total: null as number | null,
+    hasMore: false,
+    loading: true,
+    loadingMore: false,
+    error: null as string | null,
+    moreError: null as string | null,
+  })
+  const [nonce, setNonce] = useState(0)
+  const refreshVersion = useRefreshStore((s) => s.version)
+
+  // fetchPage 는 매 렌더 새로 만들어지므로 재실행 기준은 deps 뿐이다(useApi 와 같다).
+  const fetchRef = useRef(fetchPage)
+  fetchRef.current = fetchPage
+  // 첫 쪽에서 서버가 실제로 적용한 구간. 그대로 되돌려주지 않으면 행이 겹치거나 건너뛰어진다.
+  const range = useRef<{ from?: number; to?: number }>({})
+  const offset = useRef(0)
+  // 늦게 도착한 응답을 버린다.
+  const seq = useRef(0)
+
+  const key = JSON.stringify(deps)
+  const lastKey = useRef<string | null>(null)
+
+  useEffect(() => {
+    // 렌더 중에 판정하면 StrictMode 의 이중 렌더에서 두 번째가 같은 조건으로 잘못 읽힌다.
+    const sameQuery = lastKey.current === key
+    lastKey.current = key
+    const id = ++seq.current
+    offset.current = 0
+    range.current = {}
+    // 조건이 그대로인 재조회면 보던 줄을 지우지 않는다. 다만 offset 이 0 으로 돌아갔으므로 더 보기는 막는다.
+    setState((prev) =>
+      sameQuery
+        ? { ...prev, loadingMore: true, error: null, moreError: null }
+        : {
+            rows: [],
+            total: null,
+            hasMore: false,
+            loading: true,
+            loadingMore: false,
+            error: null,
+            moreError: null,
+          },
+    )
+    // withTotal 은 첫 쪽에만. 서버가 count 쿼리를 한 번 더 돈다.
+    fetchRef
+      .current({ offset: 0, withTotal: true })
+      .then((page) => {
+        if (seq.current !== id) return
+        range.current = { from: page.from ?? undefined, to: page.to ?? undefined }
+        offset.current = page.rows.length
+        setState({
+          rows: page.rows,
+          total: page.total,
+          hasMore: page.hasMore,
+          loading: false,
+          loadingMore: false,
+          error: null,
+          moreError: null,
+        })
+      })
+      .catch((e: Error) => {
+        if (seq.current !== id) return
+        setState({
+          rows: [],
+          total: null,
+          hasMore: false,
+          loading: false,
+          loadingMore: false,
+          error: e.message,
+          moreError: null,
+        })
+      })
+  }, [key, nonce, refreshVersion])
+
+  const loadMore = useCallback(() => {
+    const id = ++seq.current
+    setState((prev) => ({ ...prev, loadingMore: true, moreError: null }))
+    fetchRef
+      .current({ offset: offset.current, ...range.current })
+      .then((page) => {
+        if (seq.current !== id) return
+        offset.current += page.rows.length
+        setState((prev) => ({
+          ...prev,
+          rows: [...prev.rows, ...page.rows],
+          hasMore: page.hasMore,
+          loadingMore: false,
+        }))
+      })
+      .catch((e: Error) => {
+        if (seq.current !== id) return
+        setState((prev) => ({ ...prev, loadingMore: false, moreError: moreErrorText(e) }))
+      })
+  }, [])
+
+  return { ...state, loadMore, reload: () => setNonce((n) => n + 1) }
+}
+
 function Events() {
   const [period, setPeriod] = useState<string>(DEFAULT_PERIOD)
   const [type, setType] = useState<string>(ALL_TYPES)
@@ -182,36 +299,36 @@ function Events() {
   const [hostInput, setHostInput] = useState(host ?? '')
   useEffect(() => setHostInput(host ?? ''), [host])
 
-  const { data, loading, error, refetch } = useApi(() => {
-    const hours = PERIODS.find((p) => p.value === period)?.hours ?? null
-    return api.events({
-      host: host ?? undefined,
-      from: hours === null ? undefined : Date.now() - hours * HOUR,
-      limit: LIMIT,
-    })
-  }, [host, period])
-
-  const events = useMemo(() => data ?? [], [data])
-
-  // 유형 선택지는 응답에 실제로 들어 있는 유형으로만 만든다. 수집 요소가 늘어도 화면은 그대로 따라간다.
-  const typeOptions = useMemo(() => {
-    const rank = (t: string) => {
-      const i = TYPE_ORDER.indexOf(t)
-      return i === -1 ? TYPE_ORDER.length : i
-    }
-    const found = [...new Set(events.map((e) => e.type))].sort(
-      (a, b) => rank(a) - rank(b) || a.localeCompare(b),
+  const { rows, total, hasMore, loading, loadingMore, error, moreError, loadMore, reload } =
+    usePagedList<EdrEvent>(
+      (page) => {
+        const hours = PERIODS.find((p) => p.value === period)?.hours ?? null
+        return api.eventPage({
+          host: host ?? undefined,
+          type: type === ALL_TYPES ? undefined : type,
+          // 첫 쪽이면 고른 기간으로 열고, 다음 쪽부터는 서버가 잡은 구간을 그대로 되돌려준다.
+          from: page.from ?? (hours === null ? undefined : Date.now() - hours * HOUR),
+          to: page.to,
+          limit: LIMIT,
+          offset: page.offset,
+          withTotal: page.withTotal,
+        })
+      },
+      [host, period, type],
     )
-    return [
-      { value: ALL_TYPES, label: `전체 유형 (${events.length})` },
-      ...found.map((t) => ({
-        value: t,
-        label: `${eventTypeLabel(t)} (${events.filter((e) => e.type === t).length})`,
-      })),
-    ]
-  }, [events])
 
-  const rows = type === ALL_TYPES ? events : events.filter((e) => e.type === type)
+  /*
+    유형은 서버에 넘겨서 거른다. 화면에서 거르면 받아 둔 쪽 안에서만 걸러져 실제와 다른 목록이 된다.
+    같은 이유로 건수도 붙이지 않는다. 받은 만큼만 셀 수 있어 사실과 달라진다.
+    선택지는 기본 유형에 실제로 받은 유형을 더한다. 백엔드가 새로 수집하는 유형도 눈에 띈다.
+  */
+  const typeOptions = useMemo(() => {
+    const found = [...new Set([...TYPE_ORDER, ...rows.map((e) => e.type)])]
+    return [
+      { value: ALL_TYPES, label: '전체 유형' },
+      ...found.map((t) => ({ value: t, label: eventTypeLabel(t) })),
+    ]
+  }, [rows])
 
   // 필터가 바뀌면 목록이 통째로 달라진다. 펼쳐 둔 줄을 그대로 두면 엉뚱한 줄이 열린 채로 남는다.
   function change(apply: () => void) {
@@ -247,7 +364,7 @@ function Events() {
           수집 로그
         </div>
         <div className="mt-[6px] text-[13px] text-faint">
-          엔드포인트에서 수집한 원시 이벤트입니다. 최근 {LIMIT}건까지 최신순으로 봅니다.
+          엔드포인트에서 수집한 원시 이벤트입니다. 최신순으로 {LIMIT}건씩 봅니다.
         </div>
       </div>
 
@@ -290,7 +407,9 @@ function Events() {
       <Card>
         <div className="flex items-baseline justify-between gap-[12px] border-b border-line-2 px-[16px] py-[14px] sm:px-[24px]">
           <span className="text-[14px] font-bold text-ink">수집 로그</span>
-          <span className="font-mono text-[12px] text-faint">{rows.length}건</span>
+          <span className="font-mono text-[12px] text-faint">
+            {total === null ? `${rows.length}건` : `${rows.length} / ${total}건`}
+          </span>
         </div>
         <div className="px-[16px] py-[14px] sm:px-[24px] sm:py-[18px]">
           <AsyncState
@@ -298,7 +417,7 @@ function Events() {
             error={error}
             empty={rows.length === 0}
             emptyText="조건에 맞는 이벤트가 없습니다"
-            onRetry={refetch}
+            onRetry={reload}
           >
             <ScrollArea label="이벤트 목록">
               <div className="min-w-[920px]">
@@ -371,6 +490,19 @@ function Events() {
                 })}
               </div>
             </ScrollArea>
+            {moreError && (
+              <div className="mt-[12px] text-center text-[12.5px] text-crit">{moreError}</div>
+            )}
+            {hasMore && (
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="mt-[12px] w-full cursor-pointer rounded-sm border border-line bg-surface px-[14px] py-[9px] text-[12.5px] font-semibold text-ink-2 disabled:cursor-default disabled:text-faint"
+              >
+                {loadingMore ? '불러오는 중' : '더 보기'}
+              </button>
+            )}
           </AsyncState>
         </div>
       </Card>

@@ -29,6 +29,7 @@ import type {
   TopologyEdge,
   TopologyNode,
 } from './types'
+import type { Page } from './client'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -805,6 +806,7 @@ const processTrees: Record<string, Lineage> = {
 
 type IncidentFilter = {
   status?: AlertStatus
+  host?: string
   from?: number
   to?: number
   limit?: number
@@ -980,9 +982,11 @@ function inIncidentPeriod(i: IncidentBase, from?: number, to?: number): boolean 
   return inPeriod(i.lastTs, from, to)
 }
 
-function filteredIncidents({ status, from, to, limit }: IncidentFilter): IncidentBase[] {
+function filteredIncidents({ status, host, from, to, limit }: IncidentFilter): IncidentBase[] {
   const rows = incidents
     .filter((i) => (status ? i.status === status : true))
+    // 백엔드가 GET /api/incidents?host= 를 열었다. 여기서 안 거르면 화면이 거른 척만 하게 된다.
+    .filter((i) => (host ? i.host === host : true))
     .filter((i) => inIncidentPeriod(i, from, to))
     .sort((a, b) => b.lastTs - a.lastTs)
   return limit === undefined ? rows : rows.slice(0, limit)
@@ -1447,6 +1451,39 @@ type EventFilter = {
   limit?: number
 }
 
+/** 백엔드와 같은 조건·같은 순서(최신순). limit 은 자르지 않고 events()/eventPage() 가 각자 자른다. */
+function filteredEvents({ host, type, sha256, from, to }: EventFilter): EdrEvent[] {
+  return events
+    .filter((e) => (host ? e.host === host : true))
+    .filter((e) => (type ? e.type === type : true))
+    .filter((e) => (sha256 ? e.sha256 === sha256.toLowerCase() : true))
+    .filter((e) => inPeriod(e.ts, from, to))
+    .sort((a, b) => b.ts - a.ts)
+}
+
+/**
+ * 쪽 나눔 공용. from/to 는 호출자가 준 값이 있으면 그대로, 없으면 null(구간을 안 걸렀다는 뜻)을 돌려준다.
+ * 그래야 돌려준 값을 다음 쪽 호출에 그대로 넘겨도 같은 조건이 반복돼 결과가 흔들리지 않는다.
+ */
+type PageOptions = {
+  offset?: number
+  withTotal?: boolean
+}
+
+function paginate<T>(
+  rows: T[],
+  { offset = 0, limit, withTotal, from, to }: PageOptions & { limit: number; from?: number; to?: number },
+): Page<T> {
+  const sliced = rows.slice(offset, offset + limit)
+  return {
+    rows: sliced,
+    total: withTotal ? rows.length : null,
+    hasMore: offset + limit < rows.length,
+    from: from ?? null,
+    to: to ?? null,
+  }
+}
+
 export const demoApi = {
   alerts: (filter: AlertFilter = {}) => respond<Alert[]>(filtered(filter)),
 
@@ -1469,15 +1506,8 @@ export const demoApi = {
   },
 
   /** 백엔드와 같은 조건·같은 순서(최신순). limit 기본값도 서버(100)와 맞춘다. */
-  events: ({ host, type, sha256, from, to, limit = 100 }: EventFilter = {}) => {
-    const rows = events
-      .filter((e) => (host ? e.host === host : true))
-      .filter((e) => (type ? e.type === type : true))
-      .filter((e) => (sha256 ? e.sha256 === sha256.toLowerCase() : true))
-      .filter((e) => inPeriod(e.ts, from, to))
-      .sort((a, b) => b.ts - a.ts)
-    return respond<EdrEvent[]>(rows.slice(0, limit))
-  },
+  events: ({ limit = 100, ...filter }: EventFilter = {}) =>
+    respond<EdrEvent[]>(filteredEvents(filter).slice(0, limit)),
 
   alertSummary: (period: { from?: number; to?: number } = {}) =>
     respond(summarize(filtered(period))),
@@ -1546,6 +1576,30 @@ export const demoApi = {
   /** 사건 목록. alerts·lineage 는 여기서 null 이고 상세에서만 온다. */
   incidents: (filter: IncidentFilter = {}): Promise<Incident[]> =>
     respond(filteredIncidents(filter).map(toIncidentSummary)),
+
+  /** 쪽 단위 알림 목록. 필터링은 alerts() 와 같은 filtered() 를 쓰고 여기서 자르기만 한다. */
+  alertPage: ({ offset, withTotal, limit = 100, ...filter }: AlertFilter & PageOptions = {}) =>
+    respond<Page<Alert>>(
+      paginate(filtered(filter), { offset, withTotal, limit, from: filter.from, to: filter.to }),
+    ),
+
+  /** 쪽 단위 이벤트 목록. */
+  eventPage: ({ offset, withTotal, limit = 100, ...filter }: EventFilter & PageOptions = {}) =>
+    respond<Page<EdrEvent>>(
+      paginate(filteredEvents(filter), { offset, withTotal, limit, from: filter.from, to: filter.to }),
+    ),
+
+  /** 쪽 단위 사건 목록. alerts·lineage 는 목록과 마찬가지로 null. */
+  incidentPage: ({ offset, withTotal, limit = 100, ...filter }: IncidentFilter & PageOptions = {}) =>
+    respond<Page<Incident>>(
+      paginate(filteredIncidents(filter).map(toIncidentSummary), {
+        offset,
+        withTotal,
+        limit,
+        from: filter.from,
+        to: filter.to,
+      }),
+    ),
 
   incident: (id: string): Promise<Incident> => {
     const target = incidents.find((i) => i.id === id) ?? incidents[0]

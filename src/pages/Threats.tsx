@@ -1,18 +1,42 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
-import type { Alert } from '@/api/types'
+import { ApiError, type Page } from '@/api/client'
+import type { Alert, AlertStatus } from '@/api/types'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import FilterChips from '@/components/ui/FilterChips'
 import AsyncState from '@/components/ui/AsyncState'
 import ActiveFilters, { type ActiveFilter } from '@/components/ui/ActiveFilters'
 import ScrollArea from '@/components/ui/ScrollArea'
-import { useApi } from '@/hooks/useApi'
 import { absoluteTime, severityLabel, severityTone, statusLabel, statusTone } from '@/lib/format'
 import { useAlertsStore } from '@/store/alerts'
+import { useRefreshStore } from '@/store/refresh'
 
-type Filter = 'all' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'handled'
+/** 한 쪽 크기. 더 볼 것은 아래 더 보기로 이어 붙인다. */
+const LIMIT = 50
+
+type Filter = 'all' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'confirmed' | 'false_positive'
+
+/*
+  칩은 서버에 넘겨서 거른다. 화면에서 거르면 받아 둔 쪽 안에서만 걸러져 실제와 다른 목록이 된다.
+  같은 이유로 칩에 건수도 붙이지 않는다. 받은 만큼만 셀 수 있어 사실과 달라진다.
+  서버 status 는 값 하나만 받으므로, 예전 처리됨 칩은 확정과 오탐으로 나눈다.
+*/
+const CHIPS: [Filter, string][] = [
+  ['all', '전체'],
+  ['CRITICAL', '심각'],
+  ['HIGH', '높음'],
+  ['MEDIUM', '보통'],
+  ['confirmed', '확정'],
+  ['false_positive', '오탐'],
+]
+
+function filterParams(filter: Filter): { severity?: string; status?: AlertStatus } {
+  if (filter === 'all') return {}
+  if (filter === 'confirmed' || filter === 'false_positive') return { status: filter }
+  return { severity: filter }
+}
 
 // 위협 / MITRE / 호스트 / 목적지 / 심각도 / 상태 / 근거 / 탐지 시각
 const rowGrid = 'grid grid-cols-[1fr_92px_116px_130px_78px_86px_48px_142px] gap-[12px]'
@@ -35,11 +59,120 @@ function Destination({ domain, destIp }: { domain: string; destIp: string }) {
   )
 }
 
-/** 처리됨 = 트리아지로 open 을 벗어난 것(확정·오탐). */
-function matches(alert: Alert, filter: Filter): boolean {
-  if (filter === 'all') return true
-  if (filter === 'handled') return alert.status !== 'open'
-  return alert.severity === filter
+/** 다음 쪽 요청에 실을 값. from/to 는 첫 쪽에서 서버가 알려준 구간 그대로다. */
+type PageRequest = { offset: number; withTotal?: boolean; from?: number; to?: number }
+
+/** offset 상한을 넘으면 400 이다. 다시 눌러도 같으므로 기간을 좁히라고 알린다. */
+function moreErrorText(e: Error): string {
+  if (e instanceof ApiError && e.status === 400) {
+    return '여기서 더 깊이는 한 번에 볼 수 없습니다. 기간을 좁혀서 다시 조회해 주세요.'
+  }
+  return e.message
+}
+
+/**
+ * 쪽 단위로 받아 이어 붙이는 목록. deps 가 바뀌면 쌓아 둔 행과 구간을 버리고 첫 쪽부터 다시 받는다.
+ * 전역 새로고침도 첫 쪽부터 다시 받는다. 덧붙이면 갱신인데 옛 행이 남는다.
+ */
+function usePagedList<T>(fetchPage: (page: PageRequest) => Promise<Page<T>>, deps: unknown[]) {
+  const [state, setState] = useState({
+    rows: [] as T[],
+    total: null as number | null,
+    hasMore: false,
+    loading: true,
+    loadingMore: false,
+    error: null as string | null,
+    moreError: null as string | null,
+  })
+  const [nonce, setNonce] = useState(0)
+  const refreshVersion = useRefreshStore((s) => s.version)
+
+  // fetchPage 는 매 렌더 새로 만들어지므로 재실행 기준은 deps 뿐이다(useApi 와 같다).
+  const fetchRef = useRef(fetchPage)
+  fetchRef.current = fetchPage
+  // 첫 쪽에서 서버가 실제로 적용한 구간. 그대로 되돌려주지 않으면 행이 겹치거나 건너뛰어진다.
+  const range = useRef<{ from?: number; to?: number }>({})
+  const offset = useRef(0)
+  // 늦게 도착한 응답을 버린다.
+  const seq = useRef(0)
+
+  const key = JSON.stringify(deps)
+  const lastKey = useRef<string | null>(null)
+
+  useEffect(() => {
+    // 렌더 중에 판정하면 StrictMode 의 이중 렌더에서 두 번째가 같은 조건으로 잘못 읽힌다.
+    const sameQuery = lastKey.current === key
+    lastKey.current = key
+    const id = ++seq.current
+    offset.current = 0
+    range.current = {}
+    // 조건이 그대로인 재조회면 보던 줄을 지우지 않는다. 다만 offset 이 0 으로 돌아갔으므로 더 보기는 막는다.
+    setState((prev) =>
+      sameQuery
+        ? { ...prev, loadingMore: true, error: null, moreError: null }
+        : {
+            rows: [],
+            total: null,
+            hasMore: false,
+            loading: true,
+            loadingMore: false,
+            error: null,
+            moreError: null,
+          },
+    )
+    // withTotal 은 첫 쪽에만. 서버가 count 쿼리를 한 번 더 돈다.
+    fetchRef
+      .current({ offset: 0, withTotal: true })
+      .then((page) => {
+        if (seq.current !== id) return
+        range.current = { from: page.from ?? undefined, to: page.to ?? undefined }
+        offset.current = page.rows.length
+        setState({
+          rows: page.rows,
+          total: page.total,
+          hasMore: page.hasMore,
+          loading: false,
+          loadingMore: false,
+          error: null,
+          moreError: null,
+        })
+      })
+      .catch((e: Error) => {
+        if (seq.current !== id) return
+        setState({
+          rows: [],
+          total: null,
+          hasMore: false,
+          loading: false,
+          loadingMore: false,
+          error: e.message,
+          moreError: null,
+        })
+      })
+  }, [key, nonce, refreshVersion])
+
+  const loadMore = useCallback(() => {
+    const id = ++seq.current
+    setState((prev) => ({ ...prev, loadingMore: true, moreError: null }))
+    fetchRef
+      .current({ offset: offset.current, ...range.current })
+      .then((page) => {
+        if (seq.current !== id) return
+        offset.current += page.rows.length
+        setState((prev) => ({
+          ...prev,
+          rows: [...prev.rows, ...page.rows],
+          hasMore: page.hasMore,
+          loadingMore: false,
+        }))
+      })
+      .catch((e: Error) => {
+        if (seq.current !== id) return
+        setState((prev) => ({ ...prev, loadingMore: false, moreError: moreErrorText(e) }))
+      })
+  }, [])
+
+  return { ...state, loadMore, reload: () => setNonce((n) => n + 1) }
 }
 
 function Threats() {
@@ -62,19 +195,24 @@ function Threats() {
     })
   }
 
-  const { data, loading, error, refetch } = useApi(
-    () =>
-      api.alerts({
-        host: host ?? undefined,
-        domain: domain ?? undefined,
-        destIp: destIp ?? undefined,
-        limit: 1000,
-      }),
-    [alertsVersion, host, domain, destIp],
-  )
+  const { rows, total, hasMore, loading, loadingMore, error, moreError, loadMore, reload } =
+    usePagedList<Alert>(
+      (page) =>
+        api.alertPage({
+          host: host ?? undefined,
+          domain: domain ?? undefined,
+          destIp: destIp ?? undefined,
+          ...filterParams(filter),
+          // 다음 쪽부터는 서버가 잡은 구간을 그대로 되돌려준다.
+          from: page.from,
+          to: page.to,
+          limit: LIMIT,
+          offset: page.offset,
+          withTotal: page.withTotal,
+        }),
+      [alertsVersion, host, domain, destIp, filter],
+    )
 
-  const alerts = useMemo(() => data ?? [], [data])
-  const rows = alerts.filter((a) => matches(a, filter))
   const hasDestFilter = Boolean(host || domain || destIp)
 
   const activeFilters: ActiveFilter[] = [
@@ -83,17 +221,8 @@ function Threats() {
     ...(destIp ? [{ label: '목적지 IP', value: destIp, onClear: () => clearParam('destIp') }] : []),
   ]
 
-  const count = (f: Filter) => alerts.filter((a) => matches(a, f)).length
-  const chips = (
-    [
-      ['all', '전체'],
-      ['CRITICAL', '심각'],
-      ['HIGH', '높음'],
-      ['MEDIUM', '보통'],
-      ['handled', '처리됨'],
-    ] as [Filter, string][]
-  ).map(([value, label]) => ({
-    label: `${label} ${count(value)}`,
+  const chips = CHIPS.map(([value, label]) => ({
+    label,
     active: filter === value,
     onClick: () => setFilter(value),
   }))
@@ -120,7 +249,7 @@ function Threats() {
           error={error}
           empty={rows.length === 0}
           emptyText={hasDestFilter ? '이 조건에서 탐지된 위협이 없습니다' : '탐지된 위협이 없습니다'}
-          onRetry={refetch}
+          onRetry={reload}
         >
           <ScrollArea label="위협 목록">
             <div className="min-w-[980px]">
@@ -169,6 +298,24 @@ function Threats() {
               ))}
             </div>
           </ScrollArea>
+          {moreError && (
+            <div className="mt-[12px] text-center text-[12.5px] text-crit">{moreError}</div>
+          )}
+          <div className="mt-[14px] flex items-center justify-between gap-[12px]">
+            <span className="font-mono text-[12px] text-faint">
+              {total === null ? `${rows.length}건` : `${rows.length} / ${total}건`}
+            </span>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="cursor-pointer rounded-sm border border-line bg-surface px-[14px] py-[8px] text-[12.5px] font-semibold text-ink-2 disabled:cursor-default disabled:text-faint"
+              >
+                {loadingMore ? '불러오는 중' : '더 보기'}
+              </button>
+            )}
+          </div>
         </AsyncState>
       </Card>
     </div>

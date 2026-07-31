@@ -22,11 +22,12 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
   // 조건이 그대로인 재조회(새로고침)인지 구분한다. 조건이 바뀐 것이면 이전 결과를 남기면 안 된다.
   const lastDeps = useRef<string | null>(null)
   const key = JSON.stringify(deps)
-  const sameQuery = lastDeps.current === key
-  lastDeps.current = key
 
   useEffect(() => {
     let alive = true
+    // 렌더 중에 판정하면 StrictMode 의 이중 렌더에서 두 번째가 같은 조건으로 잘못 읽힌다.
+    const sameQuery = lastDeps.current === key
+    lastDeps.current = key
     // 자동 새로고침마다 화면을 비우면 보던 줄이 사라진다. 같은 조건이면 이전 값을 두고 조용히 바꾼다.
     setState((prev) =>
       sameQuery ? { ...prev, error: null } : { data: null, loading: true, error: null },

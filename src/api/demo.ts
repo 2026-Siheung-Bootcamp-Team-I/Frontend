@@ -1379,6 +1379,8 @@ type AlertFilter = {
   host?: string
   severity?: string
   status?: AlertStatus
+  domain?: string
+  destIp?: string
   from?: number
   to?: number
   limit?: number
@@ -1391,11 +1393,28 @@ function inPeriod(ts: number, from?: number, to?: number): boolean {
 }
 
 /** 백엔드와 같은 순서(최신순)로 돌려준다. */
-function filtered({ host, severity, status, from, to, limit }: AlertFilter): DemoAlert[] {
+/** 서버가 도메인·IP 를 대소문자 없이 맞추므로 데모도 같게 맞춘다. */
+function sameValue(value: string, want?: string): boolean {
+  return want === undefined ? true : value.toLowerCase() === want.toLowerCase()
+}
+
+function filtered({
+  host,
+  severity,
+  status,
+  domain,
+  destIp,
+  from,
+  to,
+  limit,
+}: AlertFilter): DemoAlert[] {
   const rows = alerts
     .filter((a) => (host ? a.host === host : true))
     .filter((a) => (severity ? a.severity === severity : true))
     .filter((a) => (status ? a.status === status : true))
+    // 데모가 목적지 조건을 무시하면 화면이 거른 척만 하게 된다. 서버와 같은 결과를 내야 한다.
+    .filter((a) => sameValue(a.domain, domain))
+    .filter((a) => sameValue(a.destIp, destIp))
     .filter((a) => inPeriod(a.ts, from, to))
     .sort((a, b) => b.ts - a.ts)
   return limit === undefined ? rows : rows.slice(0, limit)

@@ -8,6 +8,7 @@ import Dashboard from '@/pages/Dashboard'
 import Onboarding from '@/pages/Onboarding'
 import Threats from '@/pages/Threats'
 import Endpoints from '@/pages/Endpoints'
+import EndpointDetail from '@/pages/EndpointDetail'
 import Events from '@/pages/Events'
 import Incidents from '@/pages/Incidents'
 import IncidentDetail from '@/pages/IncidentDetail'
@@ -45,6 +46,7 @@ function App() {
         {/* 데이터 조회 탭은 모두 로그인 없이 데모(예시)로 열린다. 토큰이 있으면 실데이터. */}
         <Route path="/threats" element={<Threats />} />
         <Route path="/endpoints" element={<Endpoints />} />
+        <Route path="/endpoints/:host" element={<EndpointDetail />} />
         <Route path="/events" element={<Events />} />
         <Route path="/incidents" element={<Incidents />} />
         <Route path="/incidents/:id" element={<IncidentDetail />} />

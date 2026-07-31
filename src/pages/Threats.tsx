@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
 import type { Alert } from '@/api/types'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import FilterChips from '@/components/ui/FilterChips'
 import AsyncState from '@/components/ui/AsyncState'
+import ActiveFilters, { type ActiveFilter } from '@/components/ui/ActiveFilters'
 import ScrollArea from '@/components/ui/ScrollArea'
 import { useApi } from '@/hooks/useApi'
 import { absoluteTime, severityLabel, severityTone, statusLabel, statusTone } from '@/lib/format'
@@ -45,14 +46,42 @@ function Threats() {
   const [filter, setFilter] = useState<Filter>('all')
   const alertsVersion = useAlertsStore((s) => s.version)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  // 다른 화면(관계 분석, IP·도메인 조회)에서 좁혀 들어오는 경로가 있어 되돌아갈 길을 준다.
+  const canGoBack = window.history.length > 1
   const host = searchParams.get('host')
+  const domain = searchParams.get('domain')
+  const destIp = searchParams.get('destIp')
+
+  // 해제는 그 조건만 지운다. 나머지 조건은 남아야 한다.
+  function clearParam(key: string) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete(key)
+      return next
+    })
+  }
+
   const { data, loading, error, refetch } = useApi(
-    () => api.alerts(host ? { host, limit: 1000 } : { limit: 1000 }),
-    [alertsVersion, host],
+    () =>
+      api.alerts({
+        host: host ?? undefined,
+        domain: domain ?? undefined,
+        destIp: destIp ?? undefined,
+        limit: 1000,
+      }),
+    [alertsVersion, host, domain, destIp],
   )
 
   const alerts = useMemo(() => data ?? [], [data])
   const rows = alerts.filter((a) => matches(a, filter))
+  const hasDestFilter = Boolean(host || domain || destIp)
+
+  const activeFilters: ActiveFilter[] = [
+    ...(host ? [{ label: '호스트', value: host, onClear: () => clearParam('host') }] : []),
+    ...(domain ? [{ label: '도메인', value: domain, onClear: () => clearParam('domain') }] : []),
+    ...(destIp ? [{ label: '목적지 IP', value: destIp, onClear: () => clearParam('destIp') }] : []),
+  ]
 
   const count = (f: Filter) => alerts.filter((a) => matches(a, f)).length
   const chips = (
@@ -83,28 +112,14 @@ function Threats() {
         <FilterChips chips={chips} />
       </div>
 
-      {host && (
-        <div className="flex items-center gap-2 text-[12.5px]">
-          <span className="text-faint">호스트 필터</span>
-          <span className="inline-flex items-center gap-[10px] font-semibold text-accent bg-[var(--accent-wash)] pl-[13px] pr-[10px] py-[6px] rounded-full">
-            <span className="font-mono">{host}</span>
-            <button
-              type="button"
-              onClick={() => setSearchParams({})}
-              className="font-sans text-[11.5px] font-semibold text-mid hover:text-ink-2 cursor-pointer"
-            >
-              해제
-            </button>
-          </span>
-        </div>
-      )}
+      <ActiveFilters filters={activeFilters} onBack={canGoBack ? () => navigate(-1) : undefined} />
 
       <Card className="px-[16px] py-[18px] sm:px-[24px] sm:py-[22px]">
         <AsyncState
           loading={loading}
           error={error}
           empty={rows.length === 0}
-          emptyText={host ? '이 호스트에서 탐지된 위협이 없습니다' : '탐지된 위협이 없습니다'}
+          emptyText={hasDestFilter ? '이 조건에서 탐지된 위협이 없습니다' : '탐지된 위협이 없습니다'}
           onRetry={refetch}
         >
           <ScrollArea label="위협 목록">

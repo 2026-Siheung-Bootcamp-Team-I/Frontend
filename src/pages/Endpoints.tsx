@@ -103,28 +103,24 @@ function Endpoints() {
                 <span className="text-right">위협</span>
               </div>
               {rows.map((row, i) => {
-                const clickable = row.threats > 0
-                const goToThreats = () => navigate('/threats?host=' + encodeURIComponent(row.host))
+                // 위협 0건인 기기도 상세에서 볼 게 있어 모든 줄이 상세로 간다.
+                const goToDetail = () => navigate('/endpoints/' + encodeURIComponent(row.host))
                 const noEvents = isNoEvents(row)
                 return (
                   <div
                     key={row.host}
-                    className={`${rowGrid} items-center py-[13px] ${
+                    className={`${rowGrid} items-center py-[13px] cursor-pointer hover:bg-panel ${
                       i === rows.length - 1 ? '' : 'border-b border-line-2'
-                    } ${clickable ? 'cursor-pointer hover:bg-panel' : ''}`}
-                    role={clickable ? 'button' : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onClick={clickable ? goToThreats : undefined}
-                    onKeyDown={
-                      clickable
-                        ? (e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              if (e.key === ' ') e.preventDefault()
-                              goToThreats()
-                            }
-                          }
-                        : undefined
-                    }
+                    }`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={goToDetail}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        if (e.key === ' ') e.preventDefault()
+                        goToDetail()
+                      }
+                    }}
                   >
                     <span className="font-mono text-[13px] text-ink">{row.host}</span>
                     <span className="text-[12px] text-faint">{platformLabel(row.platform)}</span>

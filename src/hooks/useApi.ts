@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useRefreshStore } from '@/store/refresh'
 
 type ApiState<T> = {
   data: T | null
@@ -15,10 +16,21 @@ type ApiState<T> = {
 export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
   const [state, setState] = useState<ApiState<T>>({ data: null, loading: true, error: null })
   const [nonce, setNonce] = useState(0)
+  // 전역 새로고침을 여기서 한 번에 받는다. 화면마다 deps 에 넣게 하면 빠뜨린 곳이 생긴다.
+  const refreshVersion = useRefreshStore((s) => s.version)
+
+  // 조건이 그대로인 재조회(새로고침)인지 구분한다. 조건이 바뀐 것이면 이전 결과를 남기면 안 된다.
+  const lastDeps = useRef<string | null>(null)
+  const key = JSON.stringify(deps)
+  const sameQuery = lastDeps.current === key
+  lastDeps.current = key
 
   useEffect(() => {
     let alive = true
-    setState({ data: null, loading: true, error: null })
+    // 자동 새로고침마다 화면을 비우면 보던 줄이 사라진다. 같은 조건이면 이전 값을 두고 조용히 바꾼다.
+    setState((prev) =>
+      sameQuery ? { ...prev, error: null } : { data: null, loading: true, error: null },
+    )
     fetcher()
       .then((data) => {
         if (alive) setState({ data, loading: false, error: null })
@@ -29,7 +41,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
     return () => {
       alive = false
     }
-  }, [...deps, nonce])
+  }, [...deps, nonce, refreshVersion])
 
   return { ...state, refetch: () => setNonce((n) => n + 1) }
 }

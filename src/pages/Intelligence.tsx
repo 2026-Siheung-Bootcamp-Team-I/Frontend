@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '@/api'
 import type { Topology, TopologyNode } from '@/api/types'
 import ActiveFilters, { type ActiveFilter } from '@/components/ui/ActiveFilters'
@@ -173,6 +174,32 @@ function LineMark({ tone, line }: { tone: GraphTone; line: EdgeLine }) {
   )
 }
 
+/** 그래프 노드는 링크가 아니라서, 목적지에서 위협 목록으로 넘어갈 길을 목록으로 따로 둔다. */
+function DestinationLinks({ nodes }: { nodes: TopologyNode[] }) {
+  const destinations = nodes.filter((node) => node.kind === 'destination')
+  if (destinations.length === 0) return null
+
+  return (
+    <Card className="flex flex-col gap-[10px] px-[16px] py-[16px]">
+      <div className="text-[12.5px] font-semibold text-ink-2">목적지 목록</div>
+      <div className="text-[11.5px] leading-[1.6] text-faint">
+        목적지를 눌러 이 목적지 때문에 난 위협을 봅니다.
+      </div>
+      <div className="flex flex-wrap gap-[8px]">
+        {destinations.map((node) => (
+          <Link
+            key={node.id}
+            to={`/threats?${node.destKind === 'ip' ? 'destIp' : 'domain'}=${encodeURIComponent(node.label)}`}
+            className="rounded-full border border-line bg-panel px-[11px] py-[5px] font-mono text-[11.5px] text-ink-2 hover:border-accent hover:text-accent"
+          >
+            {node.label}
+          </Link>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
 /** 응답이 잘렸으면 반드시 알린다. 알리지 않으면 이게 전부라고 읽힌다. */
 function TruncatedNotice({ total, shown }: { total: number; shown: number }) {
   return (
@@ -327,6 +354,8 @@ function Intelligence() {
             </AsyncState>
           </Card>
         </div>
+
+        <DestinationLinks nodes={data?.nodes ?? []} />
       </section>
     </div>
   )

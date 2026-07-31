@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '@/api'
 import type {
   Correlation,
@@ -427,6 +428,12 @@ function Lookup() {
                       <span className="text-[12px] text-faint">
                         관측 이벤트 {data.observedEvents.toLocaleString()}건
                       </span>
+                      <Link
+                        to={`/threats?${data.target.kind === 'IP' ? 'destIp' : 'domain'}=${encodeURIComponent(data.target.value)}`}
+                        className="ml-auto text-[12px] font-semibold text-accent hover:underline"
+                      >
+                        이 목적지의 위협 보기
+                      </Link>
                     </div>
 
                     {/* 관측이 0 이면 그래프만 비워 두지 않고 무엇이 없는 것인지 말한다. */}

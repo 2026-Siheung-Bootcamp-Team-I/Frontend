@@ -7,6 +7,15 @@ import { useApi } from '@/hooks/useApi'
 import { api } from '@/api'
 import { searchAll } from '@/lib/search'
 import { severityColors, severityTone, hostStatusColor, hostStatusLabel } from '@/lib/format'
+import { useRefreshStore, INTERVALS, type RefreshInterval } from '@/store/refresh'
+
+const intervalLabels: Record<RefreshInterval, string> = {
+  0: '끄기',
+  10: '10초',
+  30: '30초',
+  60: '1분',
+  300: '5분',
+}
 
 const titles: Record<string, string> = {
   '/dashboard': '대시보드',
@@ -30,6 +39,13 @@ function trailOf(pathname: string): Crumb[] {
   if (pathname.startsWith('/incidents/')) {
     return [{ label: '사건', to: '/incidents' }, { label: '사건 상세' }]
   }
+  if (pathname.startsWith('/endpoints/')) {
+    // 호스트명을 그대로 마지막 칸에 둔다. 어느 기기를 보고 있는지가 제목이어야 한다.
+    return [
+      { label: '엔드포인트', to: '/endpoints' },
+      { label: decodeURIComponent(pathname.slice('/endpoints/'.length)) },
+    ]
+  }
   const title = titles[pathname]
   return title ? [{ label: title }] : []
 }
@@ -51,6 +67,21 @@ function Topbar({ onMenuOpen }: TopbarProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+
+  const refreshInterval = useRefreshStore((s) => s.interval)
+  const lastRefreshAt = useRefreshStore((s) => s.lastAt)
+  const refresh = useRefreshStore((s) => s.refresh)
+  const setRefreshInterval = useRefreshStore((s) => s.setInterval)
+
+  useEffect(() => {
+    if (refreshInterval === 0) return
+    const id = window.setInterval(() => {
+      // 백그라운드 탭까지 계속 받을 필요는 없다.
+      if (document.visibilityState === 'hidden') return
+      refresh()
+    }, refreshInterval * 1000)
+    return () => window.clearInterval(id)
+  }, [refreshInterval, refresh])
 
   // 검색은 클라이언트 부분 일치라 전체 목록이 필요하다. 검색창을 열기 전에는 받지 않는다.
   const alerts = useApi(
@@ -141,13 +172,6 @@ function Topbar({ onMenuOpen }: TopbarProps) {
               예시 데이터
             </span>
           )}
-          <span className="hidden md:inline-flex items-center gap-[6px] text-[12px] text-mid ml-2">
-            <span
-              className="w-[6px] h-[6px] rounded-full bg-good"
-              style={{ animation: 'edrPulse 2s ease-in-out infinite' }}
-            />
-            실시간 동기화 중
-          </span>
         </div>
         <div className="flex items-center gap-[8px] sm:gap-[12px] min-w-0">
           <div
@@ -244,6 +268,61 @@ function Topbar({ onMenuOpen }: TopbarProps) {
               </div>
             )}
           </div>
+          {lastRefreshAt && (
+            <span className="hidden md:inline-flex flex-shrink-0 text-[11px] text-faint whitespace-nowrap">
+              {new Date(lastRefreshAt).toLocaleTimeString('ko-KR', { hour12: false })} 갱신
+            </span>
+          )}
+          <span className="relative flex-shrink-0">
+            <select
+              value={refreshInterval}
+              onChange={(e) => setRefreshInterval(Number(e.target.value) as RefreshInterval)}
+              aria-label="자동 새로고침 간격"
+              className="h-[34px] cursor-pointer appearance-none rounded-sm border border-line bg-surface pl-[10px] pr-[26px] font-sans text-[12px] text-ink"
+            >
+              {INTERVALS.map((sec) => (
+                <option key={sec} value={sec}>
+                  {intervalLabels[sec]}
+                </option>
+              ))}
+            </select>
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className="pointer-events-none absolute right-[9px] top-1/2 -translate-y-1/2 text-faint"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </span>
+          <button
+            type="button"
+            onClick={refresh}
+            aria-label="새로고침"
+            className="inline-flex flex-shrink-0 items-center justify-center w-[34px] h-[34px] rounded-sm border border-line bg-surface text-ink-2 cursor-pointer"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M8 16H3v5" />
+            </svg>
+          </button>
           <button
             onClick={toggle}
             className="inline-flex flex-shrink-0 items-center gap-[7px] h-[34px] pl-[11px] pr-[11px] sm:pr-[14px] rounded-sm border border-line bg-surface text-ink font-sans text-[12.5px] font-semibold cursor-pointer"

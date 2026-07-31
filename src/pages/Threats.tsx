@@ -13,8 +13,26 @@ import { useAlertsStore } from '@/store/alerts'
 
 type Filter = 'all' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'handled'
 
-// 위협 / MITRE / 호스트 / 심각도 / 상태 / 근거 / 탐지 시각
-const rowGrid = 'grid grid-cols-[1fr_92px_116px_78px_86px_48px_142px] gap-[12px]'
+// 위협 / MITRE / 호스트 / 목적지 / 심각도 / 상태 / 근거 / 탐지 시각
+const rowGrid = 'grid grid-cols-[1fr_92px_116px_130px_78px_86px_48px_142px] gap-[12px]'
+
+/**
+ * 판정 근거에 실제로 관측된 목적지. 둘 다 없으면 관측되지 않은 것이므로 지어내지 않고 '-' 로 밝힌다.
+ * 둘 다 있으면 도메인을 주로, IP 를 보조로 함께 보여준다(하나로 뭉개지 않는다).
+ */
+function Destination({ domain, destIp }: { domain: string; destIp: string }) {
+  if (!domain && !destIp) return <span className="text-faint">-</span>
+  return (
+    <span className="min-w-0">
+      {domain && <span className="block truncate font-mono text-[12px] text-ink-2">{domain}</span>}
+      {destIp && (
+        <span className={`block truncate font-mono text-[11px] ${domain ? 'text-faint' : 'text-ink-2'}`}>
+          {destIp}
+        </span>
+      )}
+    </span>
+  )
+}
 
 /** 처리됨 = 트리아지로 open 을 벗어난 것(확정·오탐). */
 function matches(alert: Alert, filter: Filter): boolean {
@@ -90,13 +108,14 @@ function Threats() {
           onRetry={refetch}
         >
           <ScrollArea label="위협 목록">
-            <div className="min-w-[860px]">
+            <div className="min-w-[980px]">
               <div
                 className={`${rowGrid} pt-2 pb-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
               >
                 <span>위협</span>
                 <span>MITRE</span>
                 <span>호스트</span>
+                <span>목적지</span>
                 <span>심각도</span>
                 <span>상태</span>
                 <span className="text-right">근거</span>
@@ -118,6 +137,7 @@ function Threats() {
                   </span>
                   <span className="font-mono text-[11.5px] text-mid">{row.mitre ?? '—'}</span>
                   <span className="font-mono text-[12px] text-mid">{row.host}</span>
+                  <Destination domain={row.domain} destIp={row.destIp} />
                   <Badge severity={severityTone(row.severity)} className="justify-self-start">
                     {severityLabel(row.severity)}
                   </Badge>

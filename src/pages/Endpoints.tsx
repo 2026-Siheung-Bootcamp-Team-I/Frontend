@@ -7,7 +7,7 @@ import FilterChips from '@/components/ui/FilterChips'
 import AsyncState from '@/components/ui/AsyncState'
 import ScrollArea from '@/components/ui/ScrollArea'
 import { useApi } from '@/hooks/useApi'
-import { hostStatusColor, hostStatusLabel, relativeTime } from '@/lib/format'
+import { hostStatusColor, hostStatusLabel, platformLabel, relativeTime } from '@/lib/format'
 
 // HostStatus 와 별개 축이다. 등록은 됐지만 이벤트가 아직 없는 기기는 열린 알림이 없어
 // status 는 항상 healthy 로 오는데, 그걸 그대로 "정상"에 합치면 검증 안 된 상태를 좋다고
@@ -18,7 +18,7 @@ function isNoEvents(h: Host): boolean {
   return h.enrolled && h.lastSeen === 0
 }
 
-const rowGrid = 'grid grid-cols-[1fr_100px_120px_110px_70px] gap-[12px]'
+const rowGrid = 'grid grid-cols-[1fr_90px_100px_120px_110px_70px] gap-[12px]'
 
 function Endpoints() {
   const [filter, setFilter] = useState<Filter>('all')
@@ -90,11 +90,12 @@ function Endpoints() {
           onRetry={refetch}
         >
           <ScrollArea label="엔드포인트 목록">
-            <div className="min-w-[580px]">
+            <div className="min-w-[660px]">
               <div
                 className={`${rowGrid} py-2 border-b border-line-2 text-[11px] text-faint uppercase tracking-[0.04em]`}
               >
                 <span>호스트</span>
+                <span>OS</span>
                 <span>상태</span>
                 <span>마지막 활동</span>
                 <span>에이전트 연결</span>
@@ -125,6 +126,7 @@ function Endpoints() {
                     }
                   >
                     <span className="font-mono text-[13px] text-ink">{row.host}</span>
+                    <span className="text-[12px] text-faint">{platformLabel(row.platform)}</span>
                     <span
                       className="inline-flex items-center gap-[7px] text-[12.5px] font-semibold"
                       style={{ color: noEvents ? 'var(--faint)' : hostStatusColor(row.status) }}

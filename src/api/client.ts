@@ -80,7 +80,7 @@ async function errorMessage(res: Response): Promise<string> {
   return `요청에 실패했습니다 (${res.status})`
 }
 
-type QueryValue = string | number | undefined | null
+type QueryValue = string | number | boolean | undefined | null
 
 /** undefined/null/빈 문자열 파라미터는 빼고 쿼리스트링을 만든다. */
 export function queryString(params: Record<string, QueryValue>): string {

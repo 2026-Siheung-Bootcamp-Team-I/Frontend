@@ -6,11 +6,17 @@ import type {
   AlertStatus,
   AlertSummary,
   AuthResponse,
+  Correlation,
+  DnsLookup,
+  EdrEvent,
   EventSummary,
   GeoDestination,
   Host,
   HostSummary,
+  Incident,
+  IncidentTimeline,
   Lineage,
+  Topology,
   UserWebhook,
   WebhookTestResult,
   InstallLink,
@@ -28,7 +34,37 @@ type AlertFilter = {
   limit?: number
 }
 
+type EventFilter = {
+  host?: string
+  type?: string
+  /** 파일 해시 완전일치. 대소문자는 서버가 맞춘다. */
+  sha256?: string
+  /** epoch millis */
+  from?: number
+  to?: number
+  /** 서버 기본 100, 상한 1000. */
+  limit?: number
+}
+
 type Period = { from?: number; to?: number }
+
+type TopologyFilter = Period & {
+  /** 호스트·목적지 부분 일치. */
+  q?: string
+  /** 관계 수. 기본 200, 상한 1000. */
+  limit?: number
+}
+
+type CorrelateOptions = Period & {
+  limit?: number
+  /** false 면 실시간 DNS 를 묻지 않는다(응답의 liveDns 가 null). */
+  liveDns?: boolean
+}
+
+type IncidentFilter = Period & {
+  status?: AlertStatus
+  limit?: number
+}
 
 /**
  * 로그인 전에는 서버를 부르지 않고 데모 데이터를 돌려준다.
@@ -63,8 +99,18 @@ export const api = {
       ? demoApi.alertSummary(period)
       : request<AlertSummary>(`/alerts/summary${queryString(period)}`),
 
+  /** 알림 상세. 목록에 없는 sourceEvent 가 여기서만 채워진다. */
+  alert: (id: string) =>
+    isDemo() ? demoApi.alert(id) : request<Alert>(`/alerts/${encodeURIComponent(id)}`),
+
   lineage: (id: string) =>
     isDemo() ? demoApi.lineage(id) : request<Lineage>(`/alerts/${encodeURIComponent(id)}/lineage`),
+
+  /** 호스트 단위 프로세스 트리. 응답이 lineage 와 같아 같은 렌더러를 쓴다. */
+  processTree: (host: string, period: Period = {}) =>
+    isDemo()
+      ? demoApi.processTree(host)
+      : request<Lineage>(`/hosts/${encodeURIComponent(host)}/process-tree${queryString(period)}`),
 
   triage: (id: string, status: Extract<AlertStatus, 'confirmed' | 'false_positive'>) =>
     isDemo()
@@ -89,9 +135,51 @@ export const api = {
           body: { target },
         }),
 
+  /** egress 토폴로지. 기본 최근 24시간, 관계 수 기본 200·상한 1000. */
+  topology: (filter: TopologyFilter = {}) =>
+    isDemo()
+      ? demoApi.topology(filter)
+      : request<Topology>(`/intelligence/topology${queryString(filter)}`),
+
+  /** 도메인·IP 상관 분석. liveDns=false 면 실시간 조회를 건너뛴다. */
+  correlate: (target: string, options: CorrelateOptions = {}) =>
+    isDemo()
+      ? demoApi.correlate(target)
+      : request<Correlation>(`/intelligence/correlate${queryString({ target, ...options })}`),
+
+  /** 지금 DNS 서버에 물어본다. 우리 이벤트와 무관한 조회 시점 값이다. */
+  dnsLookup: (target: string) =>
+    isDemo()
+      ? demoApi.dnsLookup(target)
+      : request<DnsLookup>(`/intelligence/dns-lookup${queryString({ target })}`),
+
+  /** 사건 목록. 기본 최근 7일. alerts·lineage 는 여기서 null 이고 상세에서만 온다. */
+  incidents: (filter: IncidentFilter = {}) =>
+    isDemo() ? demoApi.incidents(filter) : request<Incident[]>(`/incidents${queryString(filter)}`),
+
+  incident: (id: string) =>
+    isDemo() ? demoApi.incident(id) : request<Incident>(`/incidents/${encodeURIComponent(id)}`),
+
+  incidentTimeline: (id: string) =>
+    isDemo()
+      ? demoApi.incidentTimeline(id)
+      : request<IncidentTimeline>(`/incidents/${encodeURIComponent(id)}/timeline`),
+
+  triageIncident: (id: string, status: Extract<AlertStatus, 'confirmed' | 'false_positive'>) =>
+    isDemo()
+      ? demoApi.triageIncident(id, status)
+      : request<Incident>(`/incidents/${encodeURIComponent(id)}/status`, {
+          method: 'PATCH',
+          body: { status },
+        }),
+
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 
   hostSummary: () => (isDemo() ? demoApi.hostSummary() : request<HostSummary>('/hosts/summary')),
+
+  /** 수집된 개별 이벤트를 최신순으로. 유형 필터는 서버가 아니라 화면에서 거른다(아래 Events 페이지 주석). */
+  events: (filter: EventFilter = {}) =>
+    isDemo() ? demoApi.events(filter) : request<EdrEvent[]>(`/events${queryString(filter)}`),
 
   eventSummary: (period: Period = {}) =>
     isDemo()

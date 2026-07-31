@@ -6,6 +6,30 @@ export type AlertSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM'
 /** 트리아지 status. open 은 적재 초기값, PATCH 로는 confirmed/false_positive 만 보낼 수 있다. */
 export type AlertStatus = 'open' | 'confirmed' | 'false_positive'
 
+/**
+ * 판정을 유발한 원본 이벤트. GET /api/alerts/{id} 에서만 채워지고 목록에는 없다.
+ *
+ * matchedBy 는 이 이벤트를 무엇으로 특정했는지다. summary 는 프로세스명·부모·경로까지 맞은 것이고,
+ * rule_type 은 이벤트 종류만 맞아 같은 종류가 여럿이면 시각으로 갈린 것이다. 확신의 세기가 다르므로
+ * 화면에서 같게 보여주면 안 된다.
+ */
+export type SourceEvent = {
+  host: string
+  type: string
+  /** epoch millis */
+  ts: number
+  process: string
+  parent: string
+  cmdline: string
+  destIp: string
+  /** 네트워크 이벤트가 아니면 0. */
+  destPort: number
+  domain: string
+  detail: string
+  sha256: string
+  matchedBy: 'summary' | 'rule_type' | string
+}
+
 export type Alert = {
   id: string
   host: string
@@ -20,6 +44,12 @@ export type Alert = {
   ts: number
   status: AlertStatus
   matched: string[]
+  /** 판정 근거에 실제로 관측된 목적지 도메인. 없으면 빈 문자열. */
+  domain: string
+  /** 판정 근거에 실제로 관측된 목적지 IP. 없으면 빈 문자열. */
+  destIp: string
+  /** 목록이거나 원본 이벤트를 못 찾았으면 null. */
+  sourceEvent: SourceEvent | null
 }
 
 export type AlertSummary = {
@@ -58,6 +88,8 @@ export type Host = {
   enrolled: boolean
   /** epoch millis. osquery 가 서버에 마지막으로 붙은 시각. 미등록이면 0 */
   agentSeen: number
+  /** 에이전트가 보고한 OS. darwin | windows. 미등록이면 빈 문자열. */
+  platform: string
 }
 
 export type HostSummary = {
@@ -113,6 +145,57 @@ export type EventSummary = {
 }
 
 /**
+ * GET /api/events 의 개별 수집 이벤트.
+ *
+ * type 은 process/network/file/dns/l7 이지만 유니온으로 좁히지 않는다. 수집 요소는 계속 늘어나고,
+ * 모르는 유형이 왔을 때 타입 에러 대신 원문 그대로 보여주는 편이 조사에 쓸모 있다.
+ *
+ * 값이 없는 문자열 필드는 ClickHouse 기본값 때문에 null 이 아니라 빈 문자열로 온다.
+ * 반대로 pid/포트/코드 같은 수치는 관측하지 못하면 null 이다(0 은 실제로 0인 경우다).
+ */
+export type EdrEvent = {
+  host: string
+  type: string
+  /** epoch millis. 엔드포인트에서 이벤트가 일어난 시각. */
+  ts: number
+  process: string
+  parent: string
+  cmdline: string
+  pid: number | null
+  ppid: number | null
+  destIp: string
+  /** 네트워크 이벤트가 아니면 0. 이 필드만은 null 이 아니라 0 으로 온다. */
+  destPort: number
+  /** tcp | udp */
+  protocol: string | null
+  domain: string
+  sha256: string
+  /** 파일 이벤트의 동작. CREATE | WRITE | RENAME | DELETE */
+  action: string | null
+  /** A, AAAA 등 */
+  dnsRecordType: string | null
+  dnsAnswers: string[] | null
+  /** 0 이 성공이라 "없음"(null)과 반드시 구분해서 다뤄야 한다. */
+  dnsResponseCode: number | null
+  tlsVersion: string | null
+  /** 핸드셰이크에서 제시된 프로토콜 목록이라 배열이다. */
+  alpn: string[] | null
+  /** TLS | HTTP */
+  l7Protocol: string | null
+  httpMethod: string | null
+  httpPath: string | null
+  httpUserAgent: string | null
+  httpStatusCode: number | null
+  /**
+   * 평탄화되기 전 원본 JSON 문자열. 위 필드는 여기서 뽑아낸 값이라 파싱할 필요가 없고,
+   * 백엔드가 새 키를 수집하기 시작했을 때 화면 수정 없이 확인할 수단으로만 쓴다.
+   */
+  detail: string
+  /** epoch millis. 서버에 적재된 시각. 파싱하지 못하면 null. */
+  ingestedAt: number | null
+}
+
+/**
  * 외부 연결 목적지를 국가로 묶은 집계. GET /api/events/geo 응답 그대로다.
  * 백엔드가 개별 연결이 아니라 국가 단위로 세어 주므로 host·IP·시각은 없다.
  * 사설 IP 는 제외되고, 서버에 GeoIP DB 가 없으면 빈 배열이 온다.
@@ -135,6 +218,190 @@ export type ExecuteResult = {
   status: ExecuteStatus
   /** 에이전트에 내려보낸 명령 id. 실행 전에 끝난 DISABLED/COOLDOWN 이면 null. */
   executionId: string | null
+}
+
+/* ── Intelligence: egress 토폴로지 (GET /api/intelligence/topology) ───────────────── */
+
+/** endpoint = 우리 기기, destination = 나간 목적지, domainGroup = 같은 등록가능 도메인끼리 묶은 것. */
+export type TopologyNodeKind = 'endpoint' | 'destination' | 'domainGroup'
+
+export type TopologyNode = {
+  /** host:<이름> | dest:<목적지> | group:<도메인> */
+  id: string
+  kind: TopologyNodeKind
+  label: string
+  /**
+   * destination 노드만. domain | ip.
+   * ip 는 도메인을 못 잡았다는 뜻이지 이름이 없다는 뜻이 아니다. 서버가 이름을 지어 붙이지 않는다.
+   */
+  destKind: string | null
+  /** destination 이 속한 domainGroup 노드 id. 묶이지 않았으면 null. */
+  group: string | null
+  /** endpoint 노드만. 0..100. */
+  riskScore: number | null
+  /** endpoint 노드만. */
+  openAlerts: number | null
+  /** domainGroup 노드만. 묶인 목적지 수. */
+  members: number | null
+}
+
+export type TopologyEdge = {
+  from: string
+  to: string
+  events: number
+  /** 0 이면 관측만 된 관계다. 0 보다 크면 조사 대상이라 화면에서 반드시 갈라 그린다. */
+  alerts: number
+  protocols: string[]
+  /** epoch millis */
+  lastSeen: number
+}
+
+export type Topology = {
+  /** epoch millis. 조회 구간. */
+  from: number
+  to: number
+  totalRelations: number
+  shownRelations: number
+  /** true 면 화면에 "이게 전부가 아니다"를 반드시 알려야 한다. */
+  truncated: boolean
+  nodes: TopologyNode[]
+  edges: TopologyEdge[]
+}
+
+/* ── Intelligence: IP·도메인 상관 (GET /api/intelligence/correlate) ───────────────── */
+
+export type CorrelationNodeKind = 'DOMAIN' | 'IP' | 'HOST' | 'PROCESS' | 'PTR_NAME'
+
+/**
+ * 엣지의 출처. 셋을 같게 보여주면 추측이 관측으로 읽힌다.
+ * OBSERVED  수집한 이벤트에 그대로 있던 사실
+ * INFERRED  관측 두 건을 시간·IP 로 이어 붙인 추측 (basis 에 근거)
+ * LIVE_DNS  지금 물어본 결과. 조회 시점 상태일 뿐 우리 이벤트와 무관하다
+ */
+export type RelationOrigin = 'OBSERVED' | 'INFERRED' | 'LIVE_DNS'
+
+export type RelationType =
+  | 'RESOLVED_TO'
+  | 'ALIAS_OF'
+  | 'CONNECTED_VIA'
+  | 'QUERIED'
+  | 'CONNECTED'
+  | 'PTR_CANDIDATE'
+
+export type CorrelationNode = {
+  /** <kind 소문자>:<value> */
+  id: string
+  kind: CorrelationNodeKind
+  value: string
+}
+
+export type CorrelationEdge = {
+  from: string
+  to: string
+  relation: RelationType
+  origin: RelationOrigin
+  observations: number
+  /** epoch millis. 관측이 없으면(LIVE_DNS) null. */
+  firstSeen: number | null
+  lastSeen: number | null
+  /** INFERRED 를 무엇으로 이었는지. 다른 origin 이면 null. */
+  basis: string | null
+}
+
+export type DnsLookupStatus = 'OK' | 'NOT_FOUND' | 'FAILED'
+
+/**
+ * NOT_FOUND 는 서버가 "그런 이름 없다"고 답한 것(조회는 성공),
+ * FAILED 는 타임아웃 등으로 묻지 못한 것이다. 둘을 같게 그리면 없는 사실이 생긴다.
+ */
+export type ForwardLookup = {
+  status: DnsLookupStatus
+  addresses: string[]
+  error: string | null
+}
+
+export type ReverseLookup = {
+  status: DnsLookupStatus
+  /** PTR 이 답한 이름. IP 소유자가 아무 이름이나 적을 수 있어 IP 의 이름이 아니라 후보다. */
+  ptrNames: string[]
+  error: string | null
+}
+
+export type CorrelateTarget = {
+  kind: 'DOMAIN' | 'IP'
+  value: string
+}
+
+export type DnsLookup = {
+  target: CorrelateTarget
+  /** 대상이 도메인일 때만. */
+  forward: ForwardLookup | null
+  /** 대상이 IP 일 때만. */
+  reverse: ReverseLookup | null
+}
+
+export type Correlation = {
+  target: CorrelateTarget
+  /** 0 이면 "우리가 관측한 적 없음"을 화면에 명시해야 한다. */
+  observedEvents: number
+  nodes: CorrelationNode[]
+  edges: CorrelationEdge[]
+  /** liveDns=false 로 조회했으면 null. */
+  liveDns: DnsLookup | null
+}
+
+/* ── Incidents (/api/incidents) ──────────────────────────────────────────────────── */
+
+/**
+ * 같은 공격 체인으로 묶인 알림들. 알림을 프로세스 계보로 묶어 조회 시점에 계산한다.
+ * id 가 결정적이라 알림이 하나 더 붙어도 여기 단 트리아지 status 는 유지된다.
+ */
+export type Incident = {
+  id: string
+  host: string
+  status: AlertStatus
+  severity: AlertSeverity
+  /** epoch millis */
+  firstTs: number
+  lastTs: number
+  alertCount: number
+  /** 빈 문자열이면 원본 이벤트를 못 찾은 것이다. 서버가 지어내지 않는다. */
+  rootProcess: string
+  ruleIds: string[]
+  threatNames: string[]
+  mitre: string[]
+  /** 목록에서는 null. 상세에서만 채워진다. */
+  alerts: Alert[] | null
+  /** 목록에서는 null. 노드 id 는 proc:이름:pid, pid 를 관측 못 했으면 proc:이름. */
+  lineage: Lineage | null
+}
+
+/**
+ * 사건 전개 한 줄. kind 가 event 면 관측된 이벤트, alert 면 그 위에서 난 판정이다.
+ * 체인 밖 이벤트는 담기지 않는다. 같은 시각이면 이벤트가 알림보다 먼저 온다.
+ */
+export type IncidentTimelineEntry = {
+  /** epoch millis */
+  ts: number
+  kind: 'event' | 'alert'
+  type: string | null
+  process: string | null
+  pid: number | null
+  parent: string | null
+  cmdline: string | null
+  destIp: string | null
+  destPort: number | null
+  domain: string | null
+  alertId: string | null
+  ruleId: string | null
+  threatName: string | null
+  severity: string | null
+}
+
+export type IncidentTimeline = {
+  id: string
+  host: string
+  entries: IncidentTimelineEntry[]
 }
 
 export type AuthResponse = {

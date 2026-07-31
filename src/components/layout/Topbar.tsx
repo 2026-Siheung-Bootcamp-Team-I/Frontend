@@ -11,9 +11,27 @@ import { severityColors, severityTone, hostStatusColor, hostStatusLabel } from '
 const titles: Record<string, string> = {
   '/dashboard': '대시보드',
   '/threats': '위협',
+  '/incidents': '사건',
   '/endpoints': '엔드포인트',
-  '/sequence': '시퀀스 분석',
-  '/report': '요약 보기',
+  '/events': '수집 로그',
+  '/map': '위협 지도',
+  '/intelligence': '관계 분석',
+  '/lookup': 'IP·도메인 조회',
+  '/onboarding': '수집 알림 연동',
+}
+
+type Crumb = { label: string; to?: string }
+
+/**
+ * 화면이 깊어지면(사건 상세) 제목만으로는 어디에 있는지 알 수 없다.
+ * 제목 위에 경로를 한 줄 깔아 위치와 돌아갈 곳을 같이 보여준다.
+ */
+function trailOf(pathname: string): Crumb[] {
+  if (pathname.startsWith('/incidents/')) {
+    return [{ label: '사건', to: '/incidents' }, { label: '사건 상세' }]
+  }
+  const title = titles[pathname]
+  return title ? [{ label: title }] : []
 }
 
 type TopbarProps = {
@@ -24,7 +42,8 @@ function Topbar({ onMenuOpen }: TopbarProps) {
   const { theme, toggle } = useThemeStore()
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const pageTitle = titles[pathname] ?? 'EDRdog'
+  const trail = trailOf(pathname)
+  const pageTitle = trail.at(-1)?.label ?? 'EDRdog'
   const themeLabel = theme === 'dark' ? '라이트' : '다크'
   const isDemo = useAuthStore((s) => s.token) === null
 
@@ -93,8 +112,28 @@ function Topbar({ onMenuOpen }: TopbarProps) {
         </button>
         <div className="flex items-center gap-[10px] min-w-0">
           {/* 좁은 화면에서 제목이 줄어들 수 있어야 우측 묶음이 자리를 뺏지 않는다. */}
-          <span className="text-[16px] font-bold text-ink tracking-[-0.01em] truncate">
-            {pageTitle}
+          <span className="flex min-w-0 flex-col">
+            {/* 좁은 화면에서는 접는다. 한 줄뿐인 화면에서는 제목과 같은 말이라 잃는 정보가 없다. */}
+            <span className="hidden sm:flex items-center gap-[5px] text-[11px] text-faint">
+              <Link to="/dashboard" className="!text-faint hover:!text-mid">
+                EDRdog
+              </Link>
+              {trail.map((crumb) => (
+                <span key={crumb.label} className="flex items-center gap-[5px]">
+                  <span aria-hidden>/</span>
+                  {crumb.to ? (
+                    <Link to={crumb.to} className="!text-faint hover:!text-mid">
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className="truncate">{crumb.label}</span>
+                  )}
+                </span>
+              ))}
+            </span>
+            <span className="text-[16px] font-bold text-ink tracking-[-0.01em] truncate">
+              {pageTitle}
+            </span>
           </span>
           {/* 같은 이유로 배지는 sm 부터. 데모라는 사실은 사이드바 하단에도 적혀 있다. */}
           {isDemo && (

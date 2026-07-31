@@ -23,6 +23,7 @@ import type {
   IncidentTimelineEntry,
   Lineage,
   ReverseLookup,
+  RuleCatalogEntry,
   SourceEvent,
   Topology,
   TopologyEdge,
@@ -44,10 +45,11 @@ type DemoAlert = Alert & { category: string }
  * 하나가 늘 때마다 9곳을 고쳐야 하니, 빈 기본값을 깔고 실제로 관측된 것만 덮어쓴다.
  */
 function alert(
-  base: Omit<DemoAlert, 'domain' | 'destIp' | 'sourceEvent'> &
+  base: Omit<DemoAlert, 'domain' | 'destIp' | 'sourceEvent' | 'incidentId'> &
     Partial<Pick<DemoAlert, 'domain' | 'destIp'>>,
 ): DemoAlert {
-  return { domain: '', destIp: '', sourceEvent: null, ...base }
+  // incidentId 는 목록에서 항상 null 이다. 실제 값은 사건에 속한 알림에 한해 상세 조회에서만 채운다.
+  return { domain: '', destIp: '', sourceEvent: null, incidentId: null, ...base }
 }
 
 const alerts: DemoAlert[] = [
@@ -183,8 +185,11 @@ function findAlert(id: string): DemoAlert {
   return found
 }
 
-/** category 는 백엔드 Alert 에 없는 데모 전용 필드라 응답 직전에 떼어낸다. */
-function toAlert(d: DemoAlert, sourceEvent: SourceEvent | null): Alert {
+/**
+ * category 는 백엔드 Alert 에 없는 데모 전용 필드라 응답 직전에 떼어낸다.
+ * incidentId 는 호출부가 명시할 때만 채운다(목록은 항상 null, 상세만 실제 사건 id 를 넘긴다).
+ */
+function toAlert(d: DemoAlert, sourceEvent: SourceEvent | null, incidentId: string | null = null): Alert {
   return {
     id: d.id,
     host: d.host,
@@ -199,8 +204,83 @@ function toAlert(d: DemoAlert, sourceEvent: SourceEvent | null): Alert {
     domain: d.domain,
     destIp: d.destIp,
     sourceEvent,
+    incidentId,
   }
 }
+
+/**
+ * 탐지 룰 카탈로그. 화면이 알림의 ruleId 로 여기서 설명을 찾아 붙이므로 위 alerts 에 쓰인
+ * ruleId 를 전부 덮어야 한다. threatName/category 는 alerts 에서 쓰는 값과 같게 맞춘다.
+ */
+const ruleCatalog: RuleCatalogEntry[] = [
+  {
+    ruleId: 'ransomware_mass_encrypt',
+    threatName: '문서 대량 암호화 시도',
+    category: '악성코드',
+    mitre: 'T1486',
+    description:
+      '짧은 시간 안에 다수의 파일이 알려진 랜섬웨어 확장자로 연속 변경되고, 섀도 복사본 삭제 명령이 함께 관측되면 발화한다.',
+  },
+  {
+    ruleId: 'lsass_memory_access',
+    threatName: 'LSASS 메모리 접근',
+    category: '권한 상승',
+    mitre: 'T1003.001',
+    description: 'lsass.exe 프로세스 메모리에 대한 핸들 요청과 함께 덤프 파일 생성이 관측되면 발화한다.',
+  },
+  {
+    ruleId: 'powershell_encoded_command',
+    threatName: '인코딩된 PowerShell 명령 실행',
+    category: '악성코드',
+    mitre: 'T1059.001',
+    description:
+      'PowerShell 이 -enc/-EncodedCommand 옵션으로 실행되고, 상위 프로세스가 평소 스크립트를 실행하지 않는 프로세스(문서 편집기 등)일 때 발화한다.',
+  },
+  {
+    ruleId: 'c2_beacon',
+    threatName: '외부 C2 서버 반복 연결',
+    category: '원격 접속',
+    mitre: 'T1071.001',
+    description:
+      '일정한 간격으로 동일 도메인·IP 에 반복 연결하면서 목적지의 평판 정보가 없거나 낮을 때 발화한다.',
+  },
+  {
+    ruleId: 'local_admin_created',
+    threatName: '로컬 관리자 계정 생성',
+    category: '권한 상승',
+    mitre: 'T1136.001',
+    description: 'net user /add 로 계정이 생성된 직후 같은 계정이 Administrators 그룹에 추가되면 발화한다.',
+  },
+  {
+    ruleId: 'scheduled_task_persistence',
+    threatName: '예약 작업으로 지속성 확보',
+    category: '권한 상승',
+    mitre: 'T1053.005',
+    description:
+      'schtasks /create 로 예약 작업이 등록되고, 부팅 또는 로그온 시 자동 실행되도록 트리거가 설정되면 발화한다.',
+  },
+  {
+    ruleId: 'large_outbound_transfer',
+    threatName: '대용량 외부 전송',
+    category: '정보 유출',
+    mitre: 'T1567.002',
+    description: '짧은 시간 안에 단일 프로세스가 외부로 임계치 이상의 데이터를 전송하면 발화한다.',
+  },
+  {
+    ruleId: 'rdp_brute_force',
+    threatName: 'RDP 무차별 대입 시도',
+    category: '원격 접속',
+    mitre: 'T1110.001',
+    description: '짧은 시간 창 안에서 동일 계정 또는 호스트를 대상으로 RDP 로그인 실패가 임계치 이상 반복되면 발화한다.',
+  },
+  {
+    ruleId: 'usb_mass_copy',
+    threatName: 'USB 대량 파일 복사',
+    category: '정보 유출',
+    mitre: 'T1052.001',
+    description: '이동식 디스크로 짧은 시간 안에 다수의 파일이 복사되면 발화한다.',
+  },
+]
 
 const hosts: Host[] = [
   {
@@ -292,11 +372,22 @@ function isNoEvents(h: Host): boolean {
  * extra 는 백엔드가 아직 최상위 필드로 펴지 않은 키다. 원본 detail 에만 실려서
  * "새 키는 detail 에서 확인한다"는 동작을 데모에서도 그대로 보여준다.
  */
+/**
+ * 백엔드는 host·ts·type·process·pid·parent·destIp·destPort 조합으로 이벤트 id 를 결정적으로 만든다.
+ * 형식은 UUID 가 아니어도 되고, 같은 관측이면 항상 같은 id 가 나오는 게 중요하다.
+ */
+function eventId(
+  e: Pick<EdrEvent, 'host' | 'ts' | 'type' | 'process' | 'pid' | 'parent' | 'destIp' | 'destPort'>,
+): string {
+  return ['evt', e.host, e.ts, e.type, e.process, e.pid, e.parent, e.destIp, e.destPort].join(':')
+}
+
 function event(
   base: Partial<EdrEvent> & Pick<EdrEvent, 'host' | 'type' | 'ts'>,
   extra: Record<string, unknown> = {},
 ): EdrEvent {
   const e: EdrEvent = {
+    id: '',
     process: '',
     parent: '',
     cmdline: '',
@@ -324,7 +415,7 @@ function event(
     ingestedAt: base.ts + 1_400,
     ...base,
   }
-  return { ...e, detail: detailOf(e, extra) }
+  return { ...e, id: eventId(e), detail: detailOf(e, extra) }
 }
 
 /** 원본 detail 은 평탄화된 필드를 되돌린 값이다. 손으로 두 벌을 적으면 반드시 어긋난다. */
@@ -516,6 +607,7 @@ function findEvent(host: string, type: string): EdrEvent {
 
 function toSourceEvent(e: EdrEvent, matchedBy: SourceEvent['matchedBy']): SourceEvent {
   return {
+    id: e.id,
     host: e.host,
     type: e.type,
     ts: e.ts,
@@ -534,11 +626,15 @@ function toSourceEvent(e: EdrEvent, matchedBy: SourceEvent['matchedBy']): Source
 /**
  * 알림 상세에서만 채워지는 원본 이벤트. demo-6~9 는 events 배열에 짝이 되는 이벤트가 없어서
  * null 로 둔다(원본을 못 찾은 경우를 화면이 어떻게 그리는지 보여주는 데도 쓰인다).
+ *
+ * matchedBy 는 확신이 강한 순서대로 세 단계를 섞어 둔다. summary(프로세스·부모·경로까지 일치) >
+ * destination(목적지 일치) > rule_type(이벤트 종류만 일치).
  */
 const sourceEvents: Record<string, SourceEvent | null> = {
   'demo-1': toSourceEvent(findEvent('WIN-FIN-02', 'file'), 'summary'),
   'demo-2': toSourceEvent(findEvent('WIN-DEV-01', 'file'), 'summary'),
-  'demo-3': toSourceEvent(findEvent('WIN-HR-03', 'process'), 'summary'),
+  // 판정 근거는 명령행이지만, 원본을 특정한 건 그 사건에서 관측된 목적지(telemetry-sync.io)다.
+  'demo-3': toSourceEvent(findEvent('WIN-HR-03', 'l7'), 'destination'),
   // c2_beacon 은 37 회 중 하나로 특정한 것이라 종류만 맞은 rule_type 이다.
   'demo-4': toSourceEvent(findEvent('WIN-FIN-02', 'l7'), 'rule_type'),
   'demo-5': toSourceEvent(findEvent('WIN-OPS-01', 'process'), 'summary'),
@@ -779,6 +875,16 @@ const incidentAlertIds: Record<string, string[]> = {
   'incident-5': ['demo-5'],
 }
 
+/**
+ * 알림 상세의 incidentId 조회용 역참조. demo-7~9 처럼 어느 사건에도 속하지 않은 알림은
+ * 여기 없어서 lookup 이 undefined 를 주고, 화면은 그걸 null 로 받아 "사건 보기"를 감춘다.
+ */
+const incidentIdByAlertId: Record<string, string> = Object.fromEntries(
+  Object.entries(incidentAlertIds).flatMap(([incidentId, alertIds]) =>
+    alertIds.map((alertId) => [alertId, incidentId]),
+  ),
+)
+
 const incidentLineage: Record<string, Lineage> = {
   'incident-1': finRansomwareTree,
   'incident-2': devLsassTree,
@@ -790,6 +896,7 @@ const incidentLineage: Record<string, Lineage> = {
 
 function eventEntry(e: EdrEvent): IncidentTimelineEntry {
   return {
+    eventId: e.id,
     ts: e.ts,
     kind: 'event',
     type: e.type,
@@ -809,6 +916,8 @@ function eventEntry(e: EdrEvent): IncidentTimelineEntry {
 
 function alertEntry(a: DemoAlert): IncidentTimelineEntry {
   return {
+    // 알림 줄은 alertId 로 짚으므로 eventId 는 항상 null 이다.
+    eventId: null,
     ts: a.ts,
     kind: 'alert',
     type: null,
@@ -872,7 +981,7 @@ function toIncidentDetail(i: IncidentBase): Incident {
   const ids = incidentAlertIds[i.id] ?? []
   return {
     ...i,
-    alerts: ids.map((id) => toAlert(findAlert(id), sourceEvents[id] ?? null)),
+    alerts: ids.map((id) => toAlert(findAlert(id), sourceEvents[id] ?? null, i.id)),
     lineage: incidentLineage[i.id] ?? { nodes: [], edges: [] },
   }
 }
@@ -1305,10 +1414,15 @@ type EventFilter = {
 export const demoApi = {
   alerts: (filter: AlertFilter = {}) => respond<Alert[]>(filtered(filter)),
 
-  /** 알림 상세. 목록에 없는 sourceEvent 가 여기서만 채워진다. */
+  /** 탐지 룰 카탈로그. tenant 와 무관한 정적 참조 데이터라 필터 없이 전부 돌려준다. */
+  rules: (): Promise<RuleCatalogEntry[]> => respond(ruleCatalog),
+
+  /** 알림 상세. 목록에 없는 sourceEvent·incidentId 가 여기서만 채워진다. */
   alert: (id: string) => {
     const target = alerts.find((a) => a.id === id) ?? alerts[0]
-    return respond(toAlert(target, sourceEvents[target.id] ?? null))
+    return respond(
+      toAlert(target, sourceEvents[target.id] ?? null, incidentIdByAlertId[target.id] ?? null),
+    )
   },
 
   /** 백엔드와 같은 조건·같은 순서(최신순). limit 기본값도 서버(100)와 맞춘다. */

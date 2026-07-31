@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { Link } from 'react-router-dom'
 import ScrollArea from '@/components/ui/ScrollArea'
 
 export type ChainStep = {
@@ -12,8 +13,12 @@ export type ChainStep = {
   active?: boolean
   /** 확실히 특정한 게 아니라 추정으로 이은 단계. */
   estimated?: boolean
-  /** 추정이거나 못 찾은 이유. 띠 아래에 한 줄로 붙는다. */
+  /** 추정 배지 문구. 확신 정도가 단계마다 다를 때만 준다. 기본은 '추정'. */
+  estimatedLabel?: string
+  /** 추정·미확인 이유나 이 단계를 읽는 데 필요한 설명. 띠 아래에 한 줄로 붙는다. */
   note?: string
+  /** 이 단계로 갈 수 있는 경로. 열리지 않을 곳이면 주지 않는다(링크가 아예 안 생긴다). */
+  to?: string
 }
 
 /**
@@ -63,12 +68,18 @@ function Cell({ step }: { step: ChainStep }) {
           {step.label}
         </span>
         {step.estimated && (
-          <span className="rounded-full border border-line px-[6px] text-[10px] text-mid">추정</span>
+          <span className="rounded-full border border-line px-[6px] text-[10px] text-mid">
+            {step.estimatedLabel ?? '추정'}
+          </span>
         )}
       </div>
       {/* 값은 호스트명·룰 id 처럼 길 수 있다. 잘라내면 조사에 필요한 부분이 사라지므로 접는다. */}
       {missing ? (
         <span className="text-[12.5px] text-faint">찾지 못함</span>
+      ) : step.to ? (
+        <Link to={step.to} className="text-[12.5px] font-bold wrap-anywhere hover:underline">
+          {step.value}
+        </Link>
       ) : (
         <span className="text-[12.5px] font-bold text-ink wrap-anywhere">{step.value}</span>
       )}

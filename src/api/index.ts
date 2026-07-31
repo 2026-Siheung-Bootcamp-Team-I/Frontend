@@ -16,6 +16,7 @@ import type {
   Incident,
   IncidentTimeline,
   Lineage,
+  RuleCatalogEntry,
   Topology,
   UserWebhook,
   WebhookTestResult,
@@ -99,7 +100,13 @@ export const api = {
       ? demoApi.alertSummary(period)
       : request<AlertSummary>(`/alerts/summary${queryString(period)}`),
 
-  /** 알림 상세. 목록에 없는 sourceEvent 가 여기서만 채워진다. */
+  /**
+   * 탐지 룰 카탈로그. tenant 와 무관한 정적 참조 데이터라 화면이 한 번 받아 두고 쓴다.
+   * 알림마다 룰 설명을 실어 보내지 않기 위해 백엔드가 따로 뺀 엔드포인트다.
+   */
+  rules: () => (isDemo() ? demoApi.rules() : request<RuleCatalogEntry[]>('/alerts/rules')),
+
+  /** 알림 상세. 목록에 없는 sourceEvent 와 incidentId 가 여기서만 채워진다. */
   alert: (id: string) =>
     isDemo() ? demoApi.alert(id) : request<Alert>(`/alerts/${encodeURIComponent(id)}`),
 

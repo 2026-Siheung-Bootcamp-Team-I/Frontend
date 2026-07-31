@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@/api'
 import type {
@@ -6,6 +6,7 @@ import type {
   ExecuteStatus,
   Incident,
   IncidentTimelineEntry,
+  RuleCatalogEntry,
   SourceEvent,
 } from '@/api/types'
 import AsyncState from '@/components/ui/AsyncState'
@@ -57,6 +58,16 @@ function IncidentDetail() {
 
   const alerts = incident?.alerts?.map((a) => freshAlerts[a.id] ?? a) ?? null
   const picked = alerts?.find((a) => a.id === pickedAlertId) ?? alerts?.[0] ?? null
+
+  // 룰 카탈로그는 알림과 무관한 정적 참조 데이터라 화면에서 한 번만 받아 ruleId 로 찾아 쓴다.
+  const rules = useApi(() => api.rules(), [])
+  const ruleById = useMemo(
+    () => new Map((rules.data ?? []).map((r) => [r.ruleId, r])),
+    [rules.data],
+  )
+
+  // 전개에서 이 알림을 유발한 관측을 짚는 id. 알림 줄은 eventId 가 null 이라 빈 값과 맞대면 안 된다.
+  const sourceEventId = picked?.sourceEvent?.id ?? null
 
   return (
     <div className="flex flex-col gap-[16px]">
@@ -116,6 +127,7 @@ function IncidentDetail() {
                 key={picked.id}
                 alert={picked}
                 incident={incident}
+                rule={ruleById.get(picked.ruleId) ?? null}
                 onLoaded={keepFresh}
               />
             )}
@@ -139,7 +151,11 @@ function IncidentDetail() {
           <div className="flex flex-col">
             {/* 서버가 시간 오름차순으로, 같은 시각이면 이벤트를 알림보다 먼저 준다. 다시 정렬하지 않는다. */}
             {(timeline.data?.entries ?? []).map((entry, i) => (
-              <TimelineRow key={`${entry.ts}-${entry.kind}-${i}`} entry={entry} />
+              <TimelineRow
+                key={`${entry.ts}-${entry.kind}-${i}`}
+                entry={entry}
+                isPickedSource={Boolean(sourceEventId) && entry.eventId === sourceEventId}
+              />
             ))}
           </div>
         </AsyncState>
@@ -356,10 +372,12 @@ function AlertTable({ alerts, selectedId, onPick }: AlertTableProps) {
 function PickedAlert({
   alert,
   incident,
+  rule,
   onLoaded,
 }: {
   alert: Alert
   incident: Incident
+  rule: RuleCatalogEntry | null
   onLoaded: (a: Alert) => void
 }) {
   const alertsVersion = useAlertsStore((s) => s.version)
@@ -376,6 +394,11 @@ function PickedAlert({
       <div className="text-[13px] font-bold text-ink">
         선택한 알림 <span className="ml-[4px] font-normal text-ink-2">{current.threatName}</span>
       </div>
+      {/* ruleId 만으로는 이 룰이 무엇을 잡는지 알 수 없다. 카탈로그에 없는 룰이면 id 만 둔다. */}
+      <div className="mt-[6px] text-[12px] leading-[1.5] text-faint">
+        <span className="font-mono">{current.ruleId}</span>
+        {rule && <span className="ml-[8px] text-mid">{rule.description}</span>}
+      </div>
 
       <div className="mt-[14px]">
         <div className="mb-[10px] text-[12.5px] text-faint leading-[1.5]">
@@ -383,7 +406,7 @@ function PickedAlert({
         </div>
         {/* sourceEvent 는 상세 응답에만 있다. 아직 못 받았는데 그리면 있는 이벤트가 없는 것으로 보인다. */}
         {fresh ? (
-          <EvidenceChain steps={toChainSteps(incident, fresh)} />
+          <EvidenceChain steps={toChainSteps(incident, fresh, rule)} />
         ) : (
           <div className="py-[16px] text-center text-[13px] text-faint">
             {detail.error ? '증거 사슬을 그리지 못했습니다' : '증거 사슬을 그리는 중입니다'}
@@ -415,15 +438,24 @@ function PickedAlert({
 }
 
 /**
- * matchedBy 별 확신 문구. summary 는 프로세스명·부모·경로까지 맞춘 것이라 확신이 강하고,
- * rule_type 은 이벤트 종류만 맞아 같은 종류가 여럿이면 시각으로 갈린 것이라 확신이 약하다.
- * 배지 색과 문구를 다르게 둬서 추정을 사실처럼 보이지 않게 한다.
+ * matchedBy 별 확신 문구. 확신이 강한 순서로 summary > destination > rule_type 이다.
+ * summary 는 프로세스명·부모·경로까지 맞춘 것이라 확신이 강하고, destination 은 목적지만 맞은 것이며,
+ * rule_type 은 이벤트 종류만 맞아 같은 종류가 여럿이면 시각으로 갈린 것이라 확신이 가장 약하다.
+ * 셋의 배지 색과 문구를 모두 다르게 둬서 추정을 사실처럼 보이지 않게 한다.
  */
-const matchedByInfo: Record<string, { label: string; tone: 'good' | 'high'; note: string }> = {
+const matchedByInfo: Record<
+  string,
+  { label: string; tone: 'good' | 'accent' | 'high'; note: string }
+> = {
   summary: {
     label: '근거 확실',
     tone: 'good',
     note: '프로세스명·부모·경로까지 일치해 이 이벤트가 판정 근거임을 확인했습니다.',
+  },
+  destination: {
+    label: '목적지 일치',
+    tone: 'accent',
+    note: '목적지(도메인·IP)가 일치합니다. 프로세스까지 맞춘 것은 아니라 같은 곳에 붙은 다른 이벤트일 수 있습니다.',
   },
   rule_type: {
     label: '근거 추정',
@@ -434,31 +466,55 @@ const matchedByInfo: Record<string, { label: string; tone: 'good' | 'high'; note
 
 /**
  * 엔드포인트 → 이벤트 → 룰 → 알림 → 사건 다섯 칸.
- * 이벤트는 SourceEvent 에 식별자가 없어 시각과 프로세스명으로만 가리킨다.
  */
-function toChainSteps(incident: Incident, alert: Alert): ChainStep[] {
+function toChainSteps(
+  incident: Incident,
+  alert: Alert,
+  rule: RuleCatalogEntry | null,
+): ChainStep[] {
   const event = alert.sourceEvent
   // summary 만 프로세스명·부모·경로까지 맞춘 확실한 연결이다. 나머지는 전부 추정으로 그린다.
   const estimated = event !== null && event.matchedBy !== 'summary'
   const info = event ? matchedByInfo[event.matchedBy] : undefined
+  /*
+    사건 칸은 지금 보고 있는 사건이 아니라 알림이 들고 온 incidentId 로 잇는다.
+    null 이면 사건 조회 기간(최근 7일) 밖이라 사건 목록에도 없다. 링크를 걸면 열리지 않는 곳으로 보낸다.
+  */
+  const incidentId = alert.incidentId
+  const sameIncident = incidentId === incident.id
 
   return [
     { label: '엔드포인트', value: alert.host },
     {
       label: '이벤트',
-      value: event ? (event.process || '프로세스 미상') : null,
+      value: event ? event.process || '프로세스 미상' : null,
       sub: event ? absoluteTime(event.ts) : undefined,
       estimated,
+      estimatedLabel: info?.label,
       note: event
         ? estimated
           ? (info?.note ?? '알려지지 않은 방법으로 특정한 이벤트라 확실하지 않습니다.')
           : undefined
         : '판정 근거가 된 원본 이벤트를 찾지 못해 사슬이 여기서 끊깁니다.',
     },
-    { label: '룰', value: alert.threatName, sub: alert.ruleId },
+    { label: '룰', value: alert.threatName, sub: alert.ruleId, note: rule?.description },
     // 사건 상세에서 고른 것은 알림이라 여기가 지금 위치다.
     { label: '알림', value: alert.id, active: true },
-    { label: '사건', value: incident.threatNames[0] ?? '위협명 없음', sub: incident.id },
+    {
+      label: '사건',
+      value:
+        incidentId === null
+          ? null
+          : sameIncident
+            ? (incident.threatNames[0] ?? '위협명 없음')
+            : incidentId,
+      sub: incidentId !== null && sameIncident ? incidentId : undefined,
+      to: incidentId === null ? undefined : `/incidents/${incidentId}`,
+      note:
+        incidentId === null
+          ? '사건 조회 기간(최근 7일)을 벗어난 오래된 알림이라 사건으로 묶이지 않았습니다.'
+          : undefined,
+    },
   ]
 }
 
@@ -674,15 +730,24 @@ function eventParts(entry: IncidentTimelineEntry): string[] {
   ].filter((part): part is string => Boolean(part))
 }
 
-/** 이벤트 줄과 알림 줄을 배경·표식으로 갈라 그린다. 관측과 판정은 다른 것이다. */
-function TimelineRow({ entry }: { entry: IncidentTimelineEntry }) {
+/**
+ * 이벤트 줄과 알림 줄을 배경·표식으로 갈라 그린다. 관측과 판정은 다른 것이다.
+ * isPickedSource 는 고른 알림을 유발한 바로 그 관측이라 전개에서 눈에 띄게 짚어 준다.
+ */
+function TimelineRow({
+  entry,
+  isPickedSource,
+}: {
+  entry: IncidentTimelineEntry
+  isPickedSource: boolean
+}) {
   const isAlert = entry.kind === 'alert'
   const parts = eventParts(entry)
 
   return (
     <div
       className={`flex gap-[12px] border-b border-line-2 px-[10px] py-[10px] ${
-        isAlert ? 'bg-panel' : ''
+        isPickedSource ? 'bg-[var(--accent-wash)]' : isAlert ? 'bg-panel' : ''
       }`}
     >
       <span className="pt-[2px] font-mono text-[11.5px] text-faint">{clockTime(entry.ts)}</span>
@@ -709,6 +774,11 @@ function TimelineRow({ entry }: { entry: IncidentTimelineEntry }) {
             <span className="font-mono text-[12.5px] text-ink-2">
               {entry.process ?? '프로세스 미상'}
             </span>
+            {isPickedSource && (
+              <span className="rounded-full border border-accent px-[6px] text-[10px] text-accent">
+                선택한 알림의 원본
+              </span>
+            )}
           </span>
           {parts.length > 0 && (
             <span className="mt-[3px] block truncate font-mono text-[11px] text-faint">

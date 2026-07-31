@@ -8,12 +8,10 @@ export type AlertStatus = 'open' | 'confirmed' | 'false_positive'
 
 /**
  * 판정을 유발한 원본 이벤트. GET /api/alerts/{id} 에서만 채워지고 목록에는 없다.
- *
- * matchedBy 는 이 이벤트를 무엇으로 특정했는지다. summary 는 프로세스명·부모·경로까지 맞은 것이고,
- * rule_type 은 이벤트 종류만 맞아 같은 종류가 여럿이면 시각으로 갈린 것이다. 확신의 세기가 다르므로
- * 화면에서 같게 보여주면 안 된다.
  */
 export type SourceEvent = {
+  /** 이벤트를 짚는 결정적 id. /api/events 와 사건 전개에서 같은 값이 나온다. */
+  id: string
   host: string
   type: string
   /** epoch millis */
@@ -27,7 +25,12 @@ export type SourceEvent = {
   domain: string
   detail: string
   sha256: string
-  matchedBy: 'summary' | 'rule_type' | string
+  /**
+   * 이 이벤트를 무엇으로 특정했는지. 확신이 강한 순서다.
+   * summary(프로세스명·부모·경로까지 일치) > destination(목적지 일치) > rule_type(이벤트 종류만 일치).
+   * 백엔드가 단계를 늘릴 수 있어 유니온으로 좁히지 않는다.
+   */
+  matchedBy: string
 }
 
 export type Alert = {
@@ -50,6 +53,24 @@ export type Alert = {
   destIp: string
   /** 목록이거나 원본 이벤트를 못 찾았으면 null. */
   sourceEvent: SourceEvent | null
+  /**
+   * 이 알림이 속한 사건. 목록이면 null이고, 상세여도 사건 조회 기본 기간(최근 7일)을 벗어난
+   * 알림이면 null이다. 그 사건은 사건 목록에도 안 보이므로 화면은 사건으로 가는 길을 감춰야 한다.
+   */
+  incidentId: string | null
+}
+
+/**
+ * 탐지 룰 카탈로그. GET /api/alerts/rules.
+ * 알림마다 실려 오지 않는 정적 참조 데이터라 화면이 한 번 받아 두고 ruleId 로 찾아 쓴다.
+ */
+export type RuleCatalogEntry = {
+  ruleId: string
+  threatName: string
+  category: string
+  mitre: string
+  /** 이 룰이 언제 발화하는지. detector 판정 로직을 그대로 옮긴 문장이다. */
+  description: string
 }
 
 export type AlertSummary = {
@@ -154,6 +175,8 @@ export type EventSummary = {
  * 반대로 pid/포트/코드 같은 수치는 관측하지 못하면 null 이다(0 은 실제로 0인 경우다).
  */
 export type EdrEvent = {
+  /** 이벤트를 짚는 결정적 id. 알림의 원본 이벤트·사건 전개에서 같은 값이 나온다. */
+  id: string
   host: string
   type: string
   /** epoch millis. 엔드포인트에서 이벤트가 일어난 시각. */
@@ -381,6 +404,8 @@ export type Incident = {
  * 체인 밖 이벤트는 담기지 않는다. 같은 시각이면 이벤트가 알림보다 먼저 온다.
  */
 export type IncidentTimelineEntry = {
+  /** 이벤트 줄을 짚는 id. 알림 줄은 alertId 로 짚으므로 null 이다. */
+  eventId: string | null
   /** epoch millis */
   ts: number
   kind: 'event' | 'alert'

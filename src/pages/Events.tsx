@@ -30,7 +30,7 @@ const DEFAULT_PERIOD = '168'
 const ALL_TYPES = 'all'
 
 /** 유형 드롭다운에 먼저 세울 순서. 여기 없는 유형(백엔드가 새로 수집하기 시작한 것)은 뒤에 붙는다. */
-const TYPE_ORDER = ['process', 'network', 'file', 'dns', 'l7']
+const TYPE_ORDER = ['process', 'script', 'network', 'file', 'dns', 'l7']
 
 /** 발생 시각 / 호스트 / 유형 / 내용 / 적재 시각 / 펼침 */
 const rowGrid = 'grid grid-cols-[152px_120px_104px_1fr_152px_20px] gap-[12px] px-[4px]'
@@ -54,7 +54,10 @@ function dnsCodeLabel(code: number): string {
  */
 function summarize(e: EdrEvent): string {
   switch (e.type) {
+    // script 는 인터프리터 실행이라 채워지는 필드가 process 와 같다. 무엇을 실행했는지는
+    // 인터프리터 이름이 아니라 명령줄에 담긴 대상 경로에 있어 process 와 같은 규칙을 쓴다.
     case 'process':
+    case 'script':
       return e.cmdline || e.process
     case 'network':
       return [e.protocol?.toUpperCase(), e.destPort ? `${e.destIp}:${e.destPort}` : e.destIp]

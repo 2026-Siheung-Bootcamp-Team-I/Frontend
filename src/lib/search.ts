@@ -1,20 +1,5 @@
-import type { Alert, Host } from '@/api/types'
-
-export type SearchResult = {
-  alerts: Alert[]
-  hosts: Host[]
-}
-
 /**
- * 상단바 검색. 위협은 이름·호스트로, 엔드포인트는 호스트로 부분 일치시킨다.
- * 검색어가 비어 있으면 아무것도 찾지 않는다(드롭다운을 닫아두기 위해).
+ * 서버가 질의어 2글자 미만을 400 으로 거절한다. 한 글자면 이벤트 전체를 훑어야 해서 막아 둔 것이다.
+ * 화면은 애초에 보내지 않아 사용자가 오류 대신 안내를 본다.
  */
-export function searchAll(query: string, alerts: Alert[], hosts: Host[], limit = 5): SearchResult {
-  const q = query.trim().toLowerCase()
-  if (!q) return { alerts: [], hosts: [] }
-  const hit = (value: string) => value.toLowerCase().includes(q)
-  return {
-    alerts: alerts.filter((a) => hit(a.threatName) || hit(a.host)).slice(0, limit),
-    hosts: hosts.filter((h) => hit(h.host)).slice(0, limit),
-  }
-}
+export const MIN_QUERY = 2

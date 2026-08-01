@@ -435,6 +435,47 @@ export type IncidentTimeline = {
   entries: IncidentTimelineEntry[]
 }
 
+/* ── 통합 검색 (GET /api/search) ─────────────────────────────────────────────── */
+
+/**
+ * 드롭다운 한 줄에 필요한 것만 담긴 알림. 목록 응답의 부분집합이라
+ * status·action·matched·domain·destIp·sourceEvent·incidentId 가 없다.
+ * 상세가 필요하면 id 로 GET /api/alerts/{id} 를 따로 부른다.
+ */
+export type SearchAlert = Pick<
+  Alert,
+  'id' | 'host' | 'ruleId' | 'threatName' | 'mitre' | 'severity' | 'ts'
+>
+
+/**
+ * 이벤트 부분집합. host 와 ts 는 표시용이 아니라 이동용이다.
+ * 이벤트 id 는 저장된 값이 아니라 행을 접어 만든 것이라 상세 조회에 셋 다 있어야 한다.
+ */
+export type SearchEvent = Pick<
+  EdrEvent,
+  'id' | 'host' | 'ts' | 'type' | 'process' | 'cmdline' | 'domain' | 'destIp' | 'sha256'
+>
+
+/**
+ * 잘림은 종류마다 따로 온다. 호스트는 다 왔는데 이벤트만 잘리는 경우가 흔해서
+ * 한 벌로 묶으면 어느 쪽이 잘렸는지 화면이 말할 수 없다.
+ */
+export type SearchSection<T> = {
+  items: T[]
+  hasMore: boolean
+}
+
+export type SearchResults = {
+  /** 앞뒤 공백만 뗀 질의어. */
+  query: string
+  /** epoch millis. 세 섹션 공통 구간이라 "없음"과 "이 기간에는 없음"을 갈라 말해야 한다. */
+  from: number
+  to: number
+  hosts: SearchSection<Host>
+  alerts: SearchSection<SearchAlert>
+  events: SearchSection<SearchEvent>
+}
+
 export type AuthResponse = {
   token: string
   userId: number

@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/api'
+import { useApi } from '@/hooks/useApi'
 import { usePagedList } from '@/hooks/usePagedList'
 import type { EdrEvent } from '@/api/types'
 import ActiveFilters, { type ActiveFilter } from '@/components/ui/ActiveFilters'
@@ -136,7 +137,7 @@ function keyOf(e: EdrEvent): string {
   return [e.ts, e.type, e.host, e.process, e.destIp, e.domain].join('|')
 }
 
-function Detail({ event, onFilterHost }: { event: EdrEvent; onFilterHost: () => void }) {
+function Detail({ event, onFilterHost }: { event: EdrEvent; onFilterHost?: () => void }) {
   return (
     <div className="border-t border-line-2 bg-panel px-[16px] py-[14px]">
       <dl className="grid grid-cols-[max-content_1fr] gap-x-[18px] gap-y-[7px] sm:grid-cols-[max-content_1fr_max-content_1fr]">
@@ -147,13 +148,15 @@ function Detail({ event, onFilterHost }: { event: EdrEvent; onFilterHost: () => 
           </Fragment>
         ))}
       </dl>
-      <button
-        type="button"
-        onClick={onFilterHost}
-        className="mt-[14px] cursor-pointer rounded-sm border border-line bg-surface px-[11px] py-[6px] font-sans text-[11.5px] font-semibold text-accent"
-      >
-        이 호스트만 보기
-      </button>
+      {onFilterHost && (
+        <button
+          type="button"
+          onClick={onFilterHost}
+          className="mt-[14px] cursor-pointer rounded-sm border border-line bg-surface px-[11px] py-[6px] font-sans text-[11.5px] font-semibold text-accent"
+        >
+          이 호스트만 보기
+        </button>
+      )}
       {/*
         백엔드가 새로 수집하기 시작한 값은 위 필드에 아직 없다. 그때 화면을 고칠 때까지
         조사를 멈추지 않으려면 평탄화 전 원문을 볼 수 있어야 한다.
@@ -181,6 +184,21 @@ function Events() {
   // 호스트는 다 입력한 뒤에 보낸다. 글자마다 조회하면 서버를 의미 없이 여러 번 두드린다.
   const [hostInput, setHostInput] = useState(host ?? '')
   useEffect(() => setHostInput(host ?? ''), [host])
+
+  /*
+    상단바 검색에서 이벤트 한 건을 짚고 들어온 경우. 그 이벤트가 목록 첫 쪽에 있으리라는 보장이
+    없어 따로 받아 위에 세운다. id 는 저장된 값이 아니라 행을 접어 만든 것이라 host·ts 가 함께 있어야
+    서버가 찾는다. 셋 다 주소에 담겨 있으니 새로고침해도 그대로 열린다.
+  */
+  const pinnedId = searchParams.get('id')
+  const pinnedTs = searchParams.get('ts')
+  const pinned = useApi(
+    () =>
+      pinnedId && host && pinnedTs
+        ? api.event(pinnedId, host, Number(pinnedTs))
+        : Promise.resolve(null),
+    [pinnedId, host, pinnedTs],
+  )
 
   const { rows, total, hasMore, loading, loadingMore, error, moreError, loadMore, reload } =
     usePagedList<EdrEvent>(
@@ -287,6 +305,30 @@ function Events() {
 
       {/* 다른 화면에서 호스트를 좁혀 들어오는 경로가 있어(엔드포인트 등) 되돌아갈 길을 준다. */}
       <ActiveFilters filters={activeFilters} onBack={canGoBack ? () => navigate(-1) : undefined} />
+
+      {pinnedId && (
+        <Card>
+          <div className="flex items-center justify-between gap-[12px] border-b border-line-2 px-[16px] py-[14px] sm:px-[24px]">
+            <span className="text-[14px] font-bold text-ink">검색으로 연 이벤트</span>
+            <button
+              type="button"
+              onClick={() => setSearchParams(host ? { host } : {})}
+              className="cursor-pointer text-[12px] font-semibold text-faint"
+            >
+              닫기
+            </button>
+          </div>
+          <AsyncState
+            loading={pinned.loading}
+            error={pinned.error}
+            empty={pinned.data === null}
+            emptyText="이 이벤트를 찾지 못했습니다"
+            onRetry={pinned.refetch}
+          >
+            {pinned.data && <Detail event={pinned.data} />}
+          </AsyncState>
+        </Card>
+      )}
 
       <Card>
         <div className="flex items-baseline justify-between gap-[12px] border-b border-line-2 px-[16px] py-[14px] sm:px-[24px]">

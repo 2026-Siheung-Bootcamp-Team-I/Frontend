@@ -17,6 +17,7 @@ import type {
   IncidentTimeline,
   Lineage,
   RuleCatalogEntry,
+  SearchResults,
   Topology,
   UserWebhook,
   WebhookTestResult,
@@ -209,6 +210,13 @@ export const api = {
           method: 'PATCH',
           body: { status },
         }),
+
+  /**
+   * 통합 검색. 종류별 상위 몇 건만 오고, 잘림은 섹션마다 hasMore 로 온다.
+   * 2글자 미만은 서버가 400 이라 화면이 아예 보내지 않는다(MIN_QUERY).
+   */
+  search: (q: string) =>
+    isDemo() ? demoApi.search(q) : request<SearchResults>(`/search${queryString({ q })}`),
 
   hosts: () => (isDemo() ? demoApi.hosts() : request<Host[]>('/hosts')),
 

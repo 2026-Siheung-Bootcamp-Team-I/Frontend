@@ -101,6 +101,8 @@ export function platformLabel(platform: string): string {
 
 const eventTypeLabels: Record<string, string> = {
   process: '프로세스',
+  // 인터프리터(bash, powershell.exe 등) 실행. detector 의 T1059 룰이 이 유형에만 걸린다.
+  script: '스크립트',
   network: '네트워크',
   file: '파일',
   dns: 'DNS',

@@ -240,7 +240,16 @@ function TriageBox({ incident, onTriaged }: SummaryProps) {
     setAsking(false)
     setError(null)
     try {
-      onTriaged(await api.triageIncident(incident.id, status))
+      const patched = await api.triageIncident(incident.id, status)
+      /*
+        트리아지 응답은 목록 형태라 alerts 와 lineage 가 null 이다. 그대로 갈아치우면 판단 한 번에
+        보고 있던 구성 알림과 계보가 사라진다. 바뀐 것은 status 뿐이므로 나머지는 그대로 둔다.
+      */
+      onTriaged({
+        ...patched,
+        alerts: patched.alerts ?? incident.alerts,
+        lineage: patched.lineage ?? incident.lineage,
+      })
       bump()
     } catch (e) {
       setError((e as Error).message)

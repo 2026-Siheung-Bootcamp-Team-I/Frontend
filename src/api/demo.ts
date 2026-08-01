@@ -24,12 +24,15 @@ import type {
   Lineage,
   ReverseLookup,
   RuleCatalogEntry,
+  SearchResults,
+  SearchSection,
   SourceEvent,
   Topology,
   TopologyEdge,
   TopologyNode,
 } from './types'
 import type { Page } from './client'
+import { MIN_QUERY } from '@/lib/search'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -1379,6 +1382,11 @@ function respond<T>(value: T): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), 180))
 }
 
+/** 검색 섹션 하나. 상한을 넘겼는지는 자르기 전에 세야 알 수 있다. */
+function section<T>(rows: T[], limit = 5): SearchSection<T> {
+  return { items: rows.slice(0, limit), hasMore: rows.length > limit }
+}
+
 type AlertFilter = {
   host?: string
   severity?: string
@@ -1619,5 +1627,50 @@ export const demoApi = {
     const target = incidents.find((i) => i.id === id)
     if (target) target.status = status
     return respond(toIncidentDetail(target ?? incidents[0]))
+  },
+
+  /** 서버와 같은 모양·같은 상한. 서버가 2글자 미만을 400 으로 막으므로 여기서도 거절한다. */
+  search: (q: string): Promise<SearchResults> => {
+    const query = q.trim()
+    if (query.length < MIN_QUERY) throw new Error(`검색어는 ${MIN_QUERY}글자 이상이어야 합니다`)
+    const hit = (...values: string[]) =>
+      values.some((v) => v.toLowerCase().includes(query.toLowerCase()))
+    // 서버는 기본 기간 안에서만 찾는다. 데모도 같은 구간을 밝혀야 "이 기간에는 없음"이 말이 된다.
+    const from = now - 7 * DAY
+    const to = now
+    return respond({
+      query,
+      from,
+      to,
+      hosts: section(hosts.filter((h) => hit(h.host))),
+      alerts: section(
+        alerts
+          .filter((a) => hit(a.threatName, a.host, a.ruleId))
+          .map((a) => ({
+            id: a.id,
+            host: a.host,
+            ruleId: a.ruleId,
+            threatName: a.threatName,
+            mitre: a.mitre,
+            severity: a.severity,
+            ts: a.ts,
+          })),
+      ),
+      events: section(
+        events
+          .filter((e) => hit(e.host, e.process, e.cmdline, e.domain, e.destIp, e.sha256))
+          .map((e) => ({
+            id: e.id,
+            host: e.host,
+            ts: e.ts,
+            type: e.type,
+            process: e.process,
+            cmdline: e.cmdline,
+            domain: e.domain,
+            destIp: e.destIp,
+            sha256: e.sha256,
+          })),
+      ),
+    })
   },
 }

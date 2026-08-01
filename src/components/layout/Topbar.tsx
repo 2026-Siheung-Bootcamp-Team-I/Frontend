@@ -5,8 +5,16 @@ import { useAlertsStore } from '@/store/alerts'
 import { useAuthStore } from '@/store/auth'
 import { useApi } from '@/hooks/useApi'
 import { api } from '@/api'
-import { searchAll } from '@/lib/search'
-import { severityColors, severityTone, hostStatusColor, hostStatusLabel } from '@/lib/format'
+import type { SearchEvent } from '@/api/types'
+import { MIN_QUERY } from '@/lib/search'
+import {
+  absoluteTime,
+  eventTypeLabel,
+  severityColors,
+  severityTone,
+  hostStatusColor,
+  hostStatusLabel,
+} from '@/lib/format'
 import { useRefreshStore, INTERVALS, type RefreshInterval } from '@/store/refresh'
 
 const intervalLabels: Record<RefreshInterval, string> = {
@@ -50,6 +58,21 @@ function trailOf(pathname: string): Crumb[] {
   return title ? [{ label: title }] : []
 }
 
+/** 잘린 종류만 표시한다. 표시가 없는 섹션은 그게 전부라는 뜻이다. */
+function SectionHead({ label, hasMore }: { label: string; hasMore: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-[8px] px-[12px] py-[5px]">
+      <span className="text-[10.5px] text-faint uppercase tracking-[0.04em]">{label}</span>
+      {hasMore && <span className="text-[10.5px] text-faint">더 있음</span>}
+    </div>
+  )
+}
+
+/** 한 줄에 세울 값. 검색 응답은 이벤트 부분집합이라 목록 화면만큼 자세히 적을 수 없다. */
+function eventSummary(e: SearchEvent): string {
+  return e.cmdline || e.process || e.domain || e.destIp || e.sha256 || e.id
+}
+
 type TopbarProps = {
   onMenuOpen: () => void
 }
@@ -65,6 +88,8 @@ function Topbar({ onMenuOpen }: TopbarProps) {
 
   const alertsVersion = useAlertsStore((s) => s.version)
   const [query, setQuery] = useState('')
+  // 실제로 서버에 보낸 질의어. 입력값과 다르면 아직 결과가 옛 것이라는 뜻이다.
+  const [committed, setCommitted] = useState('')
   const [open, setOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
 
@@ -83,12 +108,24 @@ function Topbar({ onMenuOpen }: TopbarProps) {
     return () => window.clearInterval(id)
   }, [refreshInterval, refresh])
 
-  // 검색은 클라이언트 부분 일치라 전체 목록이 필요하다. 검색창을 열기 전에는 받지 않는다.
-  const alerts = useApi(
-    () => (open ? api.alerts({ limit: 1000 }) : Promise.resolve([])),
-    [alertsVersion, open],
+  const trimmed = query.trim()
+  const tooShort = trimmed.length < MIN_QUERY
+
+  useEffect(() => {
+    if (tooShort) {
+      setCommitted('')
+      return
+    }
+    // 글자마다 서버를 두드리지 않는다. 손이 멈춘 뒤 한 번만 보낸다.
+    const id = window.setTimeout(() => setCommitted(trimmed), 250)
+    return () => window.clearTimeout(id)
+  }, [trimmed, tooShort])
+
+  const search = useApi(
+    () => (committed ? api.search(committed) : Promise.resolve(null)),
+    [committed, alertsVersion],
   )
-  const hosts = useApi(() => (open ? api.hosts() : Promise.resolve([])), [alertsVersion, open])
+  const found = search.data
 
   useEffect(() => {
     function onOutsideClick(e: MouseEvent) {
@@ -100,13 +137,15 @@ function Topbar({ onMenuOpen }: TopbarProps) {
     return () => document.removeEventListener('mousedown', onOutsideClick)
   }, [])
 
-  const results = searchAll(query, alerts.data ?? [], hosts.data ?? [])
-  const showDropdown = open && query.trim() !== ''
-  const loading = alerts.loading || hosts.loading
-  const hasResults = results.alerts.length > 0 || results.hosts.length > 0
+  const showDropdown = open && trimmed !== ''
+  // 디바운스를 기다리는 동안은 아직 옛 결과라 "없음"으로 단정하면 안 된다.
+  const searching = !tooShort && (search.loading || trimmed !== committed)
+  const hasResults =
+    !!found &&
+    found.hosts.items.length + found.alerts.items.length + found.events.items.length > 0
 
-  function goToHost(host: string) {
-    navigate('/threats?host=' + encodeURIComponent(host))
+  function go(to: string) {
+    navigate(to)
     setQuery('')
     setOpen(false)
   }
@@ -198,55 +237,38 @@ function Topbar({ onMenuOpen }: TopbarProps) {
               onKeyDown={(e) => {
                 if (e.key === 'Escape') setOpen(false)
               }}
-              placeholder="호스트·위협 검색"
+              placeholder="호스트·위협·로그 검색"
               className="flex-1 min-w-0 bg-transparent border-0 outline-none font-sans text-[13px] text-ink placeholder:text-faint"
             />
             {showDropdown && (
-              <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-30 bg-surface border border-line rounded-md shadow-[var(--shadow-2)] py-[6px] max-h-[320px] overflow-y-auto">
-                {loading ? (
+              <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-30 bg-surface border border-line rounded-md shadow-[var(--shadow-2)] py-[6px] max-h-[380px] overflow-y-auto">
+                {tooShort ? (
                   <div className="text-[12.5px] text-faint px-[12px] py-[14px] text-center">
-                    불러오는 중
+                    {MIN_QUERY}글자 이상 입력하세요
                   </div>
-                ) : !hasResults ? (
+                ) : searching ? (
                   <div className="text-[12.5px] text-faint px-[12px] py-[14px] text-center">
-                    검색 결과가 없습니다
+                    찾는 중
+                  </div>
+                ) : search.error ? (
+                  <div className="text-[12.5px] text-crit px-[12px] py-[14px] text-center">
+                    {search.error}
                   </div>
                 ) : (
                   <>
-                    {results.alerts.length > 0 && (
-                      <>
-                        <div className="text-[10.5px] text-faint uppercase tracking-[0.04em] px-[12px] py-[5px]">
-                          위협
-                        </div>
-                        {results.alerts.map((a) => (
-                          <button
-                            key={a.id}
-                            type="button"
-                            onClick={() => goToHost(a.host)}
-                            className="w-full flex items-center gap-2 px-[12px] py-[8px] text-left hover:bg-panel cursor-pointer"
-                          >
-                            <span
-                              className="w-[6px] h-[6px] rounded-full flex-shrink-0"
-                              style={{ background: severityColors[severityTone(a.severity)] }}
-                            />
-                            <span className="text-[13px] text-ink flex-1 truncate">
-                              {a.threatName}
-                            </span>
-                            <span className="font-mono text-[11px] text-faint">{a.host}</span>
-                          </button>
-                        ))}
-                      </>
+                    {!hasResults && (
+                      <div className="text-[12.5px] text-faint px-[12px] py-[14px] text-center">
+                        일치하는 항목이 없습니다
+                      </div>
                     )}
-                    {results.hosts.length > 0 && (
+                    {found && found.hosts.items.length > 0 && (
                       <>
-                        <div className="text-[10.5px] text-faint uppercase tracking-[0.04em] px-[12px] py-[5px]">
-                          엔드포인트
-                        </div>
-                        {results.hosts.map((h) => (
+                        <SectionHead label="엔드포인트" hasMore={found.hosts.hasMore} />
+                        {found.hosts.items.map((h) => (
                           <button
                             key={h.host}
                             type="button"
-                            onClick={() => goToHost(h.host)}
+                            onClick={() => go('/endpoints/' + encodeURIComponent(h.host))}
                             className="w-full flex items-center gap-2 px-[12px] py-[8px] text-left hover:bg-panel cursor-pointer"
                           >
                             <span
@@ -262,6 +284,79 @@ function Topbar({ onMenuOpen }: TopbarProps) {
                           </button>
                         ))}
                       </>
+                    )}
+                    {found && found.alerts.items.length > 0 && (
+                      <>
+                        <SectionHead label="위협" hasMore={found.alerts.hasMore} />
+                        {/*
+                          알림 하나만 여는 화면이 없어 그 알림이 난 호스트의 위협 목록으로 보낸다.
+                          검색 응답에는 status·목적지가 없어 여기서 상세인 척 그릴 수도 없다.
+                        */}
+                        {found.alerts.items.map((a) => (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => go('/threats?host=' + encodeURIComponent(a.host))}
+                            className="w-full flex items-center gap-2 px-[12px] py-[8px] text-left hover:bg-panel cursor-pointer"
+                          >
+                            <span
+                              className="w-[6px] h-[6px] rounded-full flex-shrink-0"
+                              style={{ background: severityColors[severityTone(a.severity)] }}
+                            />
+                            {/*
+                              실제 호스트명은 30자를 넘는다. 한 줄에 나란히 두면 호스트가 폭을 다 먹어
+                              위협명이 0px 로 접힌다. 위협명을 위에 세우고 호스트는 아래로 내린다.
+                            */}
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13px] text-ink">
+                                {a.threatName}
+                              </span>
+                              <span className="mt-[2px] block truncate font-mono text-[11px] text-faint">
+                                {a.host}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {found && found.events.items.length > 0 && (
+                      <>
+                        <SectionHead label="수집 로그" hasMore={found.events.hasMore} />
+                        {/* id 만으로는 서버가 행을 못 찾는다. host·ts 를 같이 넘겨야 한 건이 열린다. */}
+                        {found.events.items.map((e) => (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={() =>
+                              go(
+                                '/events?' +
+                                  new URLSearchParams({ id: e.id, host: e.host, ts: String(e.ts) }),
+                              )
+                            }
+                            className="w-full flex items-center gap-2 px-[12px] py-[8px] text-left hover:bg-panel cursor-pointer"
+                          >
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-mono text-[12.5px] text-ink">
+                                {eventSummary(e)}
+                              </span>
+                              <span className="mt-[2px] block truncate font-mono text-[11px] text-faint">
+                                {eventTypeLabel(e.type)} · {e.host}
+                              </span>
+                            </span>
+                            <span className="font-mono text-[11px] text-faint whitespace-nowrap">
+                              {absoluteTime(e.ts).slice(5, 16)}
+                            </span>
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {/*
+                      찾은 구간을 반드시 밝힌다. 이게 없으면 "없음"이 "이 기간에는 없음"과 같이 읽힌다.
+                    */}
+                    {found && (
+                      <div className="mt-[4px] border-t border-line-2 px-[12px] pt-[8px] pb-[3px] text-[10.5px] leading-[1.5] text-faint">
+                        {absoluteTime(found.from)} ~ {absoluteTime(found.to)} 구간에서 찾았습니다
+                      </div>
                     )}
                   </>
                 )}
